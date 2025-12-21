@@ -38,11 +38,7 @@ BISH_SLOW_MODEL_API_KEY=ollama
 BISH_SLOW_MODEL_BASE_URL=http://localhost:11434/v1/
 BISH_SLOW_MODEL_ID=qwen2.5:32b
 BISH_SLOW_MODEL_TEMPERATURE=0.1
-<<<<<<< HEAD
 BISH_FAST_MODEL_PARALLEL_TOOL_CALLS=true
-=======
-BISH_FAST_MODEL_PARALLEL_TOOL_CALLS=true
->>>>>>> 3159be5 (chore: rename project to Bishop)
 BISH_SLOW_MODEL_HEADERS='{}'
 
 # -------- RAG Configuration --------
@@ -72,7 +68,7 @@ BISH_CONTEXT_TYPES_FOR_EXPLANATION=system_info,working_directory
 # How many recent commands to use in concise version of commmand history
 BISH_CONTEXT_NUM_HISTORY_CONCISE=30
 
-# How many recent commands to use in verbose version of commmand history
+# How many recent commands to use in verbose version of command history
 BISH_CONTEXT_NUM_HISTORY_VERBOSE=30
 
 # -------- Agent Configuration --------
