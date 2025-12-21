@@ -65,7 +65,11 @@ Then add ~/.local/bin to your PATH if not already present:
 
 Alternatively, install via Homebrew:
 
-    brew install robottwo/bish/bish
+<<<<<<< HEAD
+    brew install robottwo/bishop/bish
+=======
+    brew install robottwo/bishop/bish
+>>>>>>> 3159be5 (chore: rename project to Bishop)
 
 For more information, visit: https://github.com/robottwo/bishop
 EOF
