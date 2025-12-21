@@ -44,9 +44,10 @@ type ShellCompletionProvider struct {
 	SubagentProvider  SubagentProvider // Optional, for @ completions
 
 	// Default completers
-	defaultCompleter *DefaultCompleter
-	gitCompleter     *GitCompleter
-	staticCompleter  *StaticCompleter
+	defaultCompleter       *DefaultCompleter
+	documentationCompleter *DocumentationCompleter
+	gitCompleter           *GitCompleter
+	staticCompleter        *StaticCompleter
 }
 
 // NewShellCompletionProvider creates a new ShellCompletionProvider
@@ -56,9 +57,10 @@ func NewShellCompletionProvider(manager CompletionManagerInterface, runner *inte
 		Runner:            runner,
 		SubagentProvider:  nil, // Set later via SetSubagentProvider if needed
 
-		defaultCompleter: &DefaultCompleter{},
-		gitCompleter:     &GitCompleter{},
-		staticCompleter:  NewStaticCompleter(),
+		defaultCompleter:       &DefaultCompleter{},
+		documentationCompleter: NewDocumentationCompleter(),
+		gitCompleter:           &GitCompleter{},
+		staticCompleter:        NewStaticCompleter(),
 	}
 }
 
@@ -118,6 +120,14 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []shellin
 	if len(words) > 1 {
 		defaultArgs = words[1:]
 	}
+
+	// Check DocumentationCompleter (man, info, help)
+	if suggestions, found := p.documentationCompleter.GetCompletions(command, defaultArgs, truncatedLine, pos); found {
+		if suggestions != nil {
+			return suggestions
+		}
+	}
+
 	if suggestions, found := p.defaultCompleter.GetCompletions(command, defaultArgs, truncatedLine, pos); found {
 		if suggestions != nil {
 			return suggestions
