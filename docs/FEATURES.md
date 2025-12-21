@@ -101,16 +101,16 @@ Example usage:
 
 ```bash
 # Evaluate using the configured fast model
-gsh> gsh_evaluate
+bish> bish_evaluate
 
 # Evaluate using the configured fast model but change model id to mistral:7b
-gsh> gsh_evaluate -m mistral:7b
+bish> bish_evaluate -m mistral:7b
 
 # Control the number of recent commands to use for evaluation
-gsh> gsh_evaluate -l 50  # evaluate with the most recent 50 commands you ran
+bish> bish_evaluate -l 50  # evaluate with the most recent 50 commands you ran
 
 # Run multiple iterations for more accurate results
-gsh> gsh_evaluate -i 5  # run 5 iterations
+bish> bish_evaluate -i 5  # run 5 iterations
 ```
 
 Options:

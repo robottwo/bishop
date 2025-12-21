@@ -316,7 +316,7 @@ func TestCreateFileToolWithExistingFile(t *testing.T) {
 	defer func() { userConfirmation = origUserConfirmation }()
 
 	// Create a temporary file with existing content
-	tempFile, err := os.CreateTemp("", "gsh_test_existing")
+	tempFile, err := os.CreateTemp("", "bish_test_existing")
 	require.NoError(t, err)
 
 	// Write some initial content
@@ -381,7 +381,7 @@ func TestCreateFileToolContentVariations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tempFile, err := os.CreateTemp("", "gsh_test_content")
+			tempFile, err := os.CreateTemp("", "bish_test_content")
 			require.NoError(t, err)
 
 			params := map[string]any{

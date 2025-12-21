@@ -44,7 +44,7 @@ func SetAuthorizedCommandsFileForTesting(file string) {
 }
 
 const (
-	DEFAULT_PROMPT       = "gsh> "
+	DEFAULT_PROMPT       = "bish> "
 	DEFAULT_AGENT_PROMPT = "🤖> "
 )
 
