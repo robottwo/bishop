@@ -172,14 +172,14 @@ func TestBashToolParameterParsing(t *testing.T) {
 	params := map[string]any{
 		"command": "echo test",
 	}
-	result := BashTool(runner, historyManager, logger, params)
+	result := BashTool(runner, historyManager, logger, "session-test", params)
 	assert.Contains(t, result, "failed to parse parameter 'reason'")
 
 	// Test missing command parameter
 	params = map[string]any{
 		"reason": "test reason",
 	}
-	result = BashTool(runner, historyManager, logger, params)
+	result = BashTool(runner, historyManager, logger, "session-test", params)
 	assert.Contains(t, result, "failed to parse parameter 'command'")
 
 	// Test invalid command parameter type
@@ -187,7 +187,7 @@ func TestBashToolParameterParsing(t *testing.T) {
 		"reason":  "test reason",
 		"command": 123, // Wrong type
 	}
-	result = BashTool(runner, historyManager, logger, params)
+	result = BashTool(runner, historyManager, logger, "session-test", params)
 	assert.Contains(t, result, "failed to parse parameter 'command'")
 
 	// Test invalid reason parameter type
@@ -195,7 +195,7 @@ func TestBashToolParameterParsing(t *testing.T) {
 		"reason":  123, // Wrong type
 		"command": "echo test",
 	}
-	result = BashTool(runner, historyManager, logger, params)
+	result = BashTool(runner, historyManager, logger, "session-test", params)
 	assert.Contains(t, result, "failed to parse parameter 'reason'")
 }
 
@@ -213,7 +213,7 @@ func TestBashToolInvalidCommand(t *testing.T) {
 		"reason":  "test reason",
 		"command": "if without fi", // Invalid bash syntax
 	}
-	result := BashTool(runner, historyManager, logger, params)
+	result := BashTool(runner, historyManager, logger, "session-test", params)
 	assert.Contains(t, result, "is not a valid bash command")
 }
 
@@ -270,7 +270,7 @@ func TestBashToolWithPreApprovedCommand(t *testing.T) {
 	require.NoError(t, err)
 	os.Stdout = w
 
-	result := BashTool(runner, historyManager, logger, params)
+	result := BashTool(runner, historyManager, logger, "session-test", params)
 
 	// Restore stdout
 	require.NoError(t, w.Close())
@@ -310,7 +310,7 @@ func TestBashToolUserConfirmationFlow(t *testing.T) {
 
 	// This will likely fail at user confirmation since we can't mock it easily,
 	// but it should not fail at parameter parsing
-	result := BashTool(runner, historyManager, logger, params)
+	result := BashTool(runner, historyManager, logger, "session-test", params)
 
 	// Should not contain parameter parsing errors
 	assert.NotContains(t, result, "failed to parse parameter")

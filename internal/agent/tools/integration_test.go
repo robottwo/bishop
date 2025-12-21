@@ -131,7 +131,7 @@ func TestPreApproval(t *testing.T) {
 				"reason":  "Test command",
 				"command": command,
 			}
-			result := BashTool(runner, historyManager, logger, params)
+			result := BashTool(runner, historyManager, logger, "session-test", params)
 
 			// Verify the command executed (not declined)
 			assert.NotContains(t, result, "<bish_tool_call_error>User declined this request</bish_tool_call_error>")
@@ -400,7 +400,7 @@ func TestInvalidRegexHandling(t *testing.T) {
 		"reason":  "Test command",
 		"command": "ls -la",
 	}
-	result := BashTool(runner, historyManager, logger, params)
+	result := BashTool(runner, historyManager, logger, "session-test", params)
 
 	// Should execute successfully
 	assert.NotContains(t, result, "<bish_tool_call_error>User declined this request</bish_tool_call_error>")
@@ -609,7 +609,7 @@ func TestEdgeCases(t *testing.T) {
 		"reason":  "Test command",
 		"command": "ls -la",
 	}
-	result := BashTool(runner, historyManager, logger, params)
+	result := BashTool(runner, historyManager, logger, "session-test", params)
 
 	// Should execute successfully
 	assert.NotContains(t, result, "<bish_tool_call_error>User declined this request</bish_tool_call_error>")

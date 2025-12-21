@@ -27,6 +27,7 @@ type SubagentExecutor struct {
 	historyManager *history.HistoryManager
 	logger         *zap.Logger
 	subagent       *Subagent
+	sessionID      string
 
 	// LLM client and configuration (can be overridden per subagent)
 	llmClient      *openai.Client
@@ -42,6 +43,7 @@ func NewSubagentExecutor(
 	historyManager *history.HistoryManager,
 	logger *zap.Logger,
 	subagent *Subagent,
+	sessionID string,
 ) *SubagentExecutor {
 	// Get LLM client configuration
 	llmClient, modelConfig := utils.GetLLMClient(runner, utils.SlowModel)
@@ -56,6 +58,7 @@ func NewSubagentExecutor(
 		historyManager: historyManager,
 		logger:         logger,
 		subagent:       subagent,
+		sessionID:      sessionID,
 		llmClient:      llmClient,
 		llmModelConfig: modelConfig,
 	}
@@ -381,7 +384,7 @@ func (e *SubagentExecutor) handleToolCall(toolCall openai.ToolCall) bool {
 func (e *SubagentExecutor) executeToolCall(toolName string, params map[string]any) string {
 	switch toolName {
 	case "bash":
-		return tools.BashTool(e.runner, e.historyManager, e.logger, params)
+		return tools.BashTool(e.runner, e.historyManager, e.logger, e.sessionID, params)
 	case "view_file":
 		return tools.ViewFileTool(e.runner, e.logger, params)
 	case "view_directory":
