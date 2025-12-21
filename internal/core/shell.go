@@ -400,6 +400,13 @@ func RunInteractiveShell(
 }
 
 func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer) (bool, error) {
+	// History expansion
+	expandedInput, expanded := expandHistory(input, historyManager)
+	if expanded {
+		input = expandedInput
+		fmt.Fprintln(os.Stderr, input)
+	}
+
 	// Pre-process input to transform typeset/declare -f/-F/-p commands to bish_typeset
 	logger.Debug("preprocessing input", zap.String("original_input", input), zap.Int("input_length", len(input)))
 
@@ -488,4 +495,70 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 	}
 
 	return exited, nil
+}
+
+func expandHistory(input string, historyManager *history.HistoryManager) (string, bool) {
+	// Quick check
+	if !strings.Contains(input, "!") {
+		return input, false
+	}
+
+	entries, err := historyManager.GetAllEntries()
+	if err != nil || len(entries) == 0 {
+		return input, false
+	}
+	lastEntry := entries[0]
+	lastCmd := lastEntry.Command
+
+	// Get last argument
+	lastArg := shellinput.GetLastArgument(lastCmd)
+
+	var sb strings.Builder
+	expanded := false
+	inSingleQuote := false
+
+	runes := []rune(input)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+
+		if r == '\'' {
+			inSingleQuote = !inSingleQuote
+			sb.WriteRune(r)
+			continue
+		}
+
+		if inSingleQuote {
+			sb.WriteRune(r)
+			continue
+		}
+
+		if r == '\\' {
+			sb.WriteRune(r)
+			if i+1 < len(runes) {
+				sb.WriteRune(runes[i+1])
+				i++
+			}
+			continue
+		}
+
+		// Check for !!
+		if r == '!' && i+1 < len(runes) && runes[i+1] == '!' {
+			sb.WriteString(lastCmd)
+			expanded = true
+			i++ // Skip next !
+			continue
+		}
+
+		// Check for !$
+		if r == '!' && i+1 < len(runes) && runes[i+1] == '$' {
+			sb.WriteString(lastArg)
+			expanded = true
+			i++ // Skip next $
+			continue
+		}
+
+		sb.WriteRune(r)
+	}
+
+	return sb.String(), expanded
 }
