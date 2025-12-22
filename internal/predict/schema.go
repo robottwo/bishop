@@ -12,6 +12,7 @@ var PREDICTED_COMMAND_SCHEMA = utils.GenerateJsonSchema(PredictedCommand{})
 
 type explainedCommand struct {
 	Explanation string `json:"explanation" description:"A concise explanation of what the command will do for me" required:"true"`
+	Error       string `json:"error,omitempty" description:"A concise error message if there are syntax errors, incorrect parameters, or dangerous commands in the input. Leave empty if the command is valid and safe."`
 }
 
 var EXPLAINED_COMMAND_SCHEMA = utils.GenerateJsonSchema(explainedCommand{})

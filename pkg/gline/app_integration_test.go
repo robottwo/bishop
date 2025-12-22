@@ -81,17 +81,17 @@ func newMockExplainer() *mockExplainer {
 	}
 }
 
-func (m *mockExplainer) Explain(prediction string) (string, error) {
+func (m *mockExplainer) Explain(prediction string) (*Explanation, error) {
 	if m.delay > 0 {
 		time.Sleep(m.delay)
 	}
 
 	explanation, ok := m.explanations[prediction]
 	if !ok {
-		return "No explanation available", nil
+		return &Explanation{Text: "No explanation available"}, nil
 	}
 
-	return explanation, nil
+	return &Explanation{Text: explanation}, nil
 }
 
 // mockAnalytics implements PredictionAnalytics for integration testing
