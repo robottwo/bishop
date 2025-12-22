@@ -48,14 +48,15 @@ func handleCdCommand(ctx context.Context, args []string) error {
 	}
 
 	// Expand any path variables and handle special cases
-	if targetDir == "~" {
+	switch targetDir {
+	case "~":
 		home := env.Get("HOME")
 		if home.String() == "" {
 			fmt.Fprintln(os.Stderr, "cd: HOME not set")
 			return fmt.Errorf("no home directory")
 		}
 		targetDir = home.String()
-	} else if targetDir == "-" {
+	case "-":
 		// Handle previous directory
 		prevDir := env.Get("OLDPWD")
 		if prevDir.String() == "" {
@@ -104,8 +105,12 @@ func handleCdCommand(ctx context.Context, args []string) error {
 
 	// Update PWD and OLDPWD environment variables
 	oldPwd := env.Get("PWD").String()
-	os.Setenv("OLDPWD", oldPwd)
-	os.Setenv("PWD", targetDir)
+	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
+		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
+	}
+	if err := os.Setenv("PWD", targetDir); err != nil {
+		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
+	}
 
 	return nil
 }

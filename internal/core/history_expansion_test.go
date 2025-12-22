@@ -15,7 +15,11 @@ func TestExpandHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer hm.Close()
+	defer func() {
+		if err := hm.Close(); err != nil {
+			t.Logf("Error closing history manager: %v", err)
+		}
+	}()
 
 	// Add history
 	// entry 0 (newest): "echo hello"
