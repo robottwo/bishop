@@ -19,22 +19,22 @@ func TestFailedToolResponse(t *testing.T) {
 		{
 			name:         "simple error",
 			errorMessage: "test error",
-			expected:     "<bish_tool_call_error>test error</bish_tool_call_error>",
+			expected:     "<gsh_tool_call_error>test error</gsh_tool_call_error>",
 		},
 		{
 			name:         "empty error",
 			errorMessage: "",
-			expected:     "<bish_tool_call_error></bish_tool_call_error>",
+			expected:     "<gsh_tool_call_error></gsh_tool_call_error>",
 		},
 		{
 			name:         "error with special characters",
 			errorMessage: "error with <xml> & special chars",
-			expected:     "<bish_tool_call_error>error with <xml> & special chars</bish_tool_call_error>",
+			expected:     "<gsh_tool_call_error>error with <xml> & special chars</gsh_tool_call_error>",
 		},
 		{
 			name:         "multiline error",
 			errorMessage: "line 1\nline 2\nline 3",
-			expected:     "<bish_tool_call_error>line 1\nline 2\nline 3</bish_tool_call_error>",
+			expected:     "<gsh_tool_call_error>line 1\nline 2\nline 3</gsh_tool_call_error>",
 		},
 	}
 

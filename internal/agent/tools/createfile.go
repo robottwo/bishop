@@ -42,7 +42,7 @@ func CreateFileTool(runner *interp.Runner, logger *zap.Logger, params map[string
 		return failedToolResponse("The create_file tool failed to parse parameter 'content'")
 	}
 
-	tmpFile, err := os.CreateTemp("", "bish_create_file_preview")
+	tmpFile, err := os.CreateTemp("", "gsh_create_file_preview")
 	if err != nil {
 		logger.Error("create_file tool failed to create temporary file", zap.Error(err))
 		return failedToolResponse(fmt.Sprintf("Error creating temporary file: %s", err))

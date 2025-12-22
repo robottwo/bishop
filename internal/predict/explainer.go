@@ -51,7 +51,7 @@ func (e *LLMExplainer) Explain(input string) (string, error) {
 		return "", err
 	}
 
-	systemMessage := fmt.Sprintf(`You are Bishop, an intelligent shell program.
+	systemMessage := fmt.Sprintf(`You are gsh, an intelligent shell program.
 You will be given a bash command entered by me, enclosed in <command> tags.
 
 # Instructions

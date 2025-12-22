@@ -105,13 +105,13 @@ EOF`,
 		{
 			name:         "actual command",
 			input:        `typeset -f`,
-			expected:     `bish_typeset -f`,
+			expected:     `gsh_typeset -f`,
 			shouldChange: true,
 		},
 		{
 			name:         "actual command with extra spaces",
 			input:        `typeset  -f`,
-			expected:     `bish_typeset -f`,
+			expected:     `gsh_typeset -f`,
 			shouldChange: true,
 		},
 	}

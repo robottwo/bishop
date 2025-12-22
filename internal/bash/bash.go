@@ -170,7 +170,7 @@ func preprocessWithParsing(input string) string {
 
 		if (cmdName == "typeset" || cmdName == "declare") && targetFlag != "" {
 			// Transform the command - only consume the flag part, not the rest
-			return "bish_typeset " + targetFlag, flagStart + len(targetFlag) - pos
+			return "gsh_typeset " + targetFlag, flagStart + len(targetFlag) - pos
 		}
 
 		// Not a target pattern, return original

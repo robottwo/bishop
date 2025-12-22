@@ -28,7 +28,7 @@ type Subagent struct {
 	SystemPrompt string `json:"systemPrompt"`
 
 	// Tool configuration
-	AllowedTools []string `json:"allowedTools"` // List of allowed bish tools
+	AllowedTools []string `json:"allowedTools"` // List of allowed gsh tools
 	FileRegex    string   `json:"fileRegex"`    // File access restriction pattern (from Roo Code)
 
 	// Model configuration

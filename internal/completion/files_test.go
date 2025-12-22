@@ -53,7 +53,7 @@ func TestFileCompletions(t *testing.T) {
 	}
 
 	// Create a test file in home directory
-	testFileInHome := filepath.Join(homeDir, "bish_test_file.txt")
+	testFileInHome := filepath.Join(homeDir, "gsh_test_file.txt")
 	err = os.WriteFile(testFileInHome, []byte("test"), 0644)
 	if err != nil {
 		t.Fatal(err)
@@ -145,9 +145,9 @@ func TestFileCompletions(t *testing.T) {
 		},
 		{
 			name:        "home directory with partial filename",
-			prefix:      "~/bish_test",
+			prefix:      "~/gsh_test",
 			currentDir:  "/some/other/dir",
-			expected:    []string{"~" + string(os.PathSeparator) + "bish_test_file.txt"},
+			expected:    []string{"~" + string(os.PathSeparator) + "gsh_test_file.txt"},
 			shouldMatch: true,
 			verify: func(t *testing.T, results []shellinput.CompletionCandidate) {
 				// All results should start with "~/"

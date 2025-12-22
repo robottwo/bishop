@@ -76,14 +76,14 @@ func (agent *Agent) UpdateContext(context *map[string]string) {
 // updateSystemMessage resets the system message with latest context
 func (agent *Agent) updateSystemMessage() {
 	agent.messages[0].Content = `
-You are Bishop, an intelligent shell program. You answer my questions or help me complete tasks.
+You are gsh, an intelligent shell program. You answer my questions or help me complete tasks.
 
 # Instructions
 
 * Whenever possible, prefer using the bash tool to complete tasks for me rather than telling them how to do it themselves.
 * You do not need to complete the task with a single command. You are able to run multiple commands in sequence.
 * I'm able to see the output of any bash tool you run so there's no need to repeat that in your response. 
-* If you see a tool call response enclosed in <bish_tool_call_error> tags, that means the tool call failed; otherwise, the tool call succeeded and whatever you see in the response is the actual result from the tool.
+* If you see a tool call response enclosed in <gsh_tool_call_error> tags, that means the tool call failed; otherwise, the tool call succeeded and whatever you see in the response is the actual result from the tool.
 * Never call multiple tools in parallel. Always call at most one tool at a time.
 
 # Best practices

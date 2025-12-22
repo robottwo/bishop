@@ -353,7 +353,7 @@ func RunInteractiveShell(
 
 				// Handle subagent response with subagent identification
 				for message := range chatChannel {
-					prefix := fmt.Sprintf("bish [%s]: ", subagent.Name)
+					prefix := fmt.Sprintf("gsh [%s]: ", subagent.Name)
 					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(prefix+message+"\n") + gline.RESET_CURSOR_COLUMN)
 				}
 				continue
@@ -400,7 +400,7 @@ func RunInteractiveShell(
 }
 
 func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer) (bool, error) {
-	// Pre-process input to transform typeset/declare -f/-F/-p commands to bish_typeset
+	// Pre-process input to transform typeset/declare -f/-F/-p commands to gsh_typeset
 	logger.Debug("preprocessing input", zap.String("original_input", input), zap.Int("input_length", len(input)))
 
 	// Validate input before preprocessing

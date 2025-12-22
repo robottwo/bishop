@@ -657,7 +657,7 @@ func TestGetFileCompletions_TildePrefix_Integration(t *testing.T) {
 	})
 
 	// Create a test visible file in home directory
-	testVisibleFile := filepath.Join(homeDir, "bish_test_visible_file")
+	testVisibleFile := filepath.Join(homeDir, "gsh_test_visible_file")
 	err = os.WriteFile(testVisibleFile, []byte("test"), 0644)
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -682,8 +682,8 @@ func TestGetFileCompletions_TildePrefix_Integration(t *testing.T) {
 		}
 
 		// Should find our test visible file
-		assert.True(t, containsCompletion(completions, norm("~/bish_test_visible_file")),
-			"Expected to find ~/bish_test_visible_file with '~' prefix, got: %v", completions)
+		assert.True(t, containsCompletion(completions, norm("~/gsh_test_visible_file")),
+			"Expected to find ~/gsh_test_visible_file with '~' prefix, got: %v", completions)
 	})
 
 	t.Run("tilde-slash lists home directory", func(t *testing.T) {
@@ -708,8 +708,8 @@ func TestGetFileCompletions_TildePrefix_Integration(t *testing.T) {
 			"Expected to find ~/.bish_test_hidden_file with '~/.' prefix, got: %v", completions)
 
 		// Should NOT find visible files (they don't start with ".")
-		assert.False(t, containsCompletion(completions, norm("~/bish_test_visible_file")),
-			"Should NOT find ~/bish_test_visible_file with '~/.' prefix, got: %v", completions)
+		assert.False(t, containsCompletion(completions, norm("~/gsh_test_visible_file")),
+			"Should NOT find ~/gsh_test_visible_file with '~/.' prefix, got: %v", completions)
 	})
 
 	t.Run("tilde and tilde-slash give same results", func(t *testing.T) {

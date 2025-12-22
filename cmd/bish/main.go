@@ -90,7 +90,7 @@ func main() {
 
 	analyticsManager.Logger = logger
 
-	logger.Info("-------- new bish session --------", zap.Any("args", os.Args))
+	logger.Info("-------- new gsh session --------", zap.Any("args", os.Args))
 
 	// Initialize the coach manager (uses same database as history)
 	coachManager, err := coach.NewCoachManager(historyManager.GetDB(), historyManager, runner, logger)
@@ -125,12 +125,12 @@ func run(
 ) error {
 	ctx := context.Background()
 
-	// bish -c "echo hello"
+	// gsh -c "echo hello"
 	if *command != "" {
 		return bash.RunBashScriptFromReader(ctx, runner, strings.NewReader(*command), "bish")
 	}
 
-	// bish
+	// gsh
 	if flag.NArg() == 0 {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
 			return core.RunInteractiveShell(ctx, runner, historyManager, analyticsManager, completionManager, coachManager, logger, stderrCapturer)
@@ -139,7 +139,7 @@ func run(
 		return bash.RunBashScriptFromReader(ctx, runner, os.Stdin, "bish")
 	}
 
-	// bish script.sh
+	// gsh script.sh
 	for _, filePath := range flag.Args() {
 		if err := bash.RunBashScriptFromFile(ctx, runner, filePath); err != nil {
 			return err

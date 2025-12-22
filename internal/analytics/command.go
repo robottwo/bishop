@@ -16,7 +16,7 @@ func NewAnalyticsCommandHandler(analyticsManager *AnalyticsManager) func(next in
 				return next(ctx, args)
 			}
 
-			if args[0] != "bish_analytics" {
+			if args[0] != "gsh_analytics" {
 				return next(ctx, args)
 			}
 
@@ -89,7 +89,7 @@ func NewAnalyticsCommandHandler(analyticsManager *AnalyticsManager) func(next in
 
 func printAnalyticsHelp() {
 	help := []string{
-		"Usage: bish_analytics [option] [n]",
+		"Usage: gsh_analytics [option] [n]",
 		"Display or manipulate the analytics data.",
 		"",
 		"Options:",

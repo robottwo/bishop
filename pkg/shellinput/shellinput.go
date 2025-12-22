@@ -1104,6 +1104,7 @@ func (m Model) CompletionBoxView(height int, width int) string {
 	// Check if we need to show descriptions (Zsh style)
 	hasDescriptions := false
 	maxCandidateWidth := 0
+	maxDescriptionWidth := 0
 	maxItemWidth := 0
 	for _, s := range m.completion.suggestions {
 		if s.Description != "" {
@@ -1121,6 +1122,11 @@ func (m Model) CompletionBoxView(height int, width int) string {
 			maxCandidateWidth = displayWidth
 		}
 
+		descWidth := ansi.PrintableRuneWidth(s.Description)
+		if descWidth > maxDescriptionWidth {
+			maxDescriptionWidth = descWidth
+		}
+
 		// Length + prefix ("> ") + spacing ("  ")
 		l := displayWidth + 4
 		if l > maxItemWidth {
@@ -1128,14 +1134,21 @@ func (m Model) CompletionBoxView(height int, width int) string {
 		}
 	}
 
+	// If we have descriptions, we need to account for them in the item width
+	// to support multi-column layout with descriptions
+	if hasDescriptions {
+		// Item width = Prefix(4) + Candidate(maxCandidateWidth) + Padding(2) + Description(maxDescriptionWidth) + Spacing(2)
+		maxItemWidth = 4 + maxCandidateWidth + 2 + maxDescriptionWidth + 2
+	}
+
 	// Ensure at least some width
 	if maxItemWidth < 10 {
 		maxItemWidth = 10
 	}
 
-	// Calculate columns - single column when showing descriptions for alignment
+	// Calculate columns - allow multi-column even with descriptions if space permits
 	numColumns := 1
-	if !hasDescriptions && width > 0 {
+	if width > 0 {
 		numColumns = width / maxItemWidth
 		if numColumns < 1 {
 			numColumns = 1
@@ -1205,6 +1218,14 @@ func (m Model) CompletionBoxView(height int, width int) string {
 				padding := maxCandidateWidth - visualWidth + 2
 				itemStr += strings.Repeat(" ", padding)
 				itemStr += lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(candidate.Description)
+
+				// Pad the column (except the last one)
+				if c < numColumns-1 {
+					currentWidth := 4 + maxCandidateWidth + 2 + ansi.PrintableRuneWidth(candidate.Description)
+					if currentWidth < maxItemWidth {
+						itemStr += strings.Repeat(" ", maxItemWidth-currentWidth)
+					}
+				}
 			} else {
 				// Pad the column (except the last one)
 				if c < numColumns-1 {

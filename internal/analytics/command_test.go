@@ -31,7 +31,7 @@ func TestAnalyticsCommand(t *testing.T) {
 	}{
 		{
 			name:          "Show help",
-			args:          []string{"bish_analytics", "--help"},
+			args:          []string{"gsh_analytics", "--help"},
 			expectedError: false,
 			setupFn: func() {
 				_ = analyticsManager.ResetAnalytics()
@@ -48,7 +48,7 @@ func TestAnalyticsCommand(t *testing.T) {
 		},
 		{
 			name:          "List with default limit",
-			args:          []string{"bish_analytics"},
+			args:          []string{"gsh_analytics"},
 			expectedError: false,
 			setupFn: func() {
 				_ = analyticsManager.ResetAnalytics()
@@ -64,7 +64,7 @@ func TestAnalyticsCommand(t *testing.T) {
 		},
 		{
 			name:          "List with custom limit",
-			args:          []string{"bish_analytics", "2"},
+			args:          []string{"gsh_analytics", "2"},
 			expectedError: false,
 			setupFn: func() {
 				_ = analyticsManager.ResetAnalytics()
@@ -80,7 +80,7 @@ func TestAnalyticsCommand(t *testing.T) {
 		},
 		{
 			name:          "Clear analytics",
-			args:          []string{"bish_analytics", "-c"},
+			args:          []string{"gsh_analytics", "-c"},
 			expectedError: false,
 			setupFn: func() {
 				_ = analyticsManager.ResetAnalytics()
@@ -95,7 +95,7 @@ func TestAnalyticsCommand(t *testing.T) {
 		},
 		{
 			name:          "Show count with short flag",
-			args:          []string{"bish_analytics", "-n"},
+			args:          []string{"gsh_analytics", "-n"},
 			expectedError: false,
 			setupFn: func() {
 				_ = analyticsManager.ResetAnalytics()
@@ -110,7 +110,7 @@ func TestAnalyticsCommand(t *testing.T) {
 		},
 		{
 			name:          "Show count with long flag",
-			args:          []string{"bish_analytics", "--count"},
+			args:          []string{"gsh_analytics", "--count"},
 			expectedError: false,
 			setupFn: func() {
 				_ = analyticsManager.ResetAnalytics()
@@ -163,7 +163,7 @@ func TestAnalyticsCommandDelete(t *testing.T) {
 	}{
 		{
 			name:          "Delete without entry number",
-			args:          []string{"bish_analytics", "--delete"},
+			args:          []string{"gsh_analytics", "--delete"},
 			expectedError: true,
 			setupFn: func() uint {
 				_ = analyticsManager.ResetAnalytics()
@@ -172,7 +172,7 @@ func TestAnalyticsCommandDelete(t *testing.T) {
 		},
 		{
 			name:          "Delete with invalid entry number",
-			args:          []string{"bish_analytics", "--delete", "invalid"},
+			args:          []string{"gsh_analytics", "--delete", "invalid"},
 			expectedError: true,
 			setupFn: func() uint {
 				_ = analyticsManager.ResetAnalytics()
@@ -181,7 +181,7 @@ func TestAnalyticsCommandDelete(t *testing.T) {
 		},
 		{
 			name:          "Delete non-existent entry",
-			args:          []string{"bish_analytics", "--delete", "999"},
+			args:          []string{"gsh_analytics", "--delete", "999"},
 			expectedError: true,
 			setupFn: func() uint {
 				_ = analyticsManager.ResetAnalytics()
@@ -190,7 +190,7 @@ func TestAnalyticsCommandDelete(t *testing.T) {
 		},
 		{
 			name:          "Delete existing entry",
-			args:          []string{"bish_analytics", "--delete", "%d"},
+			args:          []string{"gsh_analytics", "--delete", "%d"},
 			expectedError: false,
 			setupFn: func() uint {
 				_ = analyticsManager.ResetAnalytics()
@@ -242,24 +242,24 @@ func TestAnalyticsCommandEdgeCases(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test invalid limit number
-	err = wrappedHandler(context.Background(), []string{"bish_analytics", "invalid"})
+	err = wrappedHandler(context.Background(), []string{"gsh_analytics", "invalid"})
 	assert.NoError(t, err) // Should default to 20
 
 	// Test negative limit number
-	err = wrappedHandler(context.Background(), []string{"bish_analytics", "-5"})
+	err = wrappedHandler(context.Background(), []string{"gsh_analytics", "-5"})
 	assert.NoError(t, err) // Should default to 20
 
 	// Test with zero limit
-	err = wrappedHandler(context.Background(), []string{"bish_analytics", "0"})
+	err = wrappedHandler(context.Background(), []string{"gsh_analytics", "0"})
 	assert.NoError(t, err) // Should default to 20
 
 	// Test count after clearing analytics
 	_ = analyticsManager.ResetAnalytics()
 	_ = analyticsManager.NewEntry("test1", "test1", "test1")
 	_ = analyticsManager.NewEntry("test2", "test2", "test2")
-	err = wrappedHandler(context.Background(), []string{"bish_analytics", "-c"})
+	err = wrappedHandler(context.Background(), []string{"gsh_analytics", "-c"})
 	assert.NoError(t, err)
-	err = wrappedHandler(context.Background(), []string{"bish_analytics", "--count"})
+	err = wrappedHandler(context.Background(), []string{"gsh_analytics", "--count"})
 	assert.NoError(t, err) // Should show count as 0
 }
 

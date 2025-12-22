@@ -16,13 +16,13 @@ A chat macro starts with "@/" followed by the macro name. The default configurat
 
 ```bash
 # Summarize git changes
-bish> @/gitdiff
+gsh> @/gitdiff
 
 # Commit and push changes
-bish> @/gitpush
+gsh> @/gitpush
 
 # Review changes and get suggestions
-bish> @/gitreview
+gsh> @/gitreview
 ```
 
 You can customize your own macros by modifying the `BISH_AGENT_MACROS` configuration in your `.bishrc` file.
@@ -87,14 +87,14 @@ The system combines clean, reliable display with immediate keyboard responsivene
 
 ```bash
 # First time running a git status command
-bish> @ check git status
+gsh> @ check git status
 Agent wants to run: git status
 Do I have your permission to run the following command? (y/N/manage/freeform) m
 
 # The permission menu opens, and you can approve "^git status.*" which is saved to ~/.config/gsh/authorized_commands
 # Future git status commands will be auto-approved:
 
-bish> @ show git status with short format
+gsh> @ show git status with short format
 Agent wants to run: git status -s
 # This runs automatically without prompting because it matches the saved pattern
 ```
@@ -170,13 +170,13 @@ Currently supported controls:
 
 ```bash
 # Open the interactive configuration menu
-bish> @!config
+gsh> @!config
 
 # Reset the current chat session and start fresh
-bish> @!new
+gsh> @!new
 
 # Show token usage statistics for the current chat session
-bish> @!tokens
+gsh> @!tokens
 ```
 
 ## Magic Fix
@@ -184,10 +184,10 @@ bish> @!tokens
 When a command fails, you can use `@?` to ask the agent to analyze the error and suggest a fix.
 
 ```bash
-bish> ls nonexistent_file
+gsh> ls nonexistent_file
 ls: nonexistent_file: No such file or directory
 
-bish> @?
+gsh> @?
 bish: The command failed because...
 
 Command: ls "nonexistent_file"
