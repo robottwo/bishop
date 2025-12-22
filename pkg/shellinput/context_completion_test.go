@@ -38,8 +38,8 @@ func (m *mockContextCompletionProvider) GetCompletions(line string, pos int) []C
 		}
 	case "@!":
 		return []CompletionCandidate{
-			{Value: "@!gsh_analytics"},
-			{Value: "@!gsh_evaluate"},
+			{Value: "@!bish_analytics"},
+			{Value: "@!bish_evaluate"},
 			{Value: "@!history"},
 			{Value: "@!complete"},
 		}
@@ -48,10 +48,10 @@ func (m *mockContextCompletionProvider) GetCompletions(line string, pos int) []C
 			{Value: "@/macro1"},
 			{Value: "@/macro2"},
 		}
-	case "@!g":
+	case "@!b":
 		return []CompletionCandidate{
-			{Value: "@!gsh_analytics"},
-			{Value: "@!gsh_evaluate"},
+			{Value: "@!bish_analytics"},
+			{Value: "@!bish_evaluate"},
 		}
 	case "@/macro1":
 		return []CompletionCandidate{
@@ -108,9 +108,9 @@ func TestContextSensitiveCompletions(t *testing.T) {
 	updatedModel, _ = model.Update(msg)
 	assert.Equal(t, "@!", updatedModel.Value(), "First TAB should leave '@!' unchanged when multiple matches exist")
 
-	// Second TAB should complete to "@!gsh_analytics"
+	// Second TAB should complete to "@!bish_analytics"
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!gsh_analytics", updatedModel.Value(), "Second TAB should complete to '@!gsh_analytics'")
+	assert.Equal(t, "@!bish_analytics", updatedModel.Value(), "Second TAB should complete to '@!bish_analytics'")
 
 	// Test completion reset on other key press
 	model.SetValue("@/")
@@ -139,12 +139,12 @@ func TestContextSensitivePartialCompletions(t *testing.T) {
 	assert.Equal(t, "@/macro", updatedModel.Value(), "TAB should extend '@/m to shared prefix '@/macro'")
 
 	// Test partial @! completion
-	model.SetValue("@!g")
-	model.SetCursor(3) // cursor at end of "@!g"
+	model.SetValue("@!b")
+	model.SetCursor(3) // cursor at end of "@!b"
 
-	// TAB should extend to the shared prefix (filtering based on 'g')
+	// TAB should extend to the shared prefix (filtering based on 'b')
 	updatedModel, _ = model.Update(msg)
-	assert.Equal(t, "@!gsh_", updatedModel.Value(), "TAB should extend '@!g to shared prefix '@!gsh_'")
+	assert.Equal(t, "@!bish_", updatedModel.Value(), "TAB should extend '@!b to shared prefix '@!bish_'")
 }
 
 func TestContextSensitiveCompletionEdgeCases(t *testing.T) {
@@ -196,15 +196,15 @@ func TestTextRetentionFix(t *testing.T) {
 	assert.Equal(t, "@!", updatedModel.Value(), "First TAB should leave '@!' unchanged when multiple matches exist")
 	assert.True(t, updatedModel.completion.active, "Completion should be active")
 
-	// Second TAB should complete to "@!gsh_analytics"
+	// Second TAB should complete to "@!bish_analytics"
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!gsh_analytics", updatedModel.Value(), "Second TAB should complete to '@!gsh_analytics'")
+	assert.Equal(t, "@!bish_analytics", updatedModel.Value(), "Second TAB should complete to '@!bish_analytics'")
 	assert.True(t, updatedModel.completion.active, "Completion should still be active")
 
-	// Third TAB should cycle to "@!gsh_evaluate" - this tests that no text retention occurs
+	// Third TAB should cycle to "@!bish_evaluate" - this tests that no text retention occurs
 	// Before the fix, this would result in "@!historyuate" (retaining characters from the previous completion)
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!gsh_evaluate", updatedModel.Value(), "Third TAB should cycle to '@!gsh_evaluate' without text retention")
+	assert.Equal(t, "@!bish_evaluate", updatedModel.Value(), "Third TAB should cycle to '@!bish_evaluate' without text retention")
 	assert.True(t, updatedModel.completion.active, "Completion should still be active")
 
 	// Test with a shorter completion following a longer one

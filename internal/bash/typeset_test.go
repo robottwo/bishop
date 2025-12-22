@@ -38,7 +38,7 @@ testfunc2() { ls -la; pwd; }
 	wrappedHandler := handler(mockNext)
 
 	// Test with -f option
-	err = wrappedHandler(context.Background(), []string{"gsh_typeset", "-f"})
+	err = wrappedHandler(context.Background(), []string{"bish_typeset", "-f"})
 	assert.NoError(t, err)
 
 	// The output should contain our function definitions
@@ -72,7 +72,7 @@ testfunc2() { ls; }
 	wrappedHandler := handler(mockNext)
 
 	// Test with -F option
-	err = wrappedHandler(context.Background(), []string{"gsh_typeset", "-F"})
+	err = wrappedHandler(context.Background(), []string{"bish_typeset", "-F"})
 	assert.NoError(t, err)
 }
 
@@ -104,7 +104,7 @@ export EXPORTED_VAR="exported_value"
 	wrappedHandler := handler(mockNext)
 
 	// Test with -p option
-	err = wrappedHandler(context.Background(), []string{"gsh_typeset", "-p"})
+	err = wrappedHandler(context.Background(), []string{"bish_typeset", "-p"})
 	assert.NoError(t, err)
 }
 
@@ -125,7 +125,7 @@ func TestTypesetInvalidOption(t *testing.T) {
 	wrappedHandler := handler(mockNext)
 
 	// Test with invalid option
-	err = wrappedHandler(context.Background(), []string{"gsh_typeset", "-z"})
+	err = wrappedHandler(context.Background(), []string{"bish_typeset", "-z"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid option")
 }
@@ -147,7 +147,7 @@ func TestTypesetNoOptions(t *testing.T) {
 	wrappedHandler := handler(mockNext)
 
 	// Test with no options (should default to variable listing)
-	err = wrappedHandler(context.Background(), []string{"gsh_typeset"})
+	err = wrappedHandler(context.Background(), []string{"bish_typeset"})
 	assert.NoError(t, err)
 }
 
@@ -171,7 +171,7 @@ func TestTypesetRunnerNotInitialized(t *testing.T) {
 	wrappedHandler := handler(mockNext)
 
 	// Test should return error when runner is not initialized
-	err := wrappedHandler(context.Background(), []string{"gsh_typeset", "-f"})
+	err := wrappedHandler(context.Background(), []string{"bish_typeset", "-f"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "runner not initialized")
 }

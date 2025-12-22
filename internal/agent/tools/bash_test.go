@@ -219,7 +219,7 @@ func TestBashToolInvalidCommand(t *testing.T) {
 
 func TestBashToolWithPreApprovedCommand(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_bash_preapproved")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_bash_preapproved")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing

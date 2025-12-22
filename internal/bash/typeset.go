@@ -41,7 +41,7 @@ func NewTypesetCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHan
 			}
 
 			// Handle both typeset and declare commands
-			if args[0] != "typeset" && args[0] != "declare" && args[0] != "gsh_typeset" {
+			if args[0] != "typeset" && args[0] != "declare" && args[0] != "bish_typeset" {
 				return next(ctx, args)
 			}
 

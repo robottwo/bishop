@@ -39,14 +39,14 @@ func TestPreprocessTypesetCommands_NormalTransformation(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"typeset -f", "typeset -f", "gsh_typeset -f"},
-		{"declare -f", "declare -f", "gsh_typeset -f"},
-		{"typeset -F", "typeset -F", "gsh_typeset -F"},
-		{"declare -F", "declare -F", "gsh_typeset -F"},
-		{"typeset -p", "typeset -p", "gsh_typeset -p"},
-		{"declare -p", "declare -p", "gsh_typeset -p"},
-		{"extra spaces typeset -f", "typeset  -f", "gsh_typeset -f"},
-		{"extra spaces declare -f", "declare  -f", "gsh_typeset -f"},
+		{"typeset -f", "typeset -f", "bish_typeset -f"},
+		{"declare -f", "declare -f", "bish_typeset -f"},
+		{"typeset -F", "typeset -F", "bish_typeset -F"},
+		{"declare -F", "declare -F", "bish_typeset -F"},
+		{"typeset -p", "typeset -p", "bish_typeset -p"},
+		{"declare -p", "declare -p", "bish_typeset -p"},
+		{"extra spaces typeset -f", "typeset  -f", "bish_typeset -f"},
+		{"extra spaces declare -f", "declare  -f", "bish_typeset -f"},
 	}
 
 	for _, tc := range testCases {
@@ -66,11 +66,11 @@ typeset -p VAR1
 declare -p VAR2`
 
 	expected := `#!/bin/bash
-gsh_typeset -f myfunc
-gsh_typeset -F
+bish_typeset -f myfunc
+bish_typeset -F
 echo "hello world"
-gsh_typeset -p VAR1
-gsh_typeset -p VAR2`
+bish_typeset -p VAR1
+bish_typeset -p VAR2`
 
 	result := PreprocessTypesetCommands(input)
 	assert.Equal(t, expected, result, "mixed content should be transformed correctly")
@@ -115,7 +115,7 @@ func TestPreprocessTypesetCommands_LargeInput(t *testing.T) {
 	largeInput[9] = 'f'
 
 	result := PreprocessTypesetCommands(string(largeInput))
-	assert.Contains(t, result, "gsh_typeset -f", "large input should still be processed correctly")
+	assert.Contains(t, result, "bish_typeset -f", "large input should still be processed correctly")
 }
 
 func TestPreprocessTypesetCommands_InputSizeLimit(t *testing.T) {
@@ -138,7 +138,7 @@ func TestPreprocessTypesetCommands_InputSizeLimit(t *testing.T) {
 	oversizedInput[9] = 'f'
 
 	result := PreprocessTypesetCommands(string(oversizedInput))
-	assert.Contains(t, result, "gsh_typeset -f", "oversized input should still process the first portion")
+	assert.Contains(t, result, "bish_typeset -f", "oversized input should still process the first portion")
 	assert.Less(t, len(result), 11*1024*1024, "result should be truncated to under 11MB")
 }
 
@@ -152,7 +152,7 @@ func TestPreprocessTypesetCommands_InsideDoubleQuotes(t *testing.T) {
 		{"declare -f in double quotes", `echo "declare -f myfunc"`, `echo "declare -f myfunc"`},
 		{"typeset -F in double quotes", `echo "typeset -F"`, `echo "typeset -F"`},
 		{"declare -p in double quotes", `echo "declare -p VAR"`, `echo "declare -p VAR"`},
-		{"mixed content with quotes", `echo "before"; typeset -f myfunc; echo "after"`, `echo "before"; gsh_typeset -f myfunc; echo "after"`},
+		{"mixed content with quotes", `echo "before"; typeset -f myfunc; echo "after"`, `echo "before"; bish_typeset -f myfunc; echo "after"`},
 		{"escaped quotes in command", `echo "He said \"typeset -f\" to me"`, `echo "He said \"typeset -f\" to me"`},
 	}
 
@@ -174,7 +174,7 @@ func TestPreprocessTypesetCommands_InsideSingleQuotes(t *testing.T) {
 		{"declare -f in single quotes", `echo 'declare -f myfunc'`, `echo 'declare -f myfunc'`},
 		{"typeset -F in single quotes", `echo 'typeset -F'`, `echo 'typeset -F'`},
 		{"declare -p in single quotes", `echo 'declare -p VAR'`, `echo 'declare -p VAR'`},
-		{"mixed quotes", `echo "double"; echo 'single'; typeset -f`, `echo "double"; echo 'single'; gsh_typeset -f`},
+		{"mixed quotes", `echo "double"; echo 'single'; typeset -f`, `echo "double"; echo 'single'; bish_typeset -f`},
 	}
 
 	for _, tc := range testCases {
@@ -244,7 +244,7 @@ typeset -f outside`,
 			`cat << EOF
 typeset -f inside
 EOF
-gsh_typeset -f outside`,
+bish_typeset -f outside`,
 		},
 	}
 
@@ -269,7 +269,7 @@ func TestPreprocessTypesetCommands_InsideFunctionDefinition(t *testing.T) {
 	echo "hello"
 }`,
 			`myfunc() {
-	gsh_typeset -f myfunc
+	bish_typeset -f myfunc
 	echo "hello"
 }`,
 		},
@@ -280,7 +280,7 @@ func TestPreprocessTypesetCommands_InsideFunctionDefinition(t *testing.T) {
 	return 0
 }`,
 			`another_func() {
-	gsh_typeset -f another_func
+	bish_typeset -f another_func
 	return 0
 }`,
 		},
@@ -294,8 +294,8 @@ func TestPreprocessTypesetCommands_InsideFunctionDefinition(t *testing.T) {
 }`,
 			`test_func() {
 	echo "start"
-	gsh_typeset -F
-	gsh_typeset -p VAR
+	bish_typeset -F
+	bish_typeset -p VAR
 	echo "end"
 }`,
 		},
@@ -319,7 +319,7 @@ func TestPreprocessTypesetCommands_VariableAssignment(t *testing.T) {
 		{"declare -f in variable", `CMD='declare -f'`, `CMD='declare -f'`},
 		{"typeset -F assignment", `VAR=typeset -F`, `VAR=typeset -F`},
 		{"declare -p assignment", `VAR=declare -p`, `VAR=declare -p`},
-		{"mixed assignment and command", `CMD="typeset -f"; typeset -f`, `CMD="typeset -f"; gsh_typeset -f`},
+		{"mixed assignment and command", `CMD="typeset -f"; typeset -f`, `CMD="typeset -f"; bish_typeset -f`},
 	}
 
 	for _, tc := range testCases {
