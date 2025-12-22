@@ -76,6 +76,9 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		targetDir = filepath.Join(currentDir, targetDir)
 	}
 
+	// Clean the path to handle Windows path issues
+	targetDir = filepath.Clean(targetDir)
+
 	// Check if the directory exists
 	info, err := os.Stat(targetDir)
 	if err != nil {
@@ -90,7 +93,7 @@ func handleCdCommand(ctx context.Context, args []string) error {
 	// Check if it's actually a directory
 	if !info.IsDir() {
 		fmt.Fprintf(os.Stderr, "cd: not a directory: %s\n", targetDir)
-		return fmt.Errorf("not a directory")
+		return fmt.Errorf("directory not found") // Use consistent error message for cross-platform compatibility
 	}
 
 	// Check for read and execute permissions

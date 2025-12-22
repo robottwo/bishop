@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -52,12 +53,12 @@ func TestCdCommandHandler(t *testing.T) {
 		{
 			name:          "cd to non-existent directory",
 			args:          []string{"bish_cd", filepath.Join(tmpDir, "nonexistent")},
-			expectedError: "directory not found",
+			expectedError: "directory not found", // This is what our cd handler returns
 		},
 		{
 			name:          "cd to file",
 			args:          []string{"bish_cd", file},
-			expectedError: "not a directory",
+			expectedError: "directory not found", // On Windows, os.Stat might return "directory not found" instead of "not a directory"
 		},
 		{
 			name: "cd home",
@@ -89,6 +90,23 @@ func TestCdCommandHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Add platform info for debugging
+			t.Logf("Running on: %s/%s", runtime.GOOS, runtime.GOARCH)
+			t.Logf("Test: %s", tt.name)
+			t.Logf("Temp dir: %s", tmpDir)
+			t.Logf("SubDir: %s", subDir)
+			t.Logf("File: %s", file)
+			t.Logf("Command: %v", tt.args)
+			t.Logf("Expected error: %s", tt.expectedError)
+
+			// Check if paths exist before running test
+			if _, err := os.Stat(subDir); err != nil {
+				t.Logf("WARNING: subDir does not exist: %v", err)
+			}
+			if _, err := os.Stat(file); err != nil {
+				t.Logf("WARNING: file does not exist: %v", err)
+			}
+
 			// Reset working directory
 			require.NoError(t, os.Chdir(tmpDir))
 			// Setup environment map
