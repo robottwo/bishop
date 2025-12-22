@@ -85,7 +85,7 @@ You have access to the following tools: %v
 * Whenever possible, prefer using tools to complete tasks rather than just telling the user how to do them.
 * You can run multiple commands in sequence if needed.
 * The user can see the output of any tool you run, so there's no need to repeat that in your response.
-* If you see a tool call response enclosed in <gsh_tool_call_error> tags, that means the tool call failed.
+* If you see a tool call response enclosed in <bish_tool_call_error> tags, that means the tool call failed.
 * Never call multiple tools in parallel. Always call at most one tool at a time.
 `,
 		e.subagent.Name,
@@ -342,7 +342,7 @@ func (e *SubagentExecutor) handleToolCall(toolCall openai.ToolCall) bool {
 
 	// Check if tool is allowed
 	if !e.hasToolAccess(toolCall.Function.Name) {
-		toolResponse := fmt.Sprintf("<gsh_tool_call_error>Tool '%s' is not available for this subagent</gsh_tool_call_error>", toolCall.Function.Name)
+		toolResponse := fmt.Sprintf("<bish_tool_call_error>Tool '%s' is not available for this subagent</bish_tool_call_error>", toolCall.Function.Name)
 		e.messages = append(e.messages, openai.ChatCompletionMessage{
 			Role:       "tool",
 			ToolCallID: toolCall.ID,
@@ -355,7 +355,7 @@ func (e *SubagentExecutor) handleToolCall(toolCall openai.ToolCall) bool {
 	if e.subagent.FileRegex != "" && (toolCall.Function.Name == "view_file" || toolCall.Function.Name == "create_file" || toolCall.Function.Name == "edit_file") {
 		if filePath, ok := params["path"].(string); ok {
 			if matched, err := regexp.MatchString(e.subagent.FileRegex, filePath); err != nil || !matched {
-				toolResponse := fmt.Sprintf("<gsh_tool_call_error>File access denied: '%s' does not match allowed pattern '%s'</gsh_tool_call_error>", filePath, e.subagent.FileRegex)
+				toolResponse := fmt.Sprintf("<bish_tool_call_error>File access denied: '%s' does not match allowed pattern '%s'</bish_tool_call_error>", filePath, e.subagent.FileRegex)
 				e.messages = append(e.messages, openai.ChatCompletionMessage{
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
@@ -391,7 +391,7 @@ func (e *SubagentExecutor) executeToolCall(toolName string, params map[string]an
 	case "edit_file":
 		return tools.EditFileTool(e.runner, e.logger, params)
 	default:
-		return fmt.Sprintf("<gsh_tool_call_error>Unknown tool: %s</gsh_tool_call_error>", toolName)
+		return fmt.Sprintf("<bish_tool_call_error>Unknown tool: %s</bish_tool_call_error>", toolName)
 	}
 }
 

@@ -169,18 +169,18 @@ There are multiple ways to invoke subagents:
 
 ```bash
 # Direct invocation with explicit syntax
-gsh> @code-reviewer Please review the authentication logic in auth.go
+bish> @code-reviewer Please review the authentication logic in auth.go
 gsh [code-reviewer]: I'll analyze the authentication logic for potential security issues...
 
 # Roo Code mode invocation
-gsh> @:git-helper Help me resolve this merge conflict
+bish> @:git-helper Help me resolve this merge conflict
 gsh [🔧 Git Assistant]: Let me guide you through resolving this merge conflict...
 
 # Intelligent auto-selection (NEW)
-gsh> # please review my code for bugs
+bish> # please review my code for bugs
 gsh [code-reviewer]: I'll examine your code for potential bugs and issues...
 
-gsh> # help me write unit tests for this function
+bish> # help me write unit tests for this function
 gsh [test-writer]: I'll create comprehensive unit tests for your function...
 ```
 
@@ -234,13 +234,13 @@ gsh provides comprehensive tab completion for the subagent system:
 
 ```bash
 # Tab completion examples
-gsh> @<TAB>
+bish> @<TAB>
 @code-reviewer    @docs-writer    @test-writer
 
-gsh> @c<TAB>
+bish> @c<TAB>
 @code-reviewer
 
-gsh> some command @c<TAB> more text
+bish> some command @c<TAB> more text
 some command @code-reviewer more text
 ```
 

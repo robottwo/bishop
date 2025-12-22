@@ -83,9 +83,9 @@ func updateToLatestVersion(repoSlug string, currentSemVer *semver.Version, logge
 	defaultToYes := strings.ToLower(os.Getenv("BISH_DEFAULT_TO_YES"))
 	isDefaultYes := defaultToYes == "1" || defaultToYes == "true"
 
-	promptText := "New version of gsh available. Update now? (y/N) "
+	promptText := "New version of bish available. Update now? (y/N) "
 	if isDefaultYes {
-		promptText = "New version of gsh available. Update now? (Y/n) "
+		promptText = "New version of bish available. Update now? (Y/n) "
 	}
 
 	confirm, _ := prompter.Prompt(

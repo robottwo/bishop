@@ -44,7 +44,7 @@ func (m *MockPrompter) Prompt(
 // TestIntegration tests the complete "always allow" permission workflow
 func TestIntegration(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_config_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_config_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Save original values
@@ -68,7 +68,7 @@ func TestIntegration(t *testing.T) {
 // TestPreApproval tests that commands matching saved patterns are pre-approved
 func TestPreApproval(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_config_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_config_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Save original values
@@ -134,7 +134,7 @@ func TestPreApproval(t *testing.T) {
 			result := BashTool(runner, historyManager, logger, params)
 
 			// Verify the command executed (not declined)
-			assert.NotContains(t, result, "<gsh_tool_call_error>User declined this request</gsh_tool_call_error>")
+			assert.NotContains(t, result, "<bish_tool_call_error>User declined this request</bish_tool_call_error>")
 
 			// Verify the prompter was not called (callCount should still be 0)
 			assert.Equal(t, 0, mockPrompter.callCount)
@@ -145,7 +145,7 @@ func TestPreApproval(t *testing.T) {
 // TestFileOperations tests various file operation scenarios
 func TestFileOperations(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_config_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_config_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Save original values
@@ -208,7 +208,7 @@ func TestFileOperations(t *testing.T) {
 
 	t.Run("loading from non-existent file", func(t *testing.T) {
 		// Reset to a non-existent file
-		nonExistentFile := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_nonexistent_%d", time.Now().UnixNano()))
+		nonExistentFile := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_nonexistent_%d", time.Now().UnixNano()))
 		environment.SetAuthorizedCommandsFileForTesting(nonExistentFile)
 		t.Cleanup(func() {
 			environment.SetAuthorizedCommandsFileForTesting(tempAuthorizedFile)
@@ -249,7 +249,7 @@ func TestFileOperations(t *testing.T) {
 // TestGetApprovedBashCommandRegex tests the integration of environment variable and file patterns
 func TestGetApprovedBashCommandRegexIntegration(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_config_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_config_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Save original values
@@ -345,7 +345,7 @@ func TestGetApprovedBashCommandRegexIntegration(t *testing.T) {
 // TestInvalidRegexHandling tests how the system handles invalid regex patterns
 func TestInvalidRegexHandling(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_config_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_config_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Save original values
@@ -403,7 +403,7 @@ func TestInvalidRegexHandling(t *testing.T) {
 	result := BashTool(runner, historyManager, logger, params)
 
 	// Should execute successfully
-	assert.NotContains(t, result, "<gsh_tool_call_error>User declined this request</gsh_tool_call_error>")
+	assert.NotContains(t, result, "<bish_tool_call_error>User declined this request</bish_tool_call_error>")
 
 	// Should NOT prompt for confirmation since the valid pattern "^ls.*" matches "ls -la"
 	assert.Equal(t, 0, mockPrompter.callCount)
@@ -415,7 +415,7 @@ func TestBashToolWithPreApprovedCommands(t *testing.T) {
 	environment.ResetCacheForTesting()
 
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_config_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_config_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Create the temporary config directory
@@ -504,7 +504,7 @@ func TestFilePermissionIssues(t *testing.T) {
 	}
 
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_config_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_config_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -543,7 +543,7 @@ func TestFilePermissionIssues(t *testing.T) {
 // TestEdgeCases tests various edge cases in the authorization system
 func TestEdgeCases(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_config_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_config_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -612,5 +612,5 @@ func TestEdgeCases(t *testing.T) {
 	result := BashTool(runner, historyManager, logger, params)
 
 	// Should execute successfully
-	assert.NotContains(t, result, "<gsh_tool_call_error>User declined this request</gsh_tool_call_error>")
+	assert.NotContains(t, result, "<bish_tool_call_error>User declined this request</bish_tool_call_error>")
 }

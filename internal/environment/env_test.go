@@ -15,7 +15,7 @@ import (
 
 func TestAppendToAuthorizedCommands(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_config")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_config")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -58,7 +58,7 @@ func TestAppendToAuthorizedCommands(t *testing.T) {
 
 func TestAppendToAuthorizedCommandsSecurePermissions(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_config_secure")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_config_secure")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -172,7 +172,7 @@ func TestAppendToAuthorizedCommandsSecurePermissions(t *testing.T) {
 
 func TestLoadAuthorizedCommandsFromFile(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_config")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_config")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -209,7 +209,7 @@ func TestLoadAuthorizedCommandsFromFile(t *testing.T) {
 
 func TestGetApprovedBashCommandRegex(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_config")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_config")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -254,7 +254,7 @@ func TestGetApprovedBashCommandRegex(t *testing.T) {
 
 func TestGetApprovedBashCommandRegexWithEnvironmentPatterns(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_config_env")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_config_env")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -380,7 +380,7 @@ func TestGetApprovedBashCommandRegexInvalidJSON(t *testing.T) {
 
 func TestGetApprovedBashCommandRegexCaching(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_config_cache")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_config_cache")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -433,7 +433,7 @@ func TestGetApprovedBashCommandRegexCaching(t *testing.T) {
 
 func TestWriteAuthorizedCommandsToFile(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_write_config")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_write_config")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -490,7 +490,7 @@ func TestWriteAuthorizedCommandsToFile(t *testing.T) {
 
 func TestIsCommandAuthorized(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_auth_config")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_auth_config")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -542,7 +542,7 @@ func TestIsCommandAuthorized(t *testing.T) {
 
 func TestIsCommandAuthorizedInvalidRegex(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_auth_invalid_config")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_auth_invalid_config")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -577,7 +577,7 @@ func TestIsCommandAuthorizedInvalidRegex(t *testing.T) {
 
 func TestIsCommandPatternAuthorized(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_pattern_auth_config")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_pattern_auth_config")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the global variables for testing
@@ -649,7 +649,7 @@ func TestEnvironmentHelperFunctions(t *testing.T) {
 	assert.IsType(t, "", pwd)
 
 	prompt := GetPrompt(runner, logger)
-	assert.Equal(t, "gsh> ", prompt) // DEFAULT_PROMPT value
+	assert.Equal(t, "bish> ", prompt) // DEFAULT_PROMPT value
 
 	contextWindow := GetAgentContextWindowTokens(runner, logger)
 	assert.Equal(t, 32768, contextWindow)

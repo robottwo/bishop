@@ -20,7 +20,7 @@ func TestCreateFileAlwaysWorkflow(t *testing.T) {
 // TestCreateFileAlwaysEdgeCases tests edge cases and error handling
 func TestCreateFileAlwaysEdgeCases(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("gsh_test_createfile_edge_%d", time.Now().UnixNano()))
+	tempConfigDir := filepath.Join(os.TempDir(), fmt.Sprintf("bish_test_createfile_edge_%d", time.Now().UnixNano()))
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Save original values
