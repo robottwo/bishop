@@ -137,7 +137,6 @@ func RunInteractiveShell(
 		options.CurrentSessionID = sessionID
 
 		// Populate context for border status
-		options.CurrentDirectory = environment.GetPwd(runner)
 		options.User = environment.GetUser(runner)
 		options.Host, _ = os.Hostname()
 

@@ -26,7 +26,7 @@ func TestExpandHistory(t *testing.T) {
 	// StartCommand creates entry with created_at.
 	// GetAllEntries orders by created_at desc.
 	// We need to ensure we add them.
-	_, err = hm.StartCommand("echo hello", "/tmp")
+	_, err = hm.StartCommand("echo hello", "/tmp", "session-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestExpandHistory(t *testing.T) {
 	assert.Equal(t, "\\!!", out)
 
 	// Test !$ with multiple args
-	_, err = hm.StartCommand("ls -la /tmp", "/tmp")
+	_, err = hm.StartCommand("ls -la /tmp", "/tmp", "session-1")
 	if err != nil {
 		t.Fatal(err)
 	}
