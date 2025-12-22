@@ -218,6 +218,7 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		interp.Env(env),
 		interp.StdIO(os.Stdin, os.Stdout, stderrCapturer),
 		interp.ExecHandlers(
+			bash.NewCdCommandHandler(),
 			bash.NewTypesetCommandHandler(),
 			bash.SetBuiltinHandler(),
 			analytics.NewAnalyticsCommandHandler(analyticsManager),
@@ -237,6 +238,12 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		bytes.NewReader(DEFAULT_VARS),
 		"bish",
 	); err != nil {
+		panic(err)
+	}
+
+	// Override cd command to use bish_cd implementation
+	// This allows us to provide better error messages when cd fails
+	if _, _, err := bash.RunBashCommand(context.Background(), runner, `function cd() { bish_cd "$@"; }`); err != nil {
 		panic(err)
 	}
 
