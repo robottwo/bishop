@@ -32,7 +32,9 @@ func TestDiagnosis_BackslashParsing(t *testing.T) {
 	// We can use printer to see how it was parsed back to string, or inspect the struct.
 	printer := syntax.NewPrinter()
 	var sb strings.Builder
-	printer.Print(&sb, call.Args[1])
+	if err := printer.Print(&sb, call.Args[1]); err != nil {
+		t.Fatalf("Failed to print argument: %v", err)
+	}
 	printedArg := sb.String()
 
 	t.Logf("Parsed argument (re-printed): %s", printedArg)

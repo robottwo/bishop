@@ -88,16 +88,15 @@ func TestCdCommandHandler(t *testing.T) {
 		},
 	}
 
+	// On Windows, we should use our custom bish_cd handler instead of relying on native cd
+	// The native Windows cd command has different behavior and error messages
+	// Our custom handler provides consistent cross-platform behavior
+	// No changes needed - our handler already provides consistent behavior across platforms
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Add platform info for debugging
 			t.Logf("Running on: %s/%s", runtime.GOOS, runtime.GOARCH)
-			t.Logf("Test: %s", tt.name)
-			t.Logf("Temp dir: %s", tmpDir)
-			t.Logf("SubDir: %s", subDir)
-			t.Logf("File: %s", file)
-			t.Logf("Command: %v", tt.args)
-			t.Logf("Expected error: %s", tt.expectedError)
 
 			// Check if paths exist before running test
 			if _, err := os.Stat(subDir); err != nil {
@@ -189,6 +188,8 @@ func TestCdCommandHandler(t *testing.T) {
 
 			// However, `bish_cd` is just a string. `interp` will try to look it up in PATH if handler calls next().
 			// Our handler intercepts it.
+
+			// Debug: Log the command we're about to run
 
 			// Let's use a small helper to run the command string.
 			err = func() error {
