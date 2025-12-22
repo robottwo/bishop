@@ -56,53 +56,19 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		targetDir = home.String()
 	} else {
 		targetDir = args[1]
-		// Windows path recovery: if we detect a path with stripped backslashes, try to recover it
+		// Windows path recovery: minimal generic fallback for malformed paths
+		// This addresses cases where backslashes are stripped from Windows paths
+		// The real fix should be in the command parsing/escaping layer
 		if runtime.GOOS == "windows" && strings.Contains(targetDir, ":") && !strings.Contains(targetDir, `\`) {
-			// This looks like a Windows path that lost its backslashes (e.g., "C:UsersRUNNER~1...")
-			// Try to reconstruct the path by checking if it matches a known pattern
-			currentDir, _ := os.Getwd()
-			if strings.HasPrefix(currentDir, `C:\`) {
-				// We're on a Windows system, try to reconstruct the path
-				// Replace the pattern "C:UsersRUNNER~1..." with "C:\Users\RUNNER~1..."
-				reconstructed := targetDir
-				// Common Windows path patterns
-				// More targeted reconstruction for the specific pattern
-				reconstructed = strings.ReplaceAll(reconstructed, "C:", `C:\`)
+			// Try a single safe substitution: replace first ":" with ":\\"
+			reconstructed := strings.Replace(targetDir, ":", ":\\", 1)
 
-				// Insert backslashes at word boundaries for common path components
-				// This handles the pattern "C:UsersRUNNER~1AppDataLocalTempbish-cd-testXXXXsubdir"
-				// and converts it to "C:\Users\RUNNER~1\AppData\Local\Temp\bish-cd-testXXXX\subdir"
-
-				// Insert backslash before common directory names
-				parts := []string{"Users", "RUNNER~1", "AppData", "Local", "Temp"}
-				for _, part := range parts {
-					reconstructed = strings.ReplaceAll(reconstructed, part, `\`+part)
-				}
-
-				// Handle the final component (subdir, file, nonexistent)
-				// Look for patterns like "testXXXXsubdir" and insert backslash
-				if strings.Contains(reconstructed, "bish-cd-test") {
-					// Find the position of "bish-cd-test" and insert backslash before it
-					idx := strings.Index(reconstructed, "bish-cd-test")
-					if idx > 0 && reconstructed[idx-1:idx] != `\` {
-						reconstructed = reconstructed[:idx] + `\` + reconstructed[idx:]
-					}
-				}
-
-				// Handle final component (subdir, file, nonexistent)
-				finalComponents := []string{"subdir", "file", "nonexistent"}
-				for _, comp := range finalComponents {
-					if strings.HasSuffix(reconstructed, comp) && !strings.HasSuffix(reconstructed, `\`+comp) {
-						// Replace the suffix with backslash + component
-						reconstructed = strings.TrimSuffix(reconstructed, comp) + `\` + comp
-					}
-				}
-
-				// Always apply the reconstruction - this is safer than checking if file exists
-				// since the path might be reconstructed differently than expected
-				if reconstructed != targetDir {
-					targetDir = reconstructed
-				}
+			// Validate the reconstructed path exists before using it
+			if _, err := os.Stat(reconstructed); err == nil {
+				targetDir = reconstructed
+			} else {
+				// Log a warning about malformed path detection
+				fmt.Fprintf(os.Stderr, "cd: warning: detected malformed Windows path: %s\n", targetDir)
 			}
 		}
 	}
@@ -201,12 +167,24 @@ func handleCdCommand(ctx context.Context, args []string) error {
 
 	// Update PWD and OLDPWD environment variables
 	oldPwd := env.Get("PWD").String()
+
+	// Update OS environment variables (for child processes)
 	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
 		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
 	}
 	if err := os.Setenv("PWD", targetDir); err != nil {
 		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
 	}
+
+	// NOTE: The current implementation only updates the OS environment variables via os.Setenv()
+	// but does not update the interpreter's internal environment. This means that:
+	// 1. Child processes will see the updated PWD/OLDPWD
+	// 2. The shell's internal PWD/OLDPWD variables remain stale
+	// 3. Subsequent calls to env.Get("PWD") will return the old value
+
+	// TODO: Implement proper interpreter environment update
+	// This requires accessing the underlying runner.Vars or finding the correct interface
+	// to update the interpreter's internal environment variables.
 
 	return nil
 }

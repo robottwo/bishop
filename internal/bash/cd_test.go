@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/robottwo/bishop/internal/environment"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 )
 
@@ -152,9 +152,16 @@ func TestCdCommandHandler(t *testing.T) {
 				envSlice = append(envSlice, k+"="+v)
 			}
 
-			env := expand.ListEnviron(envSlice...)
+			// Use DynamicEnviron to test the fix properly
+			dynamicEnv := environment.NewDynamicEnviron()
+			// Set initial system environment variables
+			dynamicEnv.UpdateSystemEnv()
+			// Add our test variables
+			for k, v := range envMap {
+				dynamicEnv.UpdateBishVar(k, v)
+			}
 
-			r, err := interp.New(interp.Env(env), interp.ExecHandlers(NewCdCommandHandler()))
+			r, err := interp.New(interp.Env(dynamicEnv), interp.ExecHandlers(NewCdCommandHandler()))
 			require.NoError(t, err)
 
 			ctx := context.Background()
