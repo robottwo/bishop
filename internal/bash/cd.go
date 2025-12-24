@@ -1,8 +1,3 @@
-//go:build windows
-//go:build windows
-// +build windows
-// +build windows
-
 package bash
 
 import (
@@ -17,6 +12,7 @@ import (
 )
 
 // reconstructWindowsPath attempts to reconstruct a Windows path that has lost its backslashes
+// This function is only compiled on Windows
 func reconstructWindowsPath(malformedPath string) string {
 	// Split by drive letter
 	parts := strings.Split(malformedPath, ":")
@@ -97,6 +93,7 @@ func reconstructWindowsPath(malformedPath string) string {
 }
 
 // splitFinalPathPart splits a concatenated final path part into logical segments
+// This function is only compiled on Windows
 func splitFinalPathPart(part string) []string {
 	if len(part) < 4 {
 		return []string{part}
@@ -160,6 +157,7 @@ func splitFinalPathPart(part string) []string {
 // findLogicalSplitPoint tries to find a logical place to split a directory name
 // For example: "MyAppbin" -> split between "MyApp" and "bin"
 // "bish-cd-test1695569554subdir" -> split between "bish-cd-test1695569554" and "subdir"
+// This function is only compiled on Windows
 func findLogicalSplitPoint(s string) int {
 	// Common patterns:
 	// 1. camelCase to lowercase: "MyAppbin" -> split before "bin"
