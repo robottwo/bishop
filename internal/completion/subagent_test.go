@@ -70,51 +70,51 @@ func TestSubagentCompletions(t *testing.T) {
 		expected []shellinput.CompletionCandidate
 	}{
 		{
-			name: "complete all subagents with @",
-			line: "@",
+			name: "complete all subagents with #",
+			line: "#",
 			pos:  1,
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@code-reviewer"},
-				{Value: "@docs-helper"},
-				{Value: "@test-writer"},
+				{Value: "#code-reviewer"},
+				{Value: "#docs-helper"},
+				{Value: "#test-writer"},
 			},
 		},
 		{
 			name: "complete subagents starting with 'c'",
-			line: "@c",
+			line: "#c",
 			pos:  2,
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@code-reviewer"},
+				{Value: "#code-reviewer"},
 			},
 		},
 		{
 			name: "complete subagents starting with 't'",
-			line: "@t",
+			line: "#t",
 			pos:  2,
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@test-writer"},
+				{Value: "#test-writer"},
 			},
 		},
 		{
 			name: "complete subagents starting with 'd'",
-			line: "@d",
+			line: "#d",
 			pos:  2,
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@docs-helper"},
+				{Value: "#docs-helper"},
 			},
 		},
 		{
 			name:     "no completions for non-matching prefix",
-			line:     "@xyz",
+			line:     "#xyz",
 			pos:      4,
 			expected: []shellinput.CompletionCandidate{},
 		},
 		{
 			name: "subagent completion in middle of line",
-			line: "some command @c and more text",
+			line: "some command #c and more text",
 			pos:  14,
 			expected: []shellinput.CompletionCandidate{
-				{Value: "some command @code-reviewer and more text"},
+				{Value: "some command #code-reviewer and more text"},
 			},
 		},
 	}
@@ -162,28 +162,28 @@ func TestSubagentHelp(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "help for @ empty shows all subagents",
-			line:     "@",
+			name:     "help for # empty shows all subagents",
+			line:     "#",
 			pos:      1,
-			expected: "**Subagents** - Specialized AI assistants with specific roles\n\nAvailable subagents:\n• **@code-reviewer** - Review code for bugs and best practices\n• **@test-writer** - Write comprehensive tests",
+			expected: "**Subagents** - Specialized AI assistants with specific roles\n\nAvailable subagents:\n• **#code-reviewer** - Review code for bugs and best practices\n• **#test-writer** - Write comprehensive tests",
 		},
 		{
 			name:     "help for specific subagent",
-			line:     "@code-reviewer",
+			line:     "#code-reviewer",
 			pos:      14,
-			expected: "**@code-reviewer** - Code Reviewer\n\nReview code for bugs and best practices\n**Tools:** [view_file bash]",
+			expected: "**#code-reviewer** - Code Reviewer\n\nReview code for bugs and best practices\n**Tools:** [view_file bash]",
 		},
 		{
 			name:     "help for subagent with model override",
-			line:     "@test-writer",
+			line:     "#test-writer",
 			pos:      12,
-			expected: "**@test-writer** - Test Writer\n\nWrite comprehensive tests\n**Tools:** [create_file edit_file]\n**Model:** gpt-4",
+			expected: "**#test-writer** - Test Writer\n\nWrite comprehensive tests\n**Tools:** [create_file edit_file]\n**Model:** gpt-4",
 		},
 		{
 			name:     "help for partial match",
-			line:     "@c",
+			line:     "#c",
 			pos:      2,
-			expected: "**Subagents** - Matching subagents:\n\n• **@code-reviewer** - Review code for bugs and best practices",
+			expected: "**Subagents** - Matching subagents:\n\n• **#code-reviewer** - Review code for bugs and best practices",
 		},
 	}
 
@@ -202,11 +202,11 @@ func TestSubagentCompletionWithoutProvider(t *testing.T) {
 	// Note: No subagent provider set
 
 	// Should return empty completions when no provider is set
-	result := provider.GetCompletions("@", 1)
+	result := provider.GetCompletions("#", 1)
 	assert.Equal(t, []shellinput.CompletionCandidate{}, result)
 
 	// Should return generic help when no provider is set
-	help := provider.GetHelpInfo("@", 1)
-	expected := "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use @<subagent-name> to invoke a subagent."
+	help := provider.GetHelpInfo("#", 1)
+	expected := "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use #<subagent-name> to invoke a subagent."
 	assert.Equal(t, expected, help)
 }

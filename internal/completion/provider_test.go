@@ -322,73 +322,73 @@ func TestGetCompletions(t *testing.T) {
 			},
 		},
 		{
-			name: "macro completion with @/ prefix",
-			line: "@/mac",
+			name: "macro completion with #/ prefix",
+			line: "#/mac",
 			pos:  5,
 			setup: func() {
 				// No setup needed - macro completion doesn't depend on manager
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@/macro1"},
-				{Value: "@/macro2"},
-				{Value: "@/macro3"},
+				{Value: "#/macro1"},
+				{Value: "#/macro2"},
+				{Value: "#/macro3"},
 			},
 		},
 		{
-			name: "builtin command completion with @! prefix",
-			line: "@!n",
+			name: "builtin command completion with #! prefix",
+			line: "#!n",
 			pos:  3,
 			setup: func() {
 				// No setup needed - builtin completion doesn't depend on manager
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@!new"},
+				{Value: "#!new"},
 			},
 		},
 		{
 			name: "partial macro match should complete to macro, not fall back",
-			line: "@/m",
+			line: "#/m",
 			pos:  3,
 			setup: func() {
 				// No setup needed - should match macros
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@/macro1"},
-				{Value: "@/macro2"},
-				{Value: "@/macro3"},
+				{Value: "#/macro1"},
+				{Value: "#/macro2"},
+				{Value: "#/macro3"},
 			},
 		},
 		{
 			name: "partial builtin match should complete to builtin, not fall back",
-			line: "@!t",
+			line: "#!t",
 			pos:  3,
 			setup: func() {
 				// No setup needed - should match builtins
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@!tokens"},
+				{Value: "#!tokens"},
 			},
 		},
 		{
 			name: "subagent commands completion with 's' prefix",
-			line: "@!s",
+			line: "#!s",
 			pos:  3,
 			setup: func() {
 				// No setup needed - should match builtin subagent commands
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@!subagents"},
+				{Value: "#!subagents"},
 			},
 		},
 		{
 			name: "reload-subagents completion with 'r' prefix",
-			line: "@!r",
+			line: "#!r",
 			pos:  3,
 			setup: func() {
 				// No setup needed - should match builtin reload command
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "@!reload-subagents"},
+				{Value: "#!reload-subagents"},
 			},
 		},
 		{
@@ -506,52 +506,52 @@ func TestGetHelpInfo(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "help for @! empty",
-			line:     "@!",
+			name:     "help for #! empty",
+			line:     "#!",
 			pos:      2,
-			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations\n• **@!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **#!config** - Open the configuration menu\n• **#!new** - Start a new chat session\n• **#!tokens** - Show token usage statistics\n• **#!subagents [name]** - List subagents or show details\n• **#!reload-subagents** - Reload subagent configurations\n• **#!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)",
 		},
 		{
-			name:     "help for @!new",
-			line:     "@!new",
+			name:     "help for #!new",
+			line:     "#!new",
 			pos:      5,
-			expected: "**@!new** - Start a new chat session with the agent\n\nThis command resets the conversation history and starts fresh.",
+			expected: "**#!new** - Start a new chat session with the agent\n\nThis command resets the conversation history and starts fresh.",
 		},
 		{
-			name:     "help for @!tokens",
-			line:     "@!tokens",
+			name:     "help for #!tokens",
+			line:     "#!tokens",
 			pos:      8,
-			expected: "**@!tokens** - Display token usage statistics\n\nShows information about token consumption for the current chat session.",
+			expected: "**#!tokens** - Display token usage statistics\n\nShows information about token consumption for the current chat session.",
 		},
 		{
-			name:     "help for @/ empty (no macros)",
-			line:     "@/",
+			name:     "help for #/ empty (no macros)",
+			line:     "#/",
 			pos:      2,
 			expected: "**Chat Macros** - Quick shortcuts for common agent messages\n\nNo macros are currently configured.",
 		},
 		{
-			name:     "help for partial @!n (matches new)",
-			line:     "@!n",
+			name:     "help for partial #!n (matches new)",
+			line:     "#!n",
 			pos:      3,
-			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations\n• **@!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **#!config** - Open the configuration menu\n• **#!new** - Start a new chat session\n• **#!tokens** - Show token usage statistics\n• **#!subagents [name]** - List subagents or show details\n• **#!reload-subagents** - Reload subagent configurations\n• **#!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)",
 		},
 		{
-			name:     "help for partial @!t (matches tokens)",
-			line:     "@!t",
+			name:     "help for partial #!t (matches tokens)",
+			line:     "#!t",
 			pos:      3,
-			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations\n• **@!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **#!config** - Open the configuration menu\n• **#!new** - Start a new chat session\n• **#!tokens** - Show token usage statistics\n• **#!subagents [name]** - List subagents or show details\n• **#!reload-subagents** - Reload subagent configurations\n• **#!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)",
 		},
 		{
-			name:     "help for @!subagents",
-			line:     "@!subagents",
+			name:     "help for #!subagents",
+			line:     "#!subagents",
 			pos:      11,
-			expected: "**@!subagents [name]** - List subagents or show details about a specific one\n\nWithout arguments, displays all configured Claude-style subagents and Roo Code-style modes. With a subagent name, shows detailed information including tools, file restrictions, and configuration.",
+			expected: "**#!subagents [name]** - List subagents or show details about a specific one\n\nWithout arguments, displays all configured Claude-style subagents and Roo Code-style modes. With a subagent name, shows detailed information including tools, file restrictions, and configuration.",
 		},
 		{
-			name:     "help for @!reload-subagents",
-			line:     "@!reload-subagents",
+			name:     "help for #!reload-subagents",
+			line:     "#!reload-subagents",
 			pos:      18,
-			expected: "**@!reload-subagents** - Reload subagent configurations from disk\n\nRefreshes the subagent configurations by rescanning the .claude/agents/ and .roo/modes/ directories.",
+			expected: "**#!reload-subagents** - Reload subagent configurations from disk\n\nRefreshes the subagent configurations by rescanning the .claude/agents/ and .roo/modes/ directories.",
 		},
 		{
 			name:     "no help for regular command",
@@ -588,28 +588,28 @@ func TestGetHelpInfoWithMacros(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "help for @/ with macros",
-			line:     "@/",
+			name:     "help for #/ with macros",
+			line:     "#/",
 			pos:      2,
-			expected: "**Chat Macros** - Quick shortcuts for common agent messages\n\nAvailable macros:\n• **@/help**\n• **@/test**",
+			expected: "**Chat Macros** - Quick shortcuts for common agent messages\n\nAvailable macros:\n• **#/help**\n• **#/test**",
 		},
 		{
 			name:     "help for specific macro",
-			line:     "@/test",
+			line:     "#/test",
 			pos:      6,
-			expected: "**@/test** - Chat macro\n\n**Expands to:**\nThis is a test macro",
+			expected: "**#/test** - Chat macro\n\n**Expands to:**\nThis is a test macro",
 		},
 		{
 			name:     "help for partial macro match",
-			line:     "@/t",
+			line:     "#/t",
 			pos:      3,
-			expected: "**Chat Macros** - Matching macros:\n\n• **@/test** - This is a test macro",
+			expected: "**Chat Macros** - Matching macros:\n\n• **#/test** - This is a test macro",
 		},
 		{
 			name:     "help for partial macro match with multiple results",
-			line:     "@/he",
+			line:     "#/he",
 			pos:      4,
-			expected: "**Chat Macros** - Matching macros:\n\n• **@/help** - Show help information",
+			expected: "**Chat Macros** - Matching macros:\n\n• **#/help** - Show help information",
 		},
 	}
 
