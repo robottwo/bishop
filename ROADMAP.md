@@ -1,6 +1,7 @@
 # Bash Parity
 
 - history expansion
+- Job Control (Ctrl+Z, fg)
 
 # Ergonomics
 

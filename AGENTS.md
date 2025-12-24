@@ -1,14 +1,21 @@
 # Agent Instructions
 
-## Git Branch Naming
+## Git Conventions
 
-Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) types for branch names and commit messages.
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) types for **branch names**, **commit messages**, and **PR titles**.
 
 ### Format
 
-**Basic:** `<type>/<description>`  
-**With scope:** `<type>(<scope>)/<description>`  
-**Breaking change:** `<type>!: <description>`
+#### Branch Names
+Use forward slashes (`/`):
+- **Basic:** `<type>/<description>`
+- **With scope:** `<type>(<scope>)/<description>`
+
+#### Commit Messages & PR Titles
+Use colons (`:`) followed by a space:
+- **Basic:** `<type>: <description>`
+- **With scope:** `<type>(<scope>): <description>`
+- **Breaking change:** `<type>!: <description>`
 
 ### Rules
 
