@@ -383,6 +383,16 @@ func RunInteractiveShell(
 			continue
 		}
 
+		// Handle autocd if enabled
+		if environment.IsAutocdEnabled(runner) {
+			if newLine, triggered := TryAutocd(line, runner); triggered {
+				if environment.IsAutocdVerbose(runner) {
+					fmt.Println(newLine)
+				}
+				line = newLine
+			}
+		}
+
 		// Execute the command
 		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
 		if err != nil {
