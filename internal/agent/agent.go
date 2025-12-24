@@ -24,6 +24,7 @@ import (
 type Agent struct {
 	runner         *interp.Runner
 	historyManager *history.HistoryManager
+	sessionID      string
 	contextText    string
 	logger         *zap.Logger
 	llmClient      *openai.Client
@@ -43,12 +44,14 @@ func NewAgent(
 	runner *interp.Runner,
 	historyManager *history.HistoryManager,
 	logger *zap.Logger,
+	sessionID string,
 ) *Agent {
 	llmClient, modelConfig := utils.GetLLMClient(runner, utils.SlowModel)
 
 	return &Agent{
 		runner:         runner,
 		historyManager: historyManager,
+		sessionID:      sessionID,
 		contextText:    "",
 		logger:         logger,
 		llmClient:      llmClient,
@@ -292,7 +295,7 @@ func (agent *Agent) handleToolCall(toolCall openai.ToolCall, responseChannel cha
 		toolResponse = "ok"
 	case tools.BashToolDefinition.Function.Name:
 		// bash
-		toolResponse = tools.BashTool(agent.runner, agent.historyManager, agent.logger, params)
+		toolResponse = tools.BashTool(agent.runner, agent.historyManager, agent.logger, agent.sessionID, params)
 	case tools.ViewFileToolDefinition.Function.Name:
 		// view_file
 		toolResponse = tools.ViewFileTool(agent.runner, agent.logger, params)

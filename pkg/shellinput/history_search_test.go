@@ -85,12 +85,13 @@ func TestHistoryFiltering(t *testing.T) {
 	// Setup rich history
 	now := time.Now()
 	history := []HistoryItem{
-		{Command: "cmd1", Timestamp: now, Directory: "/dir1"},
-		{Command: "cmd2", Timestamp: now, Directory: "/dir2"},
-		{Command: "cmd3", Timestamp: now, Directory: "/dir1"},
+		{Command: "cmd1", Timestamp: now, Directory: "/dir1", SessionID: "session-1"},
+		{Command: "cmd2", Timestamp: now, Directory: "/dir2", SessionID: "session-2"},
+		{Command: "cmd3", Timestamp: now, Directory: "/dir1", SessionID: "session-1"},
 	}
 	model.SetRichHistory(history)
 	model.SetCurrentDirectory("/dir1")
+	model.SetCurrentSessionID("session-1")
 
 	// Enter reverse search
 	msg := tea.KeyMsg{Type: tea.KeyCtrlR}
@@ -101,11 +102,6 @@ func TestHistoryFiltering(t *testing.T) {
 	assert.Len(t, updatedModel.historySearchState.filteredIndices, 3)
 
 	// Toggle Filter (Ctrl+F) -> Directory
-	// Ctrl+F is handled in Update by checking string "ctrl+f"
-	// We need to simulate the key press manually or through Update if we mapped it?
-	// In my code I mapped msg.String() == "ctrl+f"
-	// BubbleTea Ctrl+F is usually KeyCtrlF but I used string check.
-	// Let's create a Msg with string "ctrl+f" or KeyCtrlF
 	msg = tea.KeyMsg{Type: tea.KeyCtrlF}
 	updatedModel, _ = updatedModel.Update(msg)
 
@@ -115,7 +111,17 @@ func TestHistoryFiltering(t *testing.T) {
 	assert.Equal(t, 0, updatedModel.historySearchState.filteredIndices[0]) // cmd1
 	assert.Equal(t, 2, updatedModel.historySearchState.filteredIndices[1]) // cmd3
 
-	// Toggle Filter -> All (cycling back, skipping Session for now)
+	// Toggle Filter -> Session
+	msg = tea.KeyMsg{Type: tea.KeyCtrlF}
+	updatedModel, _ = updatedModel.Update(msg)
+
+	assert.Equal(t, HistoryFilterSession, updatedModel.historySearchState.filterMode)
+	// Should match cmd1 and cmd3 (session-1)
+	assert.Len(t, updatedModel.historySearchState.filteredIndices, 2)
+	assert.Equal(t, 0, updatedModel.historySearchState.filteredIndices[0]) // cmd1
+	assert.Equal(t, 2, updatedModel.historySearchState.filteredIndices[1]) // cmd3
+
+	// Toggle Filter -> All
 	msg = tea.KeyMsg{Type: tea.KeyCtrlF}
 	updatedModel, _ = updatedModel.Update(msg)
 	assert.Equal(t, HistoryFilterAll, updatedModel.historySearchState.filterMode)

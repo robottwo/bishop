@@ -15,17 +15,17 @@ func setupTestHistoryManager(t *testing.T) *history.HistoryManager {
 	assert.NoError(t, err)
 
 	// Add some test entries
-	entry1, err := hm.StartCommand("ls -l", "/home")
+	entry1, err := hm.StartCommand("ls -l", "/home", "session-1")
 	assert.NoError(t, err)
 	_, _ = hm.FinishCommand(entry1, 0)
 	assert.NoError(t, err)
 
-	entry2, err := hm.StartCommand("pwd", "/home")
+	entry2, err := hm.StartCommand("pwd", "/home", "session-1")
 	assert.NoError(t, err)
 	_, _ = hm.FinishCommand(entry2, 0)
 	assert.NoError(t, err)
 
-	entry3, err := hm.StartCommand("cd /tmp", "/tmp")
+	entry3, err := hm.StartCommand("cd /tmp", "/tmp", "session-1")
 	assert.NoError(t, err)
 	_, _ = hm.FinishCommand(entry3, 0)
 	assert.NoError(t, err)

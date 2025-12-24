@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/robottwo/bishop/internal/agent"
 	"github.com/robottwo/bishop/internal/analytics"
 	"github.com/robottwo/bishop/internal/bash"
@@ -42,6 +43,9 @@ func RunInteractiveShell(
 	logger *zap.Logger,
 	stderrCapturer *StderrCapturer,
 ) error {
+	// Generate session ID
+	sessionID := uuid.New().String()
+
 	state := &ShellState{}
 	contextProvider := &rag.ContextProvider{
 		Logger: logger,
@@ -58,10 +62,10 @@ func RunInteractiveShell(
 		NullStatePredictor: predict.NewLLMNullStatePredictor(runner, logger),
 	}
 	explainer := predict.NewLLMExplainer(runner, logger)
-	agent := agent.NewAgent(runner, historyManager, logger)
+	agent := agent.NewAgent(runner, historyManager, logger, sessionID)
 
 	// Set up subagent integration
-	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger)
+	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger, sessionID)
 
 	// Set up completion
 	completionProvider := completion.NewShellCompletionProvider(completionManager, runner)
@@ -120,6 +124,7 @@ func RunInteractiveShell(
 				Command:   entry.Command,
 				Directory: entry.Directory,
 				Timestamp: entry.CreatedAt,
+				SessionID: entry.SessionID,
 			}
 		}
 
@@ -129,9 +134,9 @@ func RunInteractiveShell(
 		options.CompletionProvider = completionProvider
 		options.RichHistory = richHistory
 		options.CurrentDirectory = environment.GetPwd(runner)
+		options.CurrentSessionID = sessionID
 
 		// Populate context for border status
-		options.CurrentDirectory = environment.GetPwd(runner)
 		options.User = environment.GetUser(runner)
 		options.Host, _ = os.Hostname()
 
@@ -306,7 +311,7 @@ func RunInteractiveShell(
 
 					if confirmed {
 						fmt.Println()
-						shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer)
+						shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
 						}
@@ -379,7 +384,7 @@ func RunInteractiveShell(
 		}
 
 		// Execute the command
-		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer)
+		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
 		}
@@ -399,7 +404,7 @@ func RunInteractiveShell(
 	return nil
 }
 
-func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer) (bool, error) {
+func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer, sessionID string) (bool, error) {
 	// History expansion
 	expandedInput, expanded := expandHistory(input, historyManager)
 	if expanded {
@@ -452,7 +457,7 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 		return false, err
 	}
 
-	historyEntry, _ := historyManager.StartCommand(input, environment.GetPwd(runner))
+	historyEntry, _ := historyManager.StartCommand(input, environment.GetPwd(runner), sessionID)
 
 	state.LastCommand = input
 	if stderrCapturer != nil {
