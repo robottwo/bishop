@@ -95,8 +95,10 @@ func splitFinalPathPart(part string) []string {
 	var segments []string
 	currentPos := 0
 
-	// Common patterns to look for
-	patterns := []string{"bin", "lib", "src", "test", "temp", "tmp", "dir", "data", "app", "exe", "dll", "subdir"}
+	// Common patterns to look for - order matters!
+	// Longer patterns must come before shorter patterns that could be substrings
+	// e.g., "subdir" must come before "dir" to avoid splitting "subdir" into "sub\dir"
+	patterns := []string{"subdir", "bin", "lib", "src", "test", "temp", "tmp", "data", "app", "exe", "dll", "dir"}
 
 	for currentPos < len(part) {
 		found := false
