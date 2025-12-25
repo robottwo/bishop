@@ -19,6 +19,8 @@ func TestDocumentationCompleter(t *testing.T) {
 	require.NoError(t, err)
 	err = os.MkdirAll(filepath.Join(manDir, "man3"), 0755)
 	require.NoError(t, err)
+	err = os.MkdirAll(filepath.Join(manDir, "mann"), 0755)
+	require.NoError(t, err)
 	err = os.MkdirAll(infoDir, 0755)
 	require.NoError(t, err)
 
@@ -27,6 +29,7 @@ func TestDocumentationCompleter(t *testing.T) {
 	createFile(t, filepath.Join(manDir, "man1", "grep.1"))
 	createFile(t, filepath.Join(manDir, "man3", "printf.3.gz"))
 	createFile(t, filepath.Join(manDir, "man3", "dummy.3beta")) // complex extension
+	createFile(t, filepath.Join(manDir, "mann", "tcl.n"))       // named section
 
 	// Create dummy info pages
 	createFile(t, filepath.Join(infoDir, "grep.info.gz"))
@@ -44,7 +47,7 @@ func TestDocumentationCompleter(t *testing.T) {
 		// All man pages
 		cands, found := completer.GetCompletions("man", []string{}, "", 0)
 		assert.True(t, found)
-		assert.Len(t, cands, 4) // ls, grep, printf, dummy
+		assert.Len(t, cands, 5) // ls, grep, printf, dummy, tcl
 
 		// Filtering
 		cands, _ = completer.GetCompletions("man", []string{"gr"}, "", 0)
@@ -60,6 +63,11 @@ func TestDocumentationCompleter(t *testing.T) {
 		// Section mismatch
 		cands, _ = completer.GetCompletions("man", []string{"1", "pr"}, "", 0)
 		assert.Len(t, cands, 0)
+
+		// Named Section
+		cands, _ = completer.GetCompletions("man", []string{"n", ""}, "", 0)
+		assert.Len(t, cands, 1)
+		assert.Equal(t, "tcl", cands[0].Value)
 	})
 
 	// Test INFO completion

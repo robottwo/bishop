@@ -15,6 +15,7 @@ import (
 // DocumentationCompleter handles completions for documentation commands (man, info, help)
 type DocumentationCompleter struct {
 	manPages  map[string][]string // name -> list of sections
+	sections  map[string]bool     // set of all available sections
 	infoPages []string            // list of info page names
 	initOnce  sync.Once
 	builtins  []string
@@ -80,7 +81,7 @@ func (d *DocumentationCompleter) completeMan(args []string) []shellinput.Complet
 	if len(args) > 1 {
 		// If we have 2+ args, the first one might be a section
 		possibleSection := args[0]
-		if isSection(possibleSection) {
+		if d.sections[possibleSection] {
 			sectionFilter = possibleSection
 			// The prefix is the last argument
 			prefix = args[len(args)-1]
@@ -190,6 +191,7 @@ func (d *DocumentationCompleter) completeHelp(args []string) []shellinput.Comple
 
 func (d *DocumentationCompleter) scanManPages() {
 	d.manPages = make(map[string][]string)
+	d.sections = make(map[string]bool)
 
 	// Get MANPATH or default
 	paths := getEnvPaths("MANPATH", []string{
@@ -200,7 +202,8 @@ func (d *DocumentationCompleter) scanManPages() {
 
 	// Regex to match man page files: name.section.gz or name.section
 	// e.g. ls.1.gz -> name=ls, section=1
-	re := regexp.MustCompile(`^(.+)\.([0-9][a-zA-Z]*)(\.gz)?$`)
+	// e.g. tcl.n -> name=tcl, section=n
+	re := regexp.MustCompile(`^(.+?)\.([a-zA-Z0-9]+)(\.gz)?$`)
 
 	for _, dir := range paths {
 		_ = filepath.WalkDir(dir, func(path string, dEntry os.DirEntry, err error) error {
@@ -219,6 +222,7 @@ func (d *DocumentationCompleter) scanManPages() {
 				section := matches[2]
 
 				d.manPages[name] = append(d.manPages[name], section)
+				d.sections[section] = true
 			}
 			return nil
 		})
