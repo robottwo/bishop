@@ -51,7 +51,7 @@ func (si *SubagentIntegration) HandleCommand(chatMessage string) (bool, <-chan s
 	// Check for subagent invocation patterns
 	subagentID, prompt, isExplicit := si.parseSubagentCommand(chatMessage)
 
-	// If explicit selection failed (e.g. @@ was used but no subagent found)
+	// If explicit selection failed (e.g. ## was used but no subagent found)
 	if isExplicit && subagentID == "" {
 		return true, nil, nil, fmt.Errorf("auto-selection failed: no suitable subagent found")
 	}
@@ -91,12 +91,12 @@ func (si *SubagentIntegration) HandleCommand(chatMessage string) (bool, <-chan s
 func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string, string, bool) {
 	chatMessage = strings.TrimSpace(chatMessage)
 
-	// Handle @@ invocation (chatMessage starts with @)
-	// This corresponds to shell input starting with @@ (or @ @)
-	if strings.HasPrefix(chatMessage, "@") {
+	// Handle ## invocation (chatMessage starts with #)
+	// This corresponds to shell input starting with ## (or # #)
+	if strings.HasPrefix(chatMessage, "#") {
 		content := chatMessage[1:]
 
-		// If content starts with space or is empty, it's @@ <prompt> -> Auto-detect
+		// If content starts with space or is empty, it's ## <prompt> -> Auto-detect
 		if strings.HasPrefix(content, " ") || content == "" {
 			prompt := strings.TrimSpace(content)
 
@@ -116,12 +116,12 @@ func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string,
 				si.logger.Debug("Intelligent subagent selection failed", zap.Error(err))
 			}
 
-			// Explicit @@ was used but failed to select
+			// Explicit ## was used but failed to select
 			return "", prompt, true
 		}
 
-		// Otherwise it's @@<subagent> -> Explicit selection (Pattern 1 logic)
-		// e.g. @@git -> subagent=git
+		// Otherwise it's ##<subagent> -> Explicit selection (Pattern 1 logic)
+		// e.g. ##git -> subagent=git
 		parts := strings.SplitN(content, " ", 2)
 		subagentID := parts[0]
 		prompt := ""
@@ -131,8 +131,8 @@ func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string,
 		return subagentID, prompt, true
 	}
 
-	// Pattern 2: @:mode-slug prompt (Roo Code style)
-	if strings.HasPrefix(chatMessage, "@:") {
+	// Pattern 2: #:mode-slug prompt (Roo Code style)
+	if strings.HasPrefix(chatMessage, "#:") {
 		parts := strings.SplitN(chatMessage[2:], " ", 2)
 		if len(parts) >= 1 {
 			subagentID := parts[0]
@@ -145,7 +145,7 @@ func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string,
 	}
 
 	// Fallback: Check if the first word matches a subagent name explicitly
-	// This allows `@ git ...` to work if `git` is a known subagent.
+	// This allows `# git ...` to work if `git` is a known subagent.
 	words := strings.Fields(chatMessage)
 	if len(words) > 0 {
 		firstWord := words[0]

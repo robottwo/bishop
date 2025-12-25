@@ -17,9 +17,9 @@ type ShellCompletionProvider struct {
 
 // GetCompletions returns completion suggestions for the current input line
 func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []shellinput.CompletionCandidate {
-	// Skip completions for agentic commands (starting with @)
+	// Skip completions for agentic commands (starting with #)
 	trimmedLine := strings.TrimSpace(line[:pos])
-	if strings.HasPrefix(trimmedLine, "@") {
+	if strings.HasPrefix(trimmedLine, "#") {
 		return []shellinput.CompletionCandidate{}
 	}
 

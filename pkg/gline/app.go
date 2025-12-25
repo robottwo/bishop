@@ -92,7 +92,7 @@ type errorMsg struct {
 	err     error
 }
 
-// helpHeaderRegex matches redundant help headers like "**@name** - "
+// helpHeaderRegex matches redundant help headers like "**#name** - "
 var helpHeaderRegex = regexp.MustCompile(`^\*\*[^\*]+\*\* - `)
 
 type setExplanationMsg struct {
@@ -470,8 +470,8 @@ func (m appModel) View() string {
 			isPreformatted = true
 		} else if completionBox != "" && helpBox != "" {
 			// Clean up help box text to avoid redundancy
-			// Remove headers like "**@name** - " or "**name** - " using regex
-			// This covers patterns like "**@debug-assistant** - " or "**@!new** - "
+			// Remove headers like "**#name** - " or "**name** - " using regex
+			// This covers patterns like "**#debug-assistant** - " or "**#!new** - "
 			helpBox = helpHeaderRegex.ReplaceAllString(helpBox, "")
 
 			// Render side-by-side
@@ -987,8 +987,8 @@ func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cm
 	if msg.stateId != m.predictionStateId {
 		return m, nil
 	}
-	// Skip LLM prediction for @ commands (agentic commands)
-	if strings.HasPrefix(strings.TrimSpace(m.textInput.Value()), "@") {
+	// Skip LLM prediction for # commands (agentic commands)
+	if strings.HasPrefix(strings.TrimSpace(m.textInput.Value()), "#") {
 		// Don't show indicator when buffer is empty - just return clean state
 		return m, nil
 	}
