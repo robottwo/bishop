@@ -17,6 +17,7 @@ type HistoryItem struct {
 	Command   string
 	Directory string
 	Timestamp time.Time
+	SessionID string
 }
 
 // HistoryFilterMode defines the scope of history search
@@ -61,11 +62,12 @@ func (m HistorySortMode) String() string {
 
 // historySearchState tracks the state of the rich history search
 type historySearchState struct {
-	filteredIndices []int // indices into Model.historyItems
-	selected        int   // index into filteredIndices
-	filterMode      HistoryFilterMode
-	sortMode        HistorySortMode
-	currentDir      string // used for filtering by directory
+	filteredIndices  []int // indices into Model.historyItems
+	selected         int   // index into filteredIndices
+	filterMode       HistoryFilterMode
+	sortMode         HistorySortMode
+	currentDir       string // used for filtering by directory
+	currentSessionID string // used for filtering by session
 }
 
 // SetRichHistory sets the history items for the rich search
@@ -76,6 +78,11 @@ func (m *Model) SetRichHistory(items []HistoryItem) {
 // SetCurrentDirectory sets the current directory for filtering history
 func (m *Model) SetCurrentDirectory(dir string) {
 	m.historySearchState.currentDir = dir
+}
+
+// SetCurrentSessionID sets the current session ID for filtering history
+func (m *Model) SetCurrentSessionID(id string) {
+	m.historySearchState.currentSessionID = id
 }
 
 // HistorySearchBoxView renders the history search box
@@ -251,11 +258,9 @@ func (m *Model) updateHistorySearch() {
 				match = false
 			}
 		case HistoryFilterSession:
-			// Session filtering requires SessionID, which we don't track yet.
-			// Falling back to All for now or implementing if requested.
-			// Assuming "Session: Current" implies items created in this session.
-			// But we load from DB. We'd need to know which entries are from this session.
-			// For now, treat as All or TODO.
+			if m.historySearchState.currentSessionID != "" && item.SessionID != m.historySearchState.currentSessionID {
+				match = false
+			}
 		}
 
 		if match {
@@ -350,7 +355,9 @@ func (m *Model) toggleHistoryFilter() {
 	case HistoryFilterAll:
 		m.historySearchState.filterMode = HistoryFilterDirectory
 	case HistoryFilterDirectory:
-		m.historySearchState.filterMode = HistoryFilterAll // Skip session for now as we don't track it
+		m.historySearchState.filterMode = HistoryFilterSession
+	case HistoryFilterSession:
+		m.historySearchState.filterMode = HistoryFilterAll
 	default:
 		m.historySearchState.filterMode = HistoryFilterAll
 	}

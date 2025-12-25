@@ -152,6 +152,9 @@ func initialModel(
 	if options.CurrentDirectory != "" {
 		textInput.SetCurrentDirectory(options.CurrentDirectory)
 	}
+	if options.CurrentSessionID != "" {
+		textInput.SetCurrentSessionID(options.CurrentSessionID)
+	}
 	textInput.Cursor.SetMode(cursor.CursorStatic)
 	textInput.ShowSuggestions = true
 	textInput.CompletionProvider = options.CompletionProvider

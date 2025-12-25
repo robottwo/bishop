@@ -67,9 +67,9 @@ func TestHistoryCommand(t *testing.T) {
 			expectedError: false,
 			setupFn: func() uint {
 				_ = historyManager.ResetHistory()
-				entry1, _ := historyManager.StartCommand("test1", "")
+				entry1, _ := historyManager.StartCommand("test1", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry1, 0)
-				entry2, _ := historyManager.StartCommand("test2", "")
+				entry2, _ := historyManager.StartCommand("test2", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry2, 0)
 				return 0
 			},
@@ -100,11 +100,11 @@ func TestHistoryCommand(t *testing.T) {
 			expectedError: false,
 			setupFn: func() uint {
 				_ = historyManager.ResetHistory()
-				entry1, _ := historyManager.StartCommand("test1", "")
+				entry1, _ := historyManager.StartCommand("test1", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry1, 0)
-				entry2, _ := historyManager.StartCommand("test2", "")
+				entry2, _ := historyManager.StartCommand("test2", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry2, 0)
-				entry3, _ := historyManager.StartCommand("test3", "")
+				entry3, _ := historyManager.StartCommand("test3", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry3, 0)
 				return 0
 			},
@@ -127,11 +127,11 @@ func TestHistoryCommand(t *testing.T) {
 			expectedError: false,
 			setupFn: func() uint {
 				_ = historyManager.ResetHistory()
-				entry1, _ := historyManager.StartCommand("test1", "")
+				entry1, _ := historyManager.StartCommand("test1", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry1, 0)
-				entry2, _ := historyManager.StartCommand("test2", "")
+				entry2, _ := historyManager.StartCommand("test2", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry2, 0)
-				entry3, _ := historyManager.StartCommand("test3", "")
+				entry3, _ := historyManager.StartCommand("test3", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry3, 0)
 				return 0
 			},
@@ -155,9 +155,9 @@ func TestHistoryCommand(t *testing.T) {
 			expectedError: false,
 			setupFn: func() uint {
 				_ = historyManager.ResetHistory()
-				entry1, _ := historyManager.StartCommand("test1", "")
+				entry1, _ := historyManager.StartCommand("test1", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry1, 0)
-				entry2, _ := historyManager.StartCommand("test2", "")
+				entry2, _ := historyManager.StartCommand("test2", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry2, 0)
 				return 0
 			},
@@ -176,11 +176,11 @@ func TestHistoryCommand(t *testing.T) {
 			expectedError: false,
 			setupFn: func() uint {
 				_ = historyManager.ResetHistory()
-				entry1, _ := historyManager.StartCommand("test1", "")
+				entry1, _ := historyManager.StartCommand("test1", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry1, 0)
-				entry2, _ := historyManager.StartCommand("test2", "")
+				entry2, _ := historyManager.StartCommand("test2", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry2, 0)
-				entry3, _ := historyManager.StartCommand("test3", "")
+				entry3, _ := historyManager.StartCommand("test3", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry3, 0)
 				entries, _ := historyManager.GetRecentEntries("", 10)
 				return entries[0].ID
@@ -200,7 +200,7 @@ func TestHistoryCommand(t *testing.T) {
 			expectedError: true,
 			setupFn: func() uint {
 				_ = historyManager.ResetHistory()
-				entry1, _ := historyManager.StartCommand("test1", "")
+				entry1, _ := historyManager.StartCommand("test1", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry1, 0)
 				return 0
 			},
@@ -219,7 +219,7 @@ func TestHistoryCommand(t *testing.T) {
 			expectedError: true,
 			setupFn: func() uint {
 				_ = historyManager.ResetHistory()
-				entry1, _ := historyManager.StartCommand("test1", "")
+				entry1, _ := historyManager.StartCommand("test1", "", "session-1")
 				_, _ = historyManager.FinishCommand(entry1, 0)
 				return 0
 			},

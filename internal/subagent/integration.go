@@ -20,10 +20,11 @@ type SubagentIntegration struct {
 	runner    *interp.Runner
 	history   *history.HistoryManager
 	logger    *zap.Logger
+	sessionID string
 }
 
 // NewSubagentIntegration creates a new subagent integration instance
-func NewSubagentIntegration(runner *interp.Runner, history *history.HistoryManager, logger *zap.Logger) *SubagentIntegration {
+func NewSubagentIntegration(runner *interp.Runner, history *history.HistoryManager, logger *zap.Logger, sessionID string) *SubagentIntegration {
 	manager := NewSubagentManager(runner, logger)
 
 	// Load subagents on initialization
@@ -38,6 +39,7 @@ func NewSubagentIntegration(runner *interp.Runner, history *history.HistoryManag
 		runner:    runner,
 		history:   history,
 		logger:    logger,
+		sessionID: sessionID,
 	}
 }
 
@@ -165,7 +167,7 @@ func (si *SubagentIntegration) getExecutor(subagent *Subagent) *SubagentExecutor
 	}
 
 	// Create new executor
-	executor := NewSubagentExecutor(si.runner, si.history, si.logger, subagent)
+	executor := NewSubagentExecutor(si.runner, si.history, si.logger, subagent, si.sessionID)
 	si.executors[subagent.ID] = executor
 
 	si.logger.Debug("Created new subagent executor", zap.String("subagent", subagent.ID))

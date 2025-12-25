@@ -176,7 +176,7 @@ func GeneratePreselectionPattern(prefix string) string {
 	return "^" + regexp.QuoteMeta(prefix) + ".*"
 }
 
-func BashTool(runner *interp.Runner, historyManager *history.HistoryManager, logger *zap.Logger, params map[string]any) string {
+func BashTool(runner *interp.Runner, historyManager *history.HistoryManager, logger *zap.Logger, sessionID string, params map[string]any) string {
 	reason, ok := params["reason"].(string)
 	if !ok {
 		logger.Error("The bash tool failed to parse parameter 'reason'")
@@ -255,7 +255,7 @@ func BashTool(runner *interp.Runner, historyManager *history.HistoryManager, log
 		_ = interp.StdIO(os.Stdin, os.Stdout, os.Stderr)(runner)
 	}()
 
-	historyEntry, _ := historyManager.StartCommand(command, environment.GetPwd(runner))
+	historyEntry, _ := historyManager.StartCommand(command, environment.GetPwd(runner), sessionID)
 
 	err = runner.Run(context.Background(), prog)
 

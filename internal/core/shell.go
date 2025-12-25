@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/robottwo/bishop/internal/agent"
 	"github.com/robottwo/bishop/internal/analytics"
 	"github.com/robottwo/bishop/internal/bash"
@@ -42,6 +43,9 @@ func RunInteractiveShell(
 	logger *zap.Logger,
 	stderrCapturer *StderrCapturer,
 ) error {
+	// Generate session ID
+	sessionID := uuid.New().String()
+
 	state := &ShellState{}
 	contextProvider := &rag.ContextProvider{
 		Logger: logger,
@@ -58,10 +62,10 @@ func RunInteractiveShell(
 		NullStatePredictor: predict.NewLLMNullStatePredictor(runner, logger),
 	}
 	explainer := predict.NewLLMExplainer(runner, logger)
-	agent := agent.NewAgent(runner, historyManager, logger)
+	agent := agent.NewAgent(runner, historyManager, logger, sessionID)
 
 	// Set up subagent integration
-	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger)
+	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger, sessionID)
 
 	// Set up completion
 	completionProvider := completion.NewShellCompletionProvider(completionManager, runner)
@@ -120,6 +124,7 @@ func RunInteractiveShell(
 				Command:   entry.Command,
 				Directory: entry.Directory,
 				Timestamp: entry.CreatedAt,
+				SessionID: entry.SessionID,
 			}
 		}
 
@@ -129,9 +134,9 @@ func RunInteractiveShell(
 		options.CompletionProvider = completionProvider
 		options.RichHistory = richHistory
 		options.CurrentDirectory = environment.GetPwd(runner)
+		options.CurrentSessionID = sessionID
 
 		// Populate context for border status
-		options.CurrentDirectory = environment.GetPwd(runner)
 		options.User = environment.GetUser(runner)
 		options.Host, _ = os.Hostname()
 
@@ -306,7 +311,7 @@ func RunInteractiveShell(
 
 					if confirmed {
 						fmt.Println()
-						shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer)
+						shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
 						}
@@ -379,7 +384,7 @@ func RunInteractiveShell(
 		}
 
 		// Execute the command
-		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer)
+		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
 		}
@@ -399,7 +404,14 @@ func RunInteractiveShell(
 	return nil
 }
 
-func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer) (bool, error) {
+func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer, sessionID string) (bool, error) {
+	// History expansion
+	expandedInput, expanded := expandHistory(input, historyManager)
+	if expanded {
+		input = expandedInput
+		fmt.Fprintln(os.Stderr, input)
+	}
+
 	// Pre-process input to transform typeset/declare -f/-F/-p commands to bish_typeset
 	logger.Debug("preprocessing input", zap.String("original_input", input), zap.Int("input_length", len(input)))
 
@@ -445,7 +457,7 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 		return false, err
 	}
 
-	historyEntry, _ := historyManager.StartCommand(input, environment.GetPwd(runner))
+	historyEntry, _ := historyManager.StartCommand(input, environment.GetPwd(runner), sessionID)
 
 	state.LastCommand = input
 	if stderrCapturer != nil {
@@ -488,4 +500,70 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 	}
 
 	return exited, nil
+}
+
+func expandHistory(input string, historyManager *history.HistoryManager) (string, bool) {
+	// Quick check
+	if !strings.Contains(input, "!") {
+		return input, false
+	}
+
+	entries, err := historyManager.GetAllEntries()
+	if err != nil || len(entries) == 0 {
+		return input, false
+	}
+	lastEntry := entries[0]
+	lastCmd := lastEntry.Command
+
+	// Get last argument
+	lastArg := shellinput.GetLastArgument(lastCmd)
+
+	var sb strings.Builder
+	expanded := false
+	inSingleQuote := false
+
+	runes := []rune(input)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+
+		if r == '\'' {
+			inSingleQuote = !inSingleQuote
+			sb.WriteRune(r)
+			continue
+		}
+
+		if inSingleQuote {
+			sb.WriteRune(r)
+			continue
+		}
+
+		if r == '\\' {
+			sb.WriteRune(r)
+			if i+1 < len(runes) {
+				sb.WriteRune(runes[i+1])
+				i++
+			}
+			continue
+		}
+
+		// Check for !!
+		if r == '!' && i+1 < len(runes) && runes[i+1] == '!' {
+			sb.WriteString(lastCmd)
+			expanded = true
+			i++ // Skip next !
+			continue
+		}
+
+		// Check for !$
+		if r == '!' && i+1 < len(runes) && runes[i+1] == '$' {
+			sb.WriteString(lastArg)
+			expanded = true
+			i++ // Skip next $
+			continue
+		}
+
+		sb.WriteRune(r)
+	}
+
+	return sb.String(), expanded
 }

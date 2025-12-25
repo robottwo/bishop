@@ -11,19 +11,20 @@ func TestBasicOperations(t *testing.T) {
 	historyManager, err := NewHistoryManager(":memory:")
 	assert.NoError(t, err, "Failed to create history manager")
 
-	entry, err := historyManager.StartCommand("echo hello", "/")
+	entry, err := historyManager.StartCommand("echo hello", "/", "session-1")
 	if err != nil {
 		t.Errorf("Failed to start command: %v", err)
 	}
 	assert.False(t, entry.CreatedAt.IsZero(), "Expected CreatedAt to be set")
 	assert.False(t, entry.UpdatedAt.IsZero(), "Expected UpdatedAt to be set")
+	assert.Equal(t, "session-1", entry.SessionID, "Expected SessionID to be set")
 
 	_, _ = historyManager.FinishCommand(entry, 0)
 	if err != nil {
 		t.Errorf("Failed to finish command: %v", err)
 	}
 
-	entry, err = historyManager.StartCommand("echo world", "/")
+	entry, err = historyManager.StartCommand("echo world", "/", "session-1")
 	if err != nil {
 		t.Errorf("Failed to start command: %v", err)
 	}
@@ -54,17 +55,17 @@ func TestDeleteEntry(t *testing.T) {
 	assert.NoError(t, err, "Failed to create history manager")
 
 	// Create some test entries
-	entry1, err := historyManager.StartCommand("command1", "/")
+	entry1, err := historyManager.StartCommand("command1", "/", "session-1")
 	assert.NoError(t, err)
 	_, _ = historyManager.FinishCommand(entry1, 0)
 	assert.NoError(t, err)
 
-	entry2, err := historyManager.StartCommand("command2", "/")
+	entry2, err := historyManager.StartCommand("command2", "/", "session-1")
 	assert.NoError(t, err)
 	entry2, err = historyManager.FinishCommand(entry2, 0)
 	assert.NoError(t, err)
 
-	entry3, err := historyManager.StartCommand("command3", "/")
+	entry3, err := historyManager.StartCommand("command3", "/", "session-1")
 	assert.NoError(t, err)
 	_, _ = historyManager.FinishCommand(entry3, 0)
 	assert.NoError(t, err)
@@ -133,7 +134,7 @@ func setupTestHistory(t *testing.T) (*HistoryManager, []uint) {
 	}
 
 	for _, e := range testEntries {
-		entry, err := historyManager.StartCommand(e.command, e.dir)
+		entry, err := historyManager.StartCommand(e.command, e.dir, "session-1")
 		assert.NoError(t, err)
 		entry, err = historyManager.FinishCommand(entry, e.exit)
 		assert.NoError(t, err)
@@ -261,7 +262,7 @@ func TestGetRecentEntriesByPrefix(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		entry, err := historyManager.StartCommand(tc.command, tc.directory)
+		entry, err := historyManager.StartCommand(tc.command, tc.directory, "session-1")
 		assert.NoError(t, err)
 		_, err = historyManager.FinishCommand(entry, tc.exitCode)
 		assert.NoError(t, err)

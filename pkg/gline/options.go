@@ -16,6 +16,7 @@ type Options struct {
 	CompletionProvider shellinput.CompletionProvider
 	RichHistory        []shellinput.HistoryItem
 	CurrentDirectory   string
+	CurrentSessionID   string
 	User               string
 	Host               string
 
