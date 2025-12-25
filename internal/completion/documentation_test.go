@@ -120,3 +120,53 @@ func createFile(t *testing.T, path string) {
 	require.NoError(t, err)
 	f.Close()
 }
+
+func TestGetEnvPaths(t *testing.T) {
+	defaults := []string{"/default/1", "/default/2"}
+
+	tests := []struct {
+		name     string
+		envVar   string
+		envValue string
+		want     []string
+	}{
+		{
+			name:     "empty env",
+			envVar:   "TEST_PATH_EMPTY",
+			envValue: "",
+			want:     defaults,
+		},
+		{
+			name:     "no empty parts",
+			envVar:   "TEST_PATH_FULL",
+			envValue: "/custom/1:/custom/2",
+			want:     []string{"/custom/1", "/custom/2"},
+		},
+		{
+			name:     "empty start (defaults first)",
+			envVar:   "TEST_PATH_START",
+			envValue: ":/custom/1",
+			want:     []string{"/default/1", "/default/2", "/custom/1"},
+		},
+		{
+			name:     "empty end (defaults last)",
+			envVar:   "TEST_PATH_END",
+			envValue: "/custom/1:",
+			want:     []string{"/custom/1", "/default/1", "/default/2"},
+		},
+		{
+			name:     "empty middle (defaults middle)",
+			envVar:   "TEST_PATH_MIDDLE",
+			envValue: "/custom/1::/custom/2",
+			want:     []string{"/custom/1", "/default/1", "/default/2", "/custom/2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(tt.envVar, tt.envValue)
+			got := getEnvPaths(tt.envVar, defaults)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

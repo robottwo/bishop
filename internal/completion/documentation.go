@@ -278,11 +278,18 @@ func getEnvPaths(envVar string, defaults []string) []string {
 	if val == "" {
 		return defaults
 	}
-	// Handle empty parts in MANPATH (:: means system default).
-	// For simplicity, we just split and append defaults if we see ::?
-	// Standard behavior is complicated. Here we just return the split list.
-	// If the user sets MANPATH, they usually want to override.
-	return strings.Split(val, string(os.PathListSeparator))
+	// Handle :: in path, which means "insert system defaults here"
+	parts := strings.Split(val, string(os.PathListSeparator))
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part == "" {
+			// Empty part means insert defaults
+			result = append(result, defaults...)
+		} else {
+			result = append(result, part)
+		}
+	}
+	return result
 }
 
 func isSection(s string) bool {
