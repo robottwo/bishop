@@ -23,6 +23,11 @@ If you don't have the required tools installed, run:
 make tools
 ```
 
+This installs:
+- `govulncheck` - Security vulnerability scanner
+- `golangci-lint` - Go linter
+- Checks for `gh` (GitHub CLI) - needed for PR and issue operations
+
 ### Verify Your Changes
 
 Before committing, you can manually run the full CI suite:
