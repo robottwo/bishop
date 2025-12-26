@@ -150,14 +150,25 @@ func TestIsCommandOrBuiltin(t *testing.T) {
 }
 
 func TestExpandPath(t *testing.T) {
-	runner := createTestRunner(t)
 	home, _ := os.UserHomeDir()
 
-	// Set environment variables for the test (needed for cross-platform compatibility)
+	// Save and restore environment variables (needed for cross-platform compatibility)
+	origHome := os.Getenv("HOME")
+	origTestVar := os.Getenv("TEST_VAR")
 	os.Setenv("HOME", home)
 	os.Setenv("TEST_VAR", "/test/path")
-	defer os.Unsetenv("TEST_VAR")
-	defer os.Unsetenv("HOME")
+	defer func() {
+		if origHome != "" {
+			os.Setenv("HOME", origHome)
+		}
+		if origTestVar != "" {
+			os.Setenv("TEST_VAR", origTestVar)
+		} else {
+			os.Unsetenv("TEST_VAR")
+		}
+	}()
+
+	runner := createTestRunner(t)
 
 	tests := []struct {
 		input    string
