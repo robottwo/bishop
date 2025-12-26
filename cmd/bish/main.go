@@ -298,8 +298,9 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 
 	analyticsManager.Runner = runner
 
-	// Set the global runner for the typeset command handler
+	// Set the global runner for command handlers that need to update interpreter state
 	bash.SetTypesetRunner(runner)
+	bash.SetCdRunner(runner)
 
 	return runner, nil
 }
