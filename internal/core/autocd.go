@@ -256,8 +256,8 @@ func expandPath(path string, runner *interp.Runner) string {
 
 	// Handle environment variable expansion
 	path = os.Expand(path, func(key string) string {
-		if val := runner.Vars[key]; val != nil {
-			return val.String()
+		if val := runner.Vars[key].String(); val != "" {
+			return val
 		}
 		return os.Getenv(key)
 	})
