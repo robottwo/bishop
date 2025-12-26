@@ -7,12 +7,16 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
-var lastCPUSampleTime time.Time
-var lastTotalTicks uint64
-var lastIdleTicks uint64
+var (
+	lastCPUSampleTime time.Time
+	lastTotalTicks    uint64
+	lastIdleTicks     uint64
+	cpuMutex          sync.Mutex
+)
 
 func getResources() *Resources {
 	res := &Resources{
@@ -71,7 +75,8 @@ func getResources() *Resources {
 
 				total := user + nice + system + idle + iowait + irq + softirq + steal
 
-				if !lastCPUSampleTime.IsZero() {
+				cpuMutex.Lock()
+				if !lastCPUSampleTime.IsZero() && total > lastTotalTicks {
 					deltaTotal := total - lastTotalTicks
 					deltaIdle := idle - lastIdleTicks
 
@@ -79,10 +84,10 @@ func getResources() *Resources {
 						res.CPUPercent = 100.0 * float64(deltaTotal-deltaIdle) / float64(deltaTotal)
 					}
 				}
-
 				lastTotalTicks = total
 				lastIdleTicks = idle
 				lastCPUSampleTime = time.Now()
+				cpuMutex.Unlock()
 			}
 		}
 	}

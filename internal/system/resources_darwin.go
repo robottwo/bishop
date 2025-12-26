@@ -2,11 +2,73 @@
 
 package system
 
+/*
+#include <mach/mach.h>
+#include <mach/mach_host.h>
+#include <sys/sysctl.h>
+
+// Get CPU load info using Mach API
+int get_cpu_load_info(uint32_t *user, uint32_t *system, uint32_t *idle, uint32_t *nice) {
+    host_cpu_load_info_data_t cpuinfo;
+    mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
+    kern_return_t status = host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO,
+                                           (host_info_t)&cpuinfo, &count);
+    if (status != KERN_SUCCESS) {
+        return -1;
+    }
+    *user = cpuinfo.cpu_ticks[CPU_STATE_USER];
+    *system = cpuinfo.cpu_ticks[CPU_STATE_SYSTEM];
+    *idle = cpuinfo.cpu_ticks[CPU_STATE_IDLE];
+    *nice = cpuinfo.cpu_ticks[CPU_STATE_NICE];
+    return 0;
+}
+
+// Get total physical memory
+uint64_t get_total_memory() {
+    int mib[2] = {CTL_HW, HW_MEMSIZE};
+    uint64_t mem = 0;
+    size_t len = sizeof(mem);
+    sysctl(mib, 2, &mem, &len, NULL, 0);
+    return mem;
+}
+
+// Get VM statistics for memory usage
+int get_vm_stats(uint64_t *active, uint64_t *wired, uint64_t *compressed, uint32_t *page_size) {
+    vm_statistics64_data_t vmstat;
+    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+    kern_return_t status = host_statistics64(mach_host_self(), HOST_VM_INFO64,
+                                             (host_info64_t)&vmstat, &count);
+    if (status != KERN_SUCCESS) {
+        return -1;
+    }
+
+    // Get page size
+    host_basic_info_data_t hostinfo;
+    count = HOST_BASIC_INFO_COUNT;
+    status = host_info(mach_host_self(), HOST_BASIC_INFO, (host_info_t)&hostinfo, &count);
+    if (status != KERN_SUCCESS) {
+        return -1;
+    }
+
+    *page_size = hostinfo.max_mem > 0 ? vm_page_size : 4096;
+    *active = vmstat.active_count;
+    *wired = vmstat.wire_count;
+    *compressed = vmstat.compressor_page_count;
+    return 0;
+}
+*/
+import "C"
+
 import (
-	"os/exec"
-	"strconv"
-	"strings"
+	"sync"
 	"time"
+)
+
+var (
+	lastCPUSampleTime time.Time
+	lastTotalTicks    uint64
+	lastIdleTicks     uint64
+	cpuMutex          sync.Mutex
 )
 
 func getResources() *Resources {
@@ -14,124 +76,37 @@ func getResources() *Resources {
 		Timestamp: time.Now(),
 	}
 
-	// RAM using vm_stat
-	// Pages free:                               3664.
-	// Pages active:                           126956.
-	// Pages inactive:                         122676.
-	// Pages speculative:                        6462.
-	// Pages throttled:                             0.
-	// Pages wired down:                        67761.
-	// Pages purgeable:                          2688.
-	// "Translation faults":                 59648939.
-	// Pages copy-on-write:                    541434.
-	// Pages zero filled:                    41132649.
-	// Pages reactivated:                        2346.
-	// Pages purged:                           622268.
-	// File-backed pages:                       43560.
-	// Anonymous pages:                        212534.
-	// Pages stored in compressor:             164280.
-	// Pages occupied by compressor:            55944.
-	// Decompressions:                         372370.
-	// Compressions:                           522501.
-	// Pageins:                               1941655.
-	// Pageouts:                                 5093.
-	// Swapins:                                     0.
-	// Swapouts:                                    0.
+	// RAM using Mach API (no external process)
+	res.RAMTotal = uint64(C.get_total_memory())
 
-	// Total RAM via sysctl hw.memsize
-	out, err := exec.Command("sysctl", "-n", "hw.memsize").Output()
-	if err == nil {
-		if val, err := strconv.ParseUint(strings.TrimSpace(string(out)), 10, 64); err == nil {
-			res.RAMTotal = val
+	var active, wired, compressed C.uint64_t
+	var pageSize C.uint32_t
+	if C.get_vm_stats(&active, &wired, &compressed, &pageSize) == 0 {
+		ps := uint64(pageSize)
+		if ps == 0 {
+			ps = 4096
 		}
+		// Memory Used ≈ Active + Wired + Compressed (similar to Activity Monitor)
+		res.RAMUsed = (uint64(active) + uint64(wired) + uint64(compressed)) * ps
 	}
 
-	// Used RAM approximation: (active + wired + compressed) * 4096 (or 16384 on Apple Silicon?)
-	// Actually vm_stat pages are usually 4096 bytes.
-	// A simpler heuristic: Total - Free.
-	// But on macOS "Free" is often low due to caching.
-	// "App Memory" + "Wired Memory" + "Compressed" is what Activity Monitor shows as "Memory Used".
+	// CPU using Mach API (no external process)
+	var user, system, idle, nice C.uint32_t
+	if C.get_cpu_load_info(&user, &system, &idle, &nice) == 0 {
+		total := uint64(user) + uint64(system) + uint64(idle) + uint64(nice)
 
-	// Getting vm_stat
-	out, err = exec.Command("vm_stat").Output()
-	if err == nil {
-		lines := strings.Split(string(out), "\n")
-		var pagesActive, pagesWired, pagesCompressed uint64
-		pageSize := uint64(4096) // Default
-		// On Apple Silicon page size is 16k? No, vm_stat usually reports in 4096 byte pages, the header says:
-		// "Mach Virtual Memory Statistics: (page size of 4096 bytes)"
-		// We should parse the first line if possible.
-
-		if len(lines) > 0 && strings.Contains(lines[0], "page size of") {
-			parts := strings.Fields(lines[0])
-			for i, p := range parts {
-				if p == "bytes)" && i > 0 {
-					if val, err := strconv.ParseUint(parts[i-1], 10, 64); err == nil {
-						pageSize = val
-					}
-				}
+		cpuMutex.Lock()
+		if !lastCPUSampleTime.IsZero() && total > lastTotalTicks {
+			deltaTotal := total - lastTotalTicks
+			deltaIdle := uint64(idle) - lastIdleTicks
+			if deltaTotal > 0 {
+				res.CPUPercent = 100.0 * float64(deltaTotal-deltaIdle) / float64(deltaTotal)
 			}
 		}
-
-		for _, line := range lines {
-			parts := strings.Split(line, ":")
-			if len(parts) != 2 {
-				continue
-			}
-			key := strings.TrimSpace(parts[0])
-			valStr := strings.TrimSpace(strings.TrimSuffix(parts[1], "."))
-			val, _ := strconv.ParseUint(valStr, 10, 64)
-
-			switch key {
-			case "Pages active":
-				pagesActive = val
-			case "Pages wired down":
-				pagesWired = val
-			case "Pages occupied by compressor":
-				pagesCompressed = val
-			}
-		}
-
-		// Memory Used = App Memory + Wired + Compressed
-		// App Memory = Anonymous + Purgeable?
-		// Alternative: Used = Total - (Free + Inactive) (Inactive is file cache usually)
-
-		if res.RAMTotal > 0 {
-			// This is a rough approximation
-			res.RAMUsed = (pagesActive + pagesWired + pagesCompressed) * pageSize
-		}
-	}
-
-	// CPU Load
-	// sysctl -n vm.loadavg
-	// returns "{ 2.06 1.89 1.84 }"
-	// This is load average, not percentage.
-	// To get percentage we can use `top -l 1 -n 0 | grep "CPU usage"`
-	// Output: "CPU usage: 5.88% user, 10.58% sys, 83.52% idle"
-
-	out, err = exec.Command("top", "-l", "1", "-n", "0").Output()
-	if err == nil {
-		lines := strings.Split(string(out), "\n")
-		for _, line := range lines {
-			if strings.HasPrefix(line, "CPU usage:") {
-				// CPU usage: 3.52% user, 5.88% sys, 90.58% idle
-				parts := strings.Fields(line)
-				if len(parts) >= 7 {
-					// We can extract idle and subtract from 100
-					// idle is usually the last one? "90.58% idle"
-					for i, p := range parts {
-						if p == "idle" && i > 0 {
-							idleStr := strings.TrimSuffix(parts[i-1], "%")
-							idleVal, err := strconv.ParseFloat(idleStr, 64)
-							if err == nil {
-								res.CPUPercent = 100.0 - idleVal
-							}
-						}
-					}
-				}
-				break
-			}
-		}
+		lastTotalTicks = total
+		lastIdleTicks = uint64(idle)
+		lastCPUSampleTime = time.Now()
+		cpuMutex.Unlock()
 	}
 
 	return res

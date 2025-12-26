@@ -347,7 +347,7 @@ func NewAutocdExecHandler() func(next interp.ExecHandlerFunc) interp.ExecHandler
 				// It's a directory! Execute cd instead
 				hc := interp.HandlerCtx(ctx)
 				if environment.IsAutocdVerbose(autocdRunner) {
-					fmt.Fprintln(hc.Stderr, "cd "+shellQuote(cmdName))
+					_, _ = fmt.Fprintln(hc.Stderr, "cd "+shellQuote(cmdName))
 				}
 
 				// Execute cd with the original path (let cd handle expansion)
@@ -359,4 +359,3 @@ func NewAutocdExecHandler() func(next interp.ExecHandlerFunc) interp.ExecHandler
 		}
 	}
 }
-
