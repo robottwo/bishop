@@ -55,13 +55,13 @@ func main() {
 	// Initialize the history manager
 	historyManager, err := initializeHistoryManager()
 	if err != nil {
-		panic("failed to initialize history manager")
+		panic(fmt.Sprintf("failed to initialize history manager: %v", err))
 	}
 
 	// Initialize the analytics manager
 	analyticsManager, err := initializeAnalyticsManager()
 	if err != nil {
-		panic("failed to initialize analytics manager")
+		panic(fmt.Sprintf("failed to initialize analytics manager: %v", err))
 	}
 
 	// Initialize the completion manager
