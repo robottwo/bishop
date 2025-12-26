@@ -26,10 +26,11 @@ If not using a devcontainer, follow these steps:
 make install-hooks
 ```
 
-This installs a pre-commit hook that runs:
+This installs a pre-commit hook that runs `make ci`, which executes:
 1. `golangci-lint` - Code linting
-2. `go test ./...` - Unit tests
-3. `govulncheck` - Security vulnerability checks
+2. `govulncheck` - Security vulnerability checks
+3. `go test -coverprofile=coverage.txt ./...` - Unit tests with coverage
+4. `go build` - Build the binary
 
 If you don't have the required tools installed, run:
 

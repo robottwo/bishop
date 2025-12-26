@@ -152,16 +152,16 @@ func TestExpandPath(t *testing.T) {
 	// Save and restore environment variables (needed for cross-platform compatibility)
 	origHome := os.Getenv("HOME")
 	origTestVar := os.Getenv("TEST_VAR")
-	require.NoError(t, os.Setenv("HOME", home))
-	require.NoError(t, os.Setenv("TEST_VAR", "/test/path"))
+	_ = os.Setenv("HOME", home)
+	_ = os.Setenv("TEST_VAR", "/test/path")
 	defer func() {
 		if origHome != "" {
-			require.NoError(t, os.Setenv("HOME", origHome))
+			_ = os.Setenv("HOME", origHome)
 		}
 		if origTestVar != "" {
-			require.NoError(t, os.Setenv("TEST_VAR", origTestVar))
+			_ = os.Setenv("TEST_VAR", origTestVar)
 		} else {
-			require.NoError(t, os.Unsetenv("TEST_VAR"))
+			_ = os.Unsetenv("TEST_VAR")
 		}
 	}()
 
@@ -404,10 +404,10 @@ func TestExpandPath_TildeUsername(t *testing.T) {
 
 	// Save and restore HOME
 	origHome := os.Getenv("HOME")
-	require.NoError(t, os.Setenv("HOME", home))
+	_ = os.Setenv("HOME", home)
 	defer func() {
 		if origHome != "" {
-			require.NoError(t, os.Setenv("HOME", origHome))
+			_ = os.Setenv("HOME", origHome)
 		}
 	}()
 

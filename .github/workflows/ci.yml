@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.23', 'stable']
+        go: ['1.24', 'stable']
 
     steps:
       - name: Checkout repository
@@ -36,14 +36,20 @@ jobs:
           git diff --exit-code
         if: runner.os == 'Linux' && matrix.go == 'stable'
 
-      - name: Go Vet
-        run: go vet ./...
+      - name: Install tools
+        run: make tools
 
-      - name: Build
-        run: make build
+      - name: Lint
+        run: make lint
+
+      - name: Vulnerability check
+        run: make vulncheck
 
       - name: Test
         run: make test
+
+      - name: Build
+        run: make build
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
