@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -47,6 +48,103 @@ const (
 	DEFAULT_PROMPT       = "bish> "
 	DEFAULT_AGENT_PROMPT = "🤖> "
 )
+
+// ValidationError represents an input validation error with a user-friendly message
+type ValidationError struct {
+	Field   string
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}
+
+// ValidateAssistantHeight validates the assistant height value.
+// Returns nil if valid, or a ValidationError with a descriptive message.
+func ValidateAssistantHeight(value string) error {
+	if value == "" {
+		return nil // Empty is allowed, will use default
+	}
+
+	height, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		return &ValidationError{
+			Field:   "BISH_ASSISTANT_HEIGHT",
+			Message: fmt.Sprintf("Invalid height: %q is not a valid integer", value),
+		}
+	}
+
+	if height < 0 {
+		return &ValidationError{
+			Field:   "BISH_ASSISTANT_HEIGHT",
+			Message: fmt.Sprintf("Invalid height: %d must be non-negative", height),
+		}
+	}
+
+	if height > 100 {
+		return &ValidationError{
+			Field:   "BISH_ASSISTANT_HEIGHT",
+			Message: fmt.Sprintf("Invalid height: %d exceeds maximum of 100", height),
+		}
+	}
+
+	return nil
+}
+
+// ValidateBaseURL validates a base URL value.
+// Returns nil if valid, or a ValidationError with a descriptive message.
+// Empty values are allowed (optional field).
+func ValidateBaseURL(value string) error {
+	if value == "" {
+		return nil // Empty is allowed for optional URLs
+	}
+
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return &ValidationError{
+			Field:   "Base URL",
+			Message: fmt.Sprintf("Invalid URL: %v", err),
+		}
+	}
+
+	// Check for valid scheme
+	if parsed.Scheme == "" {
+		return &ValidationError{
+			Field:   "Base URL",
+			Message: "Invalid URL: missing scheme (e.g., http:// or https://)",
+		}
+	}
+
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return &ValidationError{
+			Field:   "Base URL",
+			Message: fmt.Sprintf("Invalid URL: scheme %q not supported (use http or https)", parsed.Scheme),
+		}
+	}
+
+	// Check for host
+	if parsed.Host == "" {
+		return &ValidationError{
+			Field:   "Base URL",
+			Message: "Invalid URL: missing host",
+		}
+	}
+
+	return nil
+}
+
+// ValidateConfigValue validates a configuration value based on its environment variable name.
+// Returns nil if valid, or a ValidationError with a descriptive message.
+func ValidateConfigValue(envVar, value string) error {
+	switch envVar {
+	case "BISH_ASSISTANT_HEIGHT":
+		return ValidateAssistantHeight(value)
+	case "BISH_SLOW_MODEL_BASE_URL", "BISH_FAST_MODEL_BASE_URL":
+		return ValidateBaseURL(value)
+	default:
+		return nil // No validation for other fields
+	}
+}
 
 func GetHistoryContextLimit(runner *interp.Runner, logger *zap.Logger) int {
 	historyContextLimit, err := strconv.ParseInt(
