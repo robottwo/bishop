@@ -1,5 +1,44 @@
 # Agent Instructions
 
+## Setup Requirements
+
+Before starting any work, ensure the development environment is properly configured:
+
+### Install Git Hooks
+
+**Always run this first** to set up the pre-commit hook that runs linters, tests, and vulnerability checks:
+
+```bash
+make install-hooks
+```
+
+This installs a pre-commit hook that runs:
+1. `golangci-lint` - Code linting
+2. `go test ./...` - Unit tests
+3. `govulncheck` - Security vulnerability checks
+
+If you don't have the required tools installed, run:
+
+```bash
+make tools
+```
+
+### Verify Your Changes
+
+Before committing, you can manually run the full CI suite:
+
+```bash
+make ci
+```
+
+This runs: `lint` → `vulncheck` → `test` → `build`
+
+### Important
+
+- **Never skip the pre-commit hook** (`--no-verify`) unless absolutely necessary
+- If the hook fails, fix the issues before committing
+- Run `make ci` to verify everything passes before pushing
+
 ## Git Conventions
 
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) types for **branch names**, **commit messages**, and **PR titles**.
