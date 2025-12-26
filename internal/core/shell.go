@@ -383,15 +383,8 @@ func RunInteractiveShell(
 			continue
 		}
 
-		// Handle autocd if enabled
-		if environment.IsAutocdEnabled(runner) {
-			if newLine, triggered := TryAutocd(line, runner); triggered {
-				if environment.IsAutocdVerbose(runner) {
-					fmt.Println(newLine)
-				}
-				line = newLine
-			}
-		}
+		// Note: Autocd is now handled by the AutocdExecHandler in the command execution chain
+		// This allows builtins and commands to take precedence naturally
 
 		// Execute the command
 		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)

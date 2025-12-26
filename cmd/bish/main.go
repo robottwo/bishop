@@ -218,6 +218,7 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		interp.Env(env),
 		interp.StdIO(os.Stdin, os.Stdout, stderrCapturer),
 		interp.ExecHandlers(
+			core.NewAutocdExecHandler(), // Must be first to intercept path-like commands
 			bash.NewCdCommandHandler(),
 			bash.NewTypesetCommandHandler(),
 			bash.SetBuiltinHandler(),
@@ -230,6 +231,9 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 	if err != nil {
 		panic(err)
 	}
+
+	// Set the runner for the autocd handler
+	core.SetAutocdRunner(runner)
 
 	// load default vars
 	if err := bash.RunBashScriptFromReader(

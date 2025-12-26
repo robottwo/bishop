@@ -1,69 +1,17 @@
 package core
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strings"
 
+	"github.com/robottwo/bishop/internal/environment"
 	"mvdan.cc/sh/v3/interp"
 )
-
-// shellBuiltins is a list of shell builtins that should not trigger autocd
-var shellBuiltins = map[string]bool{
-	// Standard POSIX builtins
-	"cd":       true,
-	"exit":     true,
-	"export":   true,
-	"readonly": true,
-	"unset":    true,
-	"set":      true,
-	"shift":    true,
-	"return":   true,
-	"break":    true,
-	"continue": true,
-	"eval":     true,
-	"exec":     true,
-	"source":   true,
-	".":        true,
-	"alias":    true,
-	"unalias":  true,
-	"read":     true,
-	"trap":     true,
-	"wait":     true,
-	"jobs":     true,
-	"fg":       true,
-	"bg":       true,
-	"kill":     true,
-	"pwd":      true,
-	"echo":     true,
-	"printf":   true,
-	"test":     true,
-	"[":        true,
-	"[[":       true,
-	"true":     true,
-	"false":    true,
-	"type":     true,
-	"command":  true,
-	"builtin":  true,
-	"local":    true,
-	"declare":  true,
-	"typeset":  true,
-	"getopts":  true,
-	"hash":     true,
-	"ulimit":   true,
-	"umask":    true,
-	"times":    true,
-	"let":      true,
-	// Bishop-specific builtins
-	"bish_cd":        true,
-	"bish_typeset":   true,
-	"bish_analytics": true,
-	"bish_evaluate":  true,
-	"history":        true,
-	"complete":       true,
-}
 
 // isCompoundCommand checks if input contains shell operators that indicate
 // it's a compound command rather than a simple word/path
@@ -193,14 +141,10 @@ func hasArguments(input string) bool {
 	return wordCount > 1
 }
 
-// isCommandOrBuiltin checks if the word is a known command
-// Returns true if the word is a builtin, function, alias, or found in PATH
-func isCommandOrBuiltin(word string, runner *interp.Runner) bool {
-	// Check if it's a builtin
-	if shellBuiltins[word] {
-		return true
-	}
-
+// isExternalCommand checks if the word is a command found in PATH or a defined function
+// Returns true if the word is a function or found in PATH
+// Note: This does NOT check for builtins - those are handled by the interpreter
+func isExternalCommand(word string, runner *interp.Runner) bool {
 	// Check if it's a defined function
 	if runner.Funcs[word] != nil {
 		return true
@@ -329,9 +273,10 @@ func TryAutocd(input string, runner *interp.Runner) (string, bool) {
 
 	// Don't process commands with arguments (but allow paths with spaces)
 	// We need to be careful here: "ls -la" has arguments, but "/path/to/dir" is just a path
-	// The key is: if the first word is a command, we shouldn't treat the rest as a path
+	// The key is: if the first word is a command in PATH or a function, we shouldn't treat the rest as a path
+	// Note: builtins are handled by the AutocdExecHandler fallback mechanism
 	firstWord := strings.Fields(input)[0]
-	if isCommandOrBuiltin(firstWord, runner) {
+	if isExternalCommand(firstWord, runner) {
 		return input, false
 	}
 
@@ -354,4 +299,85 @@ func TryAutocd(input string, runner *interp.Runner) (string, bool) {
 
 	// Return the cd command
 	return "cd " + shellQuote(input), true
+}
+
+// autocdRunner stores the runner for autocd verbose output
+var autocdRunner *interp.Runner
+
+// SetAutocdRunner sets the runner for the autocd handler
+func SetAutocdRunner(runner *interp.Runner) {
+	autocdRunner = runner
+}
+
+// NewAutocdExecHandler creates an ExecHandler that implements autocd.
+// It checks if path-like inputs are directories and executes cd instead.
+// This allows builtins and commands to take precedence naturally without
+// needing to maintain a hardcoded list of builtin names.
+func NewAutocdExecHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+		return func(ctx context.Context, args []string) error {
+			if len(args) == 0 {
+				return next(ctx, args)
+			}
+
+			// Check if autocd is enabled
+			if autocdRunner == nil || !environment.IsAutocdEnabled(autocdRunner) {
+				return next(ctx, args)
+			}
+
+			// Only process single-word commands (no arguments)
+			if len(args) > 1 {
+				return next(ctx, args)
+			}
+
+			// Get the command name (first argument)
+			cmdName := args[0]
+
+			// Quick check: if it's clearly not a path, skip autocd logic
+			// This avoids overhead for normal commands
+			if !mightBePath(cmdName) {
+				return next(ctx, args)
+			}
+
+			// Check if it's a command in PATH or a defined function
+			// If so, let it execute normally
+			if isExternalCommand(cmdName, autocdRunner) {
+				return next(ctx, args)
+			}
+
+			// Expand the path and check if it's a directory
+			expandedPath := expandPath(cmdName, autocdRunner)
+			if isDirectory(expandedPath) {
+				// It's a directory! Execute cd instead
+				hc := interp.HandlerCtx(ctx)
+				if environment.IsAutocdVerbose(autocdRunner) {
+					fmt.Fprintln(hc.Stderr, "cd "+shellQuote(cmdName))
+				}
+
+				// Execute cd with the original path (let cd handle expansion)
+				return next(ctx, []string{"bish_cd", cmdName})
+			}
+
+			// Not a directory, let normal command execution happen
+			return next(ctx, args)
+		}
+	}
+}
+
+// mightBePath does a quick check to see if the string might be a filesystem path
+// This is used to avoid unnecessary directory checks for obvious non-paths
+func mightBePath(s string) bool {
+	// Paths typically start with /, ~, or .
+	// Or contain / somewhere
+	if len(s) == 0 {
+		return false
+	}
+
+	first := s[0]
+	if first == '/' || first == '~' || first == '.' {
+		return true
+	}
+
+	// Check for embedded slashes (relative paths like foo/bar)
+	return strings.Contains(s, "/")
 }

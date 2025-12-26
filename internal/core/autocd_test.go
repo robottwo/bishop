@@ -116,26 +116,27 @@ func createTestRunner(t *testing.T) *interp.Runner {
 	return runner
 }
 
-func TestIsCommandOrBuiltin(t *testing.T) {
+func TestIsExternalCommand(t *testing.T) {
 	runner := createTestRunner(t)
 
 	tests := []struct {
 		input    string
 		expected bool
 	}{
-		// Builtins
-		{"cd", true},
-		{"exit", true},
-		{"echo", true},
-		{"export", true},
-		{"pwd", true},
-		{"true", true},
-		{"false", true},
-		{"history", true},
+		// Shell builtins are NOT checked by isExternalCommand
+		// They are handled by the interpreter, not by PATH lookup
+		{"cd", false},
+		{"exit", false},
+		{"export", false},
 
-		// Common commands (should be in PATH)
+		// Common external commands (should be in PATH on most systems)
 		{"ls", true},
 		{"cat", true},
+
+		// Commands that might or might not be in PATH
+		// (echo is often both a builtin AND in PATH)
+		// We check if it's in PATH, so this depends on the system
+		// {"echo", true}, // Skip - may vary by system
 
 		// Not commands
 		{"/etc", false},
@@ -145,8 +146,8 @@ func TestIsCommandOrBuiltin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := isCommandOrBuiltin(tt.input, runner)
-			assert.Equal(t, tt.expected, result, "isCommandOrBuiltin(%q)", tt.input)
+			result := isExternalCommand(tt.input, runner)
+			assert.Equal(t, tt.expected, result, "isExternalCommand(%q)", tt.input)
 		})
 	}
 }
