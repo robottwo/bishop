@@ -148,38 +148,3 @@ func splitFinalPathPart(part string) []string {
 
 	return segments
 }
-
-// findLogicalSplitPoint tries to find a logical place to split a directory name
-// For example: "MyAppbin" -> split between "MyApp" and "bin"
-// "bish-cd-test1695569554subdir" -> split between "bish-cd-test1695569554" and "subdir"
-func findLogicalSplitPoint(s string) int {
-	// Common patterns:
-	// 1. camelCase to lowercase: "MyAppbin" -> split before "bin"
-	// 2. Number+letter: "test1695569554subdir" -> split before "subdir"
-	// 3. Hyphen+letter: "bish-cd-test1695569554subdir" -> split before "subdir"
-
-	if len(s) < 4 {
-		return 0 // Too short to split meaningfully
-	}
-
-	// Look for transitions from numbers to letters
-	for i := 1; i < len(s)-1; i++ {
-		if i+1 < len(s) && s[i] >= '0' && s[i] <= '9' && s[i+1] >= 'a' && s[i+1] <= 'z' {
-			return i + 1 // Split after the number
-		}
-	}
-
-	// Look for common directory names at the end
-	commonEndings := []string{"bin", "lib", "src", "test", "temp", "tmp", "dir", "data", "app", "exe", "dll", "subdir"}
-	for _, ending := range commonEndings {
-		if strings.HasSuffix(s, ending) && len(s) > len(ending) {
-			// Check if what comes before the ending looks like a directory name
-			beforeEnding := s[:len(s)-len(ending)]
-			if len(beforeEnding) >= 2 && !strings.HasSuffix(beforeEnding, "\\") {
-				return len(beforeEnding) // Split before the ending
-			}
-		}
-	}
-
-	return 0 // No good split point found
-}

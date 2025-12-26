@@ -28,21 +28,9 @@ if [ $MISSING_TOOLS -eq 1 ]; then
     exit 1
 fi
 
-printf "${YELLOW}Running golangci-lint...${NC}\n"
-if ! golangci-lint run; then
-    printf "${RED}golangci-lint failed.${NC}\n"
-    exit 1
-fi
-
-printf "${YELLOW}Running unit tests...${NC}\n"
-if ! go test ./...; then
-    printf "${RED}Tests failed.${NC}\n"
-    exit 1
-fi
-
-printf "${YELLOW}Running govulncheck...${NC}\n"
-if ! govulncheck ./...; then
-    printf "${RED}Vulnerability check failed.${NC}\n"
+printf "${YELLOW}Running CI checks...${NC}\n"
+if ! make ci; then
+    printf "${RED}CI checks failed.${NC}\n"
     exit 1
 fi
 
