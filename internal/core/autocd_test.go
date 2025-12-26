@@ -152,16 +152,16 @@ func TestExpandPath(t *testing.T) {
 	// Save and restore environment variables (needed for cross-platform compatibility)
 	origHome := os.Getenv("HOME")
 	origTestVar := os.Getenv("TEST_VAR")
-	os.Setenv("HOME", home)
-	os.Setenv("TEST_VAR", "/test/path")
+	require.NoError(t, os.Setenv("HOME", home))
+	require.NoError(t, os.Setenv("TEST_VAR", "/test/path"))
 	defer func() {
 		if origHome != "" {
-			os.Setenv("HOME", origHome)
+			require.NoError(t, os.Setenv("HOME", origHome))
 		}
 		if origTestVar != "" {
-			os.Setenv("TEST_VAR", origTestVar)
+			require.NoError(t, os.Setenv("TEST_VAR", origTestVar))
 		} else {
-			os.Unsetenv("TEST_VAR")
+			require.NoError(t, os.Unsetenv("TEST_VAR"))
 		}
 	}()
 
@@ -202,7 +202,7 @@ func TestIsDirectory(t *testing.T) {
 	// Create a temp directory for testing
 	tmpDir, err := os.MkdirTemp("", "autocd_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create a file in the temp directory
 	tmpFile := filepath.Join(tmpDir, "testfile")
@@ -217,8 +217,8 @@ func TestIsDirectory(t *testing.T) {
 		{tmpDir, true, false},
 		{tmpFile, false, false},
 		{"/nonexistent/path/12345", false, false},
-		{"/etc", true, true},  // Unix only
-		{"/tmp", true, true},  // Unix only
+		{"/etc", true, true}, // Unix only
+		{"/tmp", true, true}, // Unix only
 	}
 
 	for _, tt := range tests {
@@ -272,7 +272,7 @@ func TestTryAutocd(t *testing.T) {
 	// Create a temp directory for testing
 	tmpDir, err := os.MkdirTemp("", "autocd_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create a subdirectory
 	subDir := filepath.Join(tmpDir, "subdir")
@@ -292,8 +292,8 @@ func TestTryAutocd(t *testing.T) {
 		{"cd command", "cd /tmp", false, false, false},
 
 		// Existing directories should trigger autocd
-		{"/tmp directory", "/tmp", true, true, true},  // Unix only
-		{"/etc directory", "/etc", true, true, true},  // Unix only
+		{"/tmp directory", "/tmp", true, true, true}, // Unix only
+		{"/etc directory", "/etc", true, true, true}, // Unix only
 		{"temp dir", tmpDir, true, true, false},
 		{"sub dir", subDir, true, true, false},
 
@@ -341,7 +341,7 @@ func TestTryAutocd_SimpleDirectoryName(t *testing.T) {
 	// Create a temp directory and a subdirectory
 	tmpDir, err := os.MkdirTemp("", "autocd_simple_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create a subdirectory with a simple name (no path separators)
 	simpleDir := filepath.Join(tmpDir, "myproject")
@@ -404,10 +404,10 @@ func TestExpandPath_TildeUsername(t *testing.T) {
 
 	// Save and restore HOME
 	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", home)
+	require.NoError(t, os.Setenv("HOME", home))
 	defer func() {
 		if origHome != "" {
-			os.Setenv("HOME", origHome)
+			require.NoError(t, os.Setenv("HOME", origHome))
 		}
 	}()
 
