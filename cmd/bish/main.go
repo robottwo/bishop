@@ -66,13 +66,13 @@ func main() {
 	// Initialize the history manager
 	historyManager, err := initializeHistoryManager()
 	if err != nil {
-		panic("failed to initialize history manager")
+		panic(fmt.Sprintf("failed to initialize history manager: %v", err))
 	}
 
 	// Initialize the analytics manager
 	analyticsManager, err := initializeAnalyticsManager()
 	if err != nil {
-		panic("failed to initialize analytics manager")
+		panic(fmt.Sprintf("failed to initialize analytics manager: %v", err))
 	}
 
 	// Initialize the completion manager
@@ -309,8 +309,9 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 
 	analyticsManager.Runner = runner
 
-	// Set the global runner for the typeset command handler
+	// Set the global runner for command handlers that need to update interpreter state
 	bash.SetTypesetRunner(runner)
+	bash.SetCdRunner(runner)
 
 	return runner, nil
 }
