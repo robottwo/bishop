@@ -1,6 +1,6 @@
 # Agent
 
-gsh can act as an agent that invokes commands on your behalf. Commands starting with "@" are sent to the agent as a chat message.
+gsh can act as an agent that invokes commands on your behalf. Commands starting with "#" are sent to the agent as a chat message.
 
 ![Agent](../assets/agent.gif)
 
@@ -12,17 +12,17 @@ gsh can even code for you!
 
 You can use chat macros to quickly send frequently used messages to the agent.
 
-A chat macro starts with "@/" followed by the macro name. The default configuration comes with a few chat macros:
+A chat macro starts with "#/" followed by the macro name. The default configuration comes with a few chat macros:
 
 ```bash
 # Summarize git changes
-bish> @/gitdiff
+bish> #/gitdiff
 
 # Commit and push changes
-bish> @/gitpush
+bish> #/gitpush
 
 # Review changes and get suggestions
-bish> @/gitreview
+bish> #/gitreview
 ```
 
 You can customize your own macros by modifying the `BISH_AGENT_MACROS` configuration in your `.bishrc` file.
@@ -87,14 +87,14 @@ The system combines clean, reliable display with immediate keyboard responsivene
 
 ```bash
 # First time running a git status command
-bish> @ check git status
+bish> # check git status
 Agent wants to run: git status
 Do I have your permission to run the following command? (y/N/manage/freeform) m
 
 # The permission menu opens, and you can approve "^git status.*" which is saved to ~/.config/gsh/authorized_commands
 # Future git status commands will be auto-approved:
 
-bish> @ show git status with short format
+bish> # show git status with short format
 Agent wants to run: git status -s
 # This runs automatically without prompting because it matches the saved pattern
 ```
@@ -164,30 +164,30 @@ Command: ls | rm -rf /
 ## Agent Controls
 
 Agent controls are built-in commands that help you manage your interaction with the agent.
-An agent control starts with "@!" followed by the control name.
+An agent control starts with "#!" followed by the control name.
 
 Currently supported controls:
 
 ```bash
 # Open the interactive configuration menu
-bish> @!config
+bish> #!config
 
 # Reset the current chat session and start fresh
-bish> @!new
+bish> #!new
 
 # Show token usage statistics for the current chat session
-bish> @!tokens
+bish> #!tokens
 ```
 
 ## Magic Fix
 
-When a command fails, you can use `@?` to ask the agent to analyze the error and suggest a fix.
+When a command fails, you can use `#?` to ask the agent to analyze the error and suggest a fix.
 
 ```bash
 bish> ls nonexistent_file
 ls: nonexistent_file: No such file or directory
 
-bish> @?
+bish> #?
 bish: The command failed because...
 
 Command: ls "nonexistent_file"

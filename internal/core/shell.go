@@ -176,7 +176,7 @@ func RunInteractiveShell(
 		}
 
 		// Handle agent chat and macros
-		if strings.HasPrefix(line, "@") {
+		if strings.HasPrefix(line, "#") {
 			chatMessage := strings.TrimSpace(line[1:])
 
 			// Handle agent controls
@@ -233,7 +233,7 @@ func RunInteractiveShell(
 							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(result+"\n") + gline.RESET_CURSOR_COLUMN)
 						default:
 							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Unknown coach command: "+coachArgs+"\n") + gline.RESET_CURSOR_COLUMN)
-							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("Available: @!coach [stats|achievements|challenges|tips|reset-tips]\n") + gline.RESET_CURSOR_COLUMN)
+							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("Available: #!coach [stats|achievements|challenges|tips|reset-tips]\n") + gline.RESET_CURSOR_COLUMN)
 						}
 						continue
 					}

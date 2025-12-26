@@ -62,10 +62,10 @@ export OLLAMA_HOST="http://127.0.0.1:11434"
 
 ## Interactive Configuration Menu
 
-gsh provides an interactive configuration menu accessible via the `@!config` command:
+gsh provides an interactive configuration menu accessible via the `#!config` command:
 
 ```bash
-bish> @!config
+bish> #!config
 ```
 
 The configuration menu allows you to:

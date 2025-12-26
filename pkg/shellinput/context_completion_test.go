@@ -14,10 +14,10 @@ type mockContextCompletionProvider struct{}
 type mockShortLongCompletionProvider struct{}
 
 func (m *mockShortLongCompletionProvider) GetCompletions(line string, pos int) []CompletionCandidate {
-	if line == "@!" {
+	if line == "#!" {
 		return []CompletionCandidate{
-			{Value: "@!short"},
-			{Value: "@!longer_completion"},
+			{Value: "#!short"},
+			{Value: "#!longer_completion"},
 		}
 	}
 	return []CompletionCandidate{}
@@ -30,34 +30,34 @@ func (m *mockShortLongCompletionProvider) GetHelpInfo(line string, pos int) stri
 func (m *mockContextCompletionProvider) GetCompletions(line string, pos int) []CompletionCandidate {
 	// Handle exact matches first
 	switch line {
-	case "@/":
+	case "#/":
 		return []CompletionCandidate{
-			{Value: "@/macro1"},
-			{Value: "@/macro2"},
-			{Value: "@/macro3"},
+			{Value: "#/macro1"},
+			{Value: "#/macro2"},
+			{Value: "#/macro3"},
 		}
-	case "@!":
+	case "#!":
 		return []CompletionCandidate{
-			{Value: "@!bish_analytics"},
-			{Value: "@!bish_evaluate"},
-			{Value: "@!history"},
-			{Value: "@!complete"},
+			{Value: "#!bish_analytics"},
+			{Value: "#!bish_evaluate"},
+			{Value: "#!history"},
+			{Value: "#!complete"},
 		}
-	case "@/m":
+	case "#/m":
 		return []CompletionCandidate{
-			{Value: "@/macro1"},
-			{Value: "@/macro2"},
+			{Value: "#/macro1"},
+			{Value: "#/macro2"},
 		}
-	case "@!b":
+	case "#!b":
 		return []CompletionCandidate{
-			{Value: "@!bish_analytics"},
-			{Value: "@!bish_evaluate"},
+			{Value: "#!bish_analytics"},
+			{Value: "#!bish_evaluate"},
 		}
-	case "@/macro1":
+	case "#/macro1":
 		return []CompletionCandidate{
-			{Value: "@/macro1"},
-			{Value: "@/macro2"},
-			{Value: "@/macro3"},
+			{Value: "#/macro1"},
+			{Value: "#/macro2"},
+			{Value: "#/macro3"},
 		}
 	}
 	return []CompletionCandidate{}
@@ -72,48 +72,48 @@ func TestContextSensitiveCompletions(t *testing.T) {
 	model.Focus()
 	model.CompletionProvider = &mockContextCompletionProvider{}
 
-	// Test @/ macro completion
-	model.SetValue("@/")
-	model.SetCursor(2) // cursor at end of "@/"
+	// Test #/ macro completion
+	model.SetValue("#/")
+	model.SetCursor(2) // cursor at end of "#/"
 
 	// First TAB should complete to the shared prefix
 	msg := tea.KeyMsg{Type: tea.KeyTab}
 	updatedModel, _ := model.Update(msg)
-	assert.Equal(t, "@/macro", updatedModel.Value(), "First TAB should extend '@/ to shared prefix '@/macro'")
+	assert.Equal(t, "#/macro", updatedModel.Value(), "First TAB should extend '#/ to shared prefix '#/macro'")
 	assert.True(t, updatedModel.completion.active, "Completion should be active")
 
-	// Second TAB should complete to "@/macro1"
+	// Second TAB should complete to "#/macro1"
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@/macro1", updatedModel.Value(), "Second TAB should complete to '@/macro1'")
+	assert.Equal(t, "#/macro1", updatedModel.Value(), "Second TAB should complete to '#/macro1'")
 
-	// Third TAB should cycle to "@/macro2" (cycling through all options)
+	// Third TAB should cycle to "#/macro2" (cycling through all options)
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@/macro2", updatedModel.Value(), "Third TAB should cycle to '@/macro2'")
+	assert.Equal(t, "#/macro2", updatedModel.Value(), "Third TAB should cycle to '#/macro2'")
 
-	// Fourth TAB should cycle to "@/macro3"
+	// Fourth TAB should cycle to "#/macro3"
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@/macro3", updatedModel.Value(), "Fourth TAB should cycle to '@/macro3'")
+	assert.Equal(t, "#/macro3", updatedModel.Value(), "Fourth TAB should cycle to '#/macro3'")
 
 	// Test Shift+TAB cycles backwards
 	msg = tea.KeyMsg{Type: tea.KeyShiftTab}
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@/macro2", updatedModel.Value(), "Shift+TAB should cycle backwards to '@/macro2'")
+	assert.Equal(t, "#/macro2", updatedModel.Value(), "Shift+TAB should cycle backwards to '#/macro2'")
 
-	// Test @! builtin command completion
-	model.SetValue("@!")
-	model.SetCursor(2) // cursor at end of "@!"
+	// Test #! builtin command completion
+	model.SetValue("#!")
+	model.SetCursor(2) // cursor at end of "#!"
 
 	// First TAB should leave the ambiguous prefix unchanged
 	msg = tea.KeyMsg{Type: tea.KeyTab}
 	updatedModel, _ = model.Update(msg)
-	assert.Equal(t, "@!", updatedModel.Value(), "First TAB should leave '@!' unchanged when multiple matches exist")
+	assert.Equal(t, "#!", updatedModel.Value(), "First TAB should leave '#!' unchanged when multiple matches exist")
 
-	// Second TAB should complete to "@!bish_analytics"
+	// Second TAB should complete to "#!bish_analytics"
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!bish_analytics", updatedModel.Value(), "Second TAB should complete to '@!bish_analytics'")
+	assert.Equal(t, "#!bish_analytics", updatedModel.Value(), "Second TAB should complete to '#!bish_analytics'")
 
 	// Test completion reset on other key press
-	model.SetValue("@/")
+	model.SetValue("#/")
 	model.SetCursor(2)
 	updatedModel, _ = model.Update(msg) // Activate completion
 	assert.True(t, updatedModel.completion.active, "Completion should be active")
@@ -129,22 +129,22 @@ func TestContextSensitivePartialCompletions(t *testing.T) {
 	model.Focus()
 	model.CompletionProvider = &mockContextCompletionProvider{}
 
-	// Test partial @/ completion
-	model.SetValue("@/m")
-	model.SetCursor(3) // cursor at end of "@/m"
+	// Test partial #/ completion
+	model.SetValue("#/m")
+	model.SetCursor(3) // cursor at end of "#/m"
 
 	// TAB should extend to the shared prefix (filtering based on 'm')
 	msg := tea.KeyMsg{Type: tea.KeyTab}
 	updatedModel, _ := model.Update(msg)
-	assert.Equal(t, "@/macro", updatedModel.Value(), "TAB should extend '@/m to shared prefix '@/macro'")
+	assert.Equal(t, "#/macro", updatedModel.Value(), "TAB should extend '#/m to shared prefix '#/macro'")
 
-	// Test partial @! completion
-	model.SetValue("@!b")
-	model.SetCursor(3) // cursor at end of "@!b"
+	// Test partial #! completion
+	model.SetValue("#!b")
+	model.SetCursor(3) // cursor at end of "#!b"
 
 	// TAB should extend to the shared prefix (filtering based on 'b')
 	updatedModel, _ = model.Update(msg)
-	assert.Equal(t, "@!bish_", updatedModel.Value(), "TAB should extend '@!b to shared prefix '@!bish_'")
+	assert.Equal(t, "#!bish_", updatedModel.Value(), "TAB should extend '#!b to shared prefix '#!bish_'")
 }
 
 func TestContextSensitiveCompletionEdgeCases(t *testing.T) {
@@ -153,30 +153,30 @@ func TestContextSensitiveCompletionEdgeCases(t *testing.T) {
 	model.CompletionProvider = &mockContextCompletionProvider{}
 
 	// Test no completion available
-	model.SetValue("@/xyz")
+	model.SetValue("#/xyz")
 	model.SetCursor(5)
 
 	msg := tea.KeyMsg{Type: tea.KeyTab}
 	updatedModel, _ := model.Update(msg)
 	// When no completions are available, the completion system should not activate
 	// So the value should remain unchanged and completion should not be active
-	assert.Equal(t, "@/xyz", updatedModel.Value(), "Value should not change when no completion available")
+	assert.Equal(t, "#/xyz", updatedModel.Value(), "Value should not change when no completion available")
 	assert.False(t, updatedModel.completion.active, "Completion should not be active when no suggestions available")
 
-	// Test empty @/ completion
-	model.SetValue("@/")
+	// Test empty #/ completion
+	model.SetValue("#/")
 	model.SetCursor(2)
 
 	updatedModel, _ = model.Update(msg)
-	assert.Equal(t, "@/macro", updatedModel.Value(), "Should extend empty '@/ to shared macro prefix")
+	assert.Equal(t, "#/macro", updatedModel.Value(), "Should extend empty '#/ to shared macro prefix")
 	assert.True(t, updatedModel.completion.active, "Completion should be active")
 
 	// Test single match
-	model.SetValue("@/macro1")
-	model.SetCursor(8) // cursor at end of "@/macro1"
+	model.SetValue("#/macro1")
+	model.SetCursor(8) // cursor at end of "#/macro1"
 
 	updatedModel, _ = model.Update(msg)
-	assert.Equal(t, "@/macro1", updatedModel.Value(), "Should stay the same when only one match")
+	assert.Equal(t, "#/macro1", updatedModel.Value(), "Should stay the same when only one match")
 	assert.True(t, updatedModel.completion.active, "Completion should still be active for cycling")
 }
 
@@ -187,24 +187,24 @@ func TestTextRetentionFix(t *testing.T) {
 
 	// Test cycling through completions of different lengths
 	// This specifically tests the fix for the text retention issue
-	model.SetValue("@!")
-	model.SetCursor(2) // cursor at end of "@!"
+	model.SetValue("#!")
+	model.SetCursor(2) // cursor at end of "#!"
 
 	// First TAB should leave the ambiguous prefix unchanged
 	msg := tea.KeyMsg{Type: tea.KeyTab}
 	updatedModel, _ := model.Update(msg)
-	assert.Equal(t, "@!", updatedModel.Value(), "First TAB should leave '@!' unchanged when multiple matches exist")
+	assert.Equal(t, "#!", updatedModel.Value(), "First TAB should leave '#!' unchanged when multiple matches exist")
 	assert.True(t, updatedModel.completion.active, "Completion should be active")
 
-	// Second TAB should complete to "@!bish_analytics"
+	// Second TAB should complete to "#!bish_analytics"
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!bish_analytics", updatedModel.Value(), "Second TAB should complete to '@!bish_analytics'")
+	assert.Equal(t, "#!bish_analytics", updatedModel.Value(), "Second TAB should complete to '#!bish_analytics'")
 	assert.True(t, updatedModel.completion.active, "Completion should still be active")
 
-	// Third TAB should cycle to "@!bish_evaluate" - this tests that no text retention occurs
-	// Before the fix, this would result in "@!historyuate" (retaining characters from the previous completion)
+	// Third TAB should cycle to "#!bish_evaluate" - this tests that no text retention occurs
+	// Before the fix, this would result in "#!historyuate" (retaining characters from the previous completion)
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!bish_evaluate", updatedModel.Value(), "Third TAB should cycle to '@!bish_evaluate' without text retention")
+	assert.Equal(t, "#!bish_evaluate", updatedModel.Value(), "Third TAB should cycle to '#!bish_evaluate' without text retention")
 	assert.True(t, updatedModel.completion.active, "Completion should still be active")
 
 	// Test with a shorter completion following a longer one
@@ -212,22 +212,22 @@ func TestTextRetentionFix(t *testing.T) {
 	shortLongProvider := &mockShortLongCompletionProvider{}
 	model.CompletionProvider = shortLongProvider
 
-	model.SetValue("@!")
+	model.SetValue("#!")
 	model.SetCursor(2)
 
 	// First TAB should extend to the shared prefix only
 	updatedModel, _ = model.Update(msg)
-	assert.Equal(t, "@!", updatedModel.Value(), "First TAB should leave ambiguous prefix unchanged")
+	assert.Equal(t, "#!", updatedModel.Value(), "First TAB should leave ambiguous prefix unchanged")
 
 	// Second completion: first suggestion (short)
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!short", updatedModel.Value(), "Should complete to first completion")
+	assert.Equal(t, "#!short", updatedModel.Value(), "Should complete to first completion")
 
 	// Third completion: second in the list (longer) - this was the main bug scenario
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!longer_completion", updatedModel.Value(), "Should complete to longer completion without text retention issues")
+	assert.Equal(t, "#!longer_completion", updatedModel.Value(), "Should complete to longer completion without text retention issues")
 
 	// Fourth completion: cycle back to first (short) - this tests the fix
 	updatedModel, _ = updatedModel.Update(msg)
-	assert.Equal(t, "@!short", updatedModel.Value(), "Should complete back to shorter completion without retaining old text")
+	assert.Equal(t, "#!short", updatedModel.Value(), "Should complete back to shorter completion without retaining old text")
 }

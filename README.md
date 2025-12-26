@@ -5,22 +5,8 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/robottwo/bishop/ci.yml?branch=main)](https://github.com/robottwo/bishop/actions)
 
 <p align="center">
-A modern, POSIX-compatible, Generative Shell — fast-paced fork of gsh.
+A modern, POSIX-compatible, Generative Shell.
 </p>
-
-## About this fork
-
-bishop is an actively maintained fork of the original project, gsh.
-
-- Upstream: https://github.com/atinylittleshell/gsh
-- Fork: https://github.com/robottwo/bishop
-
-Focus areas:
-- Faster development cadence and iteration
-- Compatibility with upstream features and APIs
-- Regular contribution of improvements back to upstream
-
-Attribution: All credit for the original project goes to the upstream author and contributors.
 
 ## Quick start
 
@@ -35,6 +21,54 @@ cd bishop
 make build
 ./bin/bish
 ```
+
+## Installation
+
+Choose the package option that matches your environment. If you are unsure, the release tarballs work on most Linux systems.
+
+### Homebrew (macOS/Linux)
+
+```bash
+brew tap robottwo/bishop
+brew install bish
+```
+
+### NixOS / Nix (flakes)
+
+```bash
+nix profile install github:robottwo/bishop
+# or run without installing
+nix run github:robottwo/bishop
+```
+
+### Ubuntu (release tarball)
+
+```bash
+curl -LO https://github.com/robottwo/bishop/releases/latest/download/bish_Linux_x86_64.tar.gz
+tar -xzf bish_Linux_x86_64.tar.gz
+sudo install -m 0755 bish /usr/local/bin/bish
+```
+
+### Fedora (release tarball)
+
+```bash
+curl -LO https://github.com/robottwo/bishop/releases/latest/download/bish_Linux_x86_64.tar.gz
+tar -xzf bish_Linux_x86_64.tar.gz
+sudo install -m 0755 bish /usr/local/bin/bish
+```
+
+### Conda (build from source inside an env)
+
+```bash
+conda create -n bishop -c conda-forge go make
+conda activate bishop
+git clone https://github.com/robottwo/bishop.git
+cd bishop
+make build
+sudo install -m 0755 bin/bish /usr/local/bin/bish
+```
+
+> Note: For ARM or other architectures, replace `bish_Linux_x86_64.tar.gz` with the matching release asset.
 
 ## Key features
 

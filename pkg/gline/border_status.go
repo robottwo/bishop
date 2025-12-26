@@ -131,34 +131,34 @@ func (m *BorderStatusModel) UpdateResources(res *system.Resources) {
 
 func (m *BorderStatusModel) classifyCommand() {
 	input := strings.TrimSpace(m.commandBuffer)
-	if strings.HasPrefix(input, "@!") {
+	if strings.HasPrefix(input, "#!") {
 		m.kind = KindAgentControl
-	} else if strings.HasPrefix(input, "@") {
+	} else if strings.HasPrefix(input, "#") {
 		// Check for subagent?
-		// For now simple heuristic: @name ...
+		// For now simple heuristic: #name ...
 		parts := strings.Fields(input)
 		if len(parts) > 0 && len(parts[0]) > 1 {
-			// Assume subagent if it looks like one, or agent chat if just @
-			// Spec says: starts with @ followed by text but not @! is agent chat.
-			// starts with @name where name matches subagent is Subagent.
+			// Assume subagent if it looks like one, or agent chat if just #
+			// Spec says: starts with # followed by text but not #! is agent chat.
+			// starts with #name where name matches subagent is Subagent.
 			// We don't have subagent list here easily.
-			// We'll treat all @name as subagent/agent potentially.
-			// Let's stick to simple: @ is chat, @name is subagent?
-			// Spec: "Agent chat: starts with @ followed by text... (e.g. @explain)"
-			// Wait, "@explain" is a command to the default agent? Or is "explain" a subagent?
-			// In gsh, "@" invokes default agent. "@@" selects subagent?
-			// Spec says: "Subagent: starts with @name where name matches a discovered subagent."
+			// We'll treat all #name as subagent/agent potentially.
+			// Let's stick to simple: # is chat, #name is subagent?
+			// Spec: "Agent chat: starts with # followed by text... (e.g. #explain)"
+			// Wait, "#explain" is a command to the default agent? Or is "explain" a subagent?
+			// In gsh, "#" invokes default agent. "##" selects subagent?
+			// Spec says: "Subagent: starts with #name where name matches a discovered subagent."
 			// Since we don't know discovered subagents here, we might need to default to Agent Chat
 			// unless we can verify.
-			// Let's simplify: @! -> Control. @... -> Chat (default).
+			// Let's simplify: #! -> Control. #... -> Chat (default).
 			// If we want to distinguish Subagent, we'd need injection of known subagents.
-			// For now, map all @... to KindAgentChat or KindSubagent based on simple rule?
-			// Let's map @ (alone) or @ followed by space to Chat.
-			// @word to Subagent?
-			if input == "@" || strings.HasPrefix(input, "@ ") {
+			// For now, map all #... to KindAgentChat or KindSubagent based on simple rule?
+			// Let's map # (alone) or # followed by space to Chat.
+			// #word to Subagent?
+			if input == "#" || strings.HasPrefix(input, "# ") {
 				m.kind = KindAgentChat
 			} else {
-				// @something
+				// #something
 				m.kind = KindSubagent
 			}
 		} else {
@@ -222,7 +222,7 @@ func (m BorderStatusModel) RenderTopLeft() string {
 		badge = "$"
 		style = m.styles.BadgeRaw
 	case KindAgentChat:
-		badge = "🤖" // or @
+		badge = "🤖" // or #
 		style = m.styles.BadgeAgent
 	case KindAgentControl:
 		badge = "!"
