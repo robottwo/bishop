@@ -3,6 +3,7 @@ package core
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -152,9 +153,11 @@ func TestExpandPath(t *testing.T) {
 	runner := createTestRunner(t)
 	home, _ := os.UserHomeDir()
 
-	// Set TEST_VAR in OS environment for the test
+	// Set environment variables for the test (needed for cross-platform compatibility)
+	os.Setenv("HOME", home)
 	os.Setenv("TEST_VAR", "/test/path")
 	defer os.Unsetenv("TEST_VAR")
+	defer os.Unsetenv("HOME")
 
 	tests := []struct {
 		input    string
@@ -201,16 +204,20 @@ func TestIsDirectory(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected bool
+		unixOnly bool // skip on Windows
 	}{
-		{tmpDir, true},
-		{tmpFile, false},
-		{"/nonexistent/path/12345", false},
-		{"/etc", true},
-		{"/tmp", true},
+		{tmpDir, true, false},
+		{tmpFile, false, false},
+		{"/nonexistent/path/12345", false, false},
+		{"/etc", true, true},  // Unix only
+		{"/tmp", true, true},  // Unix only
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
+			if tt.unixOnly && runtime.GOOS == "windows" {
+				t.Skip("Skipping Unix-specific path test on Windows")
+			}
 			result := isDirectory(tt.input)
 			assert.Equal(t, tt.expected, result, "isDirectory(%q)", tt.input)
 		})
@@ -269,36 +276,41 @@ func TestTryAutocd(t *testing.T) {
 		input           string
 		expectTriggered bool
 		expectCd        bool // if triggered, expect "cd " prefix
+		unixOnly        bool // skip on Windows
 	}{
 		// Commands should NOT trigger autocd
-		{"ls command", "ls", false, false},
-		{"pwd command", "pwd", false, false},
-		{"cd command", "cd /tmp", false, false},
+		{"ls command", "ls", false, false, false},
+		{"pwd command", "pwd", false, false, false},
+		{"cd command", "cd /tmp", false, false, false},
 
 		// Existing directories should trigger autocd
-		{"/tmp directory", "/tmp", true, true},
-		{"/etc directory", "/etc", true, true},
-		{"temp dir", tmpDir, true, true},
-		{"sub dir", subDir, true, true},
+		{"/tmp directory", "/tmp", true, true, true},  // Unix only
+		{"/etc directory", "/etc", true, true, true},  // Unix only
+		{"temp dir", tmpDir, true, true, false},
+		{"sub dir", subDir, true, true, false},
 
 		// Special paths (note: "." is a shell builtin for source, so it won't trigger)
-		{".. parent", "..", true, true},
+		{".. parent", "..", true, true, false},
 
 		// Compound commands should NOT trigger
-		{"pipe", "ls | grep foo", false, false},
-		{"semicolon", "ls; pwd", false, false},
-		{"and", "ls && pwd", false, false},
+		{"pipe", "ls | grep foo", false, false, false},
+		{"semicolon", "ls; pwd", false, false, false},
+		{"and", "ls && pwd", false, false, false},
 
 		// Non-existent paths should NOT trigger
-		{"nonexistent", "/nonexistent/path/12345", false, false},
+		{"nonexistent", "/nonexistent/path/12345", false, false, false},
 
 		// Empty input
-		{"empty", "", false, false},
-		{"whitespace", "   ", false, false},
+		{"empty", "", false, false, false},
+		{"whitespace", "   ", false, false, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.unixOnly && runtime.GOOS == "windows" {
+				t.Skip("Skipping Unix-specific path test on Windows")
+			}
+
 			result, triggered := TryAutocd(tt.input, runner)
 
 			assert.Equal(t, tt.expectTriggered, triggered, "TryAutocd(%q) triggered", tt.input)
