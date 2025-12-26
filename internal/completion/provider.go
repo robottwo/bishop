@@ -879,7 +879,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 	// If no subagent manager is available, return generic help
 	if p.SubagentProvider == nil {
 		if subagentName == "" {
-			return "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use #<subagent-name> to invoke a subagent."
+			return "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use ##<name> to invoke a subagent."
 		}
 		return ""
 	}
@@ -899,7 +899,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 			if description == "" {
 				description = "No description available"
 			}
-			subagentList = append(subagentList, fmt.Sprintf("• **#%s** - %s", id, description))
+			subagentList = append(subagentList, fmt.Sprintf("• **##%s** - %s", id, description))
 		}
 		sort.Strings(subagentList)
 
@@ -928,7 +928,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 			description = "No description available"
 		}
 
-		return fmt.Sprintf("**#%s** - %s\n\n%s%s%s%s",
+		return fmt.Sprintf("**##%s** - %s\n\n%s%s%s%s",
 			subagentName, subagent.Name, description, toolsStr, fileRegexStr, modelStr)
 	}
 
@@ -940,7 +940,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 			if description == "" {
 				description = "No description available"
 			}
-			matches = append(matches, fmt.Sprintf("• **#%s** - %s", id, description))
+			matches = append(matches, fmt.Sprintf("• **##%s** - %s", id, description))
 		}
 	}
 
@@ -952,7 +952,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 			if description == "" {
 				description = "No description available"
 			}
-			matches = append(matches, fmt.Sprintf("• **#%s** (%s) - %s", id, subagent.Name, description))
+			matches = append(matches, fmt.Sprintf("• **##%s** (%s) - %s", id, subagent.Name, description))
 		}
 	}
 

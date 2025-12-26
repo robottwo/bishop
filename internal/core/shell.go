@@ -621,8 +621,10 @@ AGENT CONTROLS
     #!coach reset-tips   Regenerate tips from history
 
 SUBAGENTS
-  #@<name> <msg>    Chat with a specialized subagent
-  Type '#@' and press Tab to see available subagents
+  ##<name> <prompt> Chat with a specific subagent (e.g., ##git commit this)
+  ## <prompt>       Auto-select best subagent for your prompt
+  #:<mode> <prompt> Roo Code style invocation
+  Type '##' and press Tab to see available subagents
 
 HISTORY EXPANSION
   !!                Repeat the last command
