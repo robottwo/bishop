@@ -44,7 +44,7 @@ This installs:
 
 **Note:** `gh` is pre-installed in CI (GitHub-hosted runners) but must be installed locally:
 - macOS: `brew install gh`
-- Linux: See https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+- Linux: See [GitHub CLI installation guide](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
 - Windows: `winget install GitHub.cli`
 
 ### Verify Your Changes

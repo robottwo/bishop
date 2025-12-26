@@ -5,6 +5,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -328,7 +329,7 @@ func TestTryAutocd(t *testing.T) {
 			assert.Equal(t, tt.expectTriggered, triggered, "TryAutocd(%q) triggered", tt.input)
 
 			if tt.expectCd && triggered {
-				assert.True(t, len(result) > 3 && result[:3] == "cd ", "Expected 'cd ' prefix, got %q", result)
+				assert.True(t, strings.HasPrefix(result, "cd "), "Expected 'cd ' prefix, got %q", result)
 			}
 
 			if !triggered && tt.input != "" && tt.input != "   " {

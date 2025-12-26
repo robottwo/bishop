@@ -335,18 +335,17 @@ func TryAutocd(input string, runner *interp.Runner) (string, bool) {
 		return input, false
 	}
 
+	// Expand the path
+	expandedPath := expandPath(input, runner)
+
 	// If it has arguments and the first word is not a command, check if it might be a path with spaces
 	// For now, we only autocd on single-word inputs or quoted paths
 	if hasArguments(input) {
 		// Check if the whole input (possibly a path with spaces that wasn't quoted) is a directory
-		expandedPath := expandPath(input, runner)
 		if !isDirectory(expandedPath) {
 			return input, false
 		}
 	}
-
-	// Expand the path
-	expandedPath := expandPath(input, runner)
 
 	// Check if it's a directory
 	if !isDirectory(expandedPath) {
