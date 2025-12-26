@@ -100,7 +100,8 @@ func RunInteractiveShell(
 
 		// Fetch recent entries for standard history (Up/Down) - scoped to current directory for now, or generally recent
 		// Note: GetRecentEntries reverses the list (oldest first) so standard history navigation works correctly
-		historyEntries, err := historyManager.GetRecentEntries(environment.GetPwd(runner), 1024)
+		historySize := environment.GetHistorySize(runner, logger)
+		historyEntries, err := historyManager.GetRecentEntries(environment.GetPwd(runner), historySize)
 		if err != nil {
 			logger.Warn("error getting recent history entries", zap.Error(err))
 			historyEntries = []history.HistoryEntry{}
