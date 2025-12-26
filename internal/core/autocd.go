@@ -245,7 +245,7 @@ func expandPath(path string, runner *interp.Runner) string {
 			rest = ""
 		} else {
 			username = path[1 : slashIdx+1]
-			rest = path[slashIdx+1:]
+			rest = path[slashIdx+2:] // +2 to skip both the offset and the slash
 		}
 		if username != "" {
 			if usr, err := user.Lookup(username); err == nil {
