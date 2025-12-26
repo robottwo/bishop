@@ -28,6 +28,11 @@ This installs:
 - `golangci-lint` - Go linter
 - Checks for `gh` (GitHub CLI) - needed for PR and issue operations
 
+**Note:** `gh` is pre-installed in CI (GitHub-hosted runners) but must be installed locally:
+- macOS: `brew install gh`
+- Linux: See https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+- Windows: `winget install GitHub.cli`
+
 ### Verify Your Changes
 
 Before committing, you can manually run the full CI suite:
