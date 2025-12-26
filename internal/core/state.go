@@ -11,6 +11,7 @@ type ShellState struct {
 	LastCommand  string
 	LastExitCode int
 	LastStderr   string
+	FixHintShown bool // Track if the #? fix hint has been shown this session
 }
 
 // StderrCapturer wraps an io.Writer and captures the output into a buffer

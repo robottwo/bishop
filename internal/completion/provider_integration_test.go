@@ -267,8 +267,8 @@ func TestShellCompletionProvider_BuiltinCompletion_Integration(t *testing.T) {
 			name:          "builtin completion with #! prefix",
 			line:          "#!",
 			pos:           2,
-			expectedCount: 6,
-			shouldContain: []string{"#!config", "#!new", "#!tokens", "#!subagents", "#!reload-subagents", "#!coach"},
+			expectedCount: 8,
+			shouldContain: []string{"#!config", "#!coach", "#!fix", "#!help", "#!new", "#!reload-subagents", "#!subagents", "#!tokens"},
 		},
 		{
 			name:             "builtin completion with 'n' prefix",
@@ -476,7 +476,7 @@ func TestShellCompletionProvider_HelpInfo_Integration(t *testing.T) {
 			name:     "help for #! prefix",
 			line:     "#!",
 			pos:      2,
-			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **#!config** - Open the configuration menu\n• **#!new** - Start a new chat session\n• **#!tokens** - Show token usage statistics\n• **#!subagents [name]** - List subagents or show details\n• **#!reload-subagents** - Reload subagent configurations\n• **#!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **#!help** - Show help information\n• **#!fix** - Ask AI to fix the last failed command\n• **#!new** - Start a new chat session\n• **#!tokens** - Show token usage statistics\n• **#!config** - Open the configuration menu\n• **#!coach [subcommand]** - Productivity coach\n• **#!subagents [name]** - List or show subagent details\n• **#!reload-subagents** - Reload subagent configurations",
 		},
 		{
 			name:     "help for #!new command",

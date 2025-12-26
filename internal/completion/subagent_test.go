@@ -165,25 +165,25 @@ func TestSubagentHelp(t *testing.T) {
 			name:     "help for # empty shows all subagents",
 			line:     "#",
 			pos:      1,
-			expected: "**Subagents** - Specialized AI assistants with specific roles\n\nAvailable subagents:\n• **#code-reviewer** - Review code for bugs and best practices\n• **#test-writer** - Write comprehensive tests",
+			expected: "**Subagents** - Specialized AI assistants with specific roles\n\nAvailable subagents:\n• **##code-reviewer** - Review code for bugs and best practices\n• **##test-writer** - Write comprehensive tests",
 		},
 		{
 			name:     "help for specific subagent",
 			line:     "#code-reviewer",
 			pos:      14,
-			expected: "**#code-reviewer** - Code Reviewer\n\nReview code for bugs and best practices\n**Tools:** [view_file bash]",
+			expected: "**##code-reviewer** - Code Reviewer\n\nReview code for bugs and best practices\n**Tools:** [view_file bash]",
 		},
 		{
 			name:     "help for subagent with model override",
 			line:     "#test-writer",
 			pos:      12,
-			expected: "**#test-writer** - Test Writer\n\nWrite comprehensive tests\n**Tools:** [create_file edit_file]\n**Model:** gpt-4",
+			expected: "**##test-writer** - Test Writer\n\nWrite comprehensive tests\n**Tools:** [create_file edit_file]\n**Model:** gpt-4",
 		},
 		{
 			name:     "help for partial match",
 			line:     "#c",
 			pos:      2,
-			expected: "**Subagents** - Matching subagents:\n\n• **#code-reviewer** - Review code for bugs and best practices",
+			expected: "**Subagents** - Matching subagents:\n\n• **##code-reviewer** - Review code for bugs and best practices",
 		},
 	}
 
@@ -207,6 +207,6 @@ func TestSubagentCompletionWithoutProvider(t *testing.T) {
 
 	// Should return generic help when no provider is set
 	help := provider.GetHelpInfo("#", 1)
-	expected := "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use #<subagent-name> to invoke a subagent."
+	expected := "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use ##<name> to invoke a subagent."
 	assert.Equal(t, expected, help)
 }

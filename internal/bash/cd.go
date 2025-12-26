@@ -44,11 +44,6 @@ func handleCdCommand(ctx context.Context, args []string) error {
 	hc := interp.HandlerCtx(ctx)
 	env := hc.Env
 
-	// Debug: Log the raw arguments received
-	if runtime.GOOS == "windows" {
-		fmt.Fprintf(os.Stderr, "DEBUG: handleCdCommand received args: %v\n", args)
-	}
-
 	// Determine the target directory
 	var targetDir string
 	if len(args) == 1 {
@@ -61,10 +56,6 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		targetDir = home.String()
 	} else {
 		targetDir = args[1]
-		// Debug: Log the target directory before any processing
-		if runtime.GOOS == "windows" {
-			fmt.Fprintf(os.Stderr, "DEBUG: Raw targetDir: %s\n", targetDir)
-		}
 
 		// Windows path recovery: minimal generic fallback for malformed paths
 		// This addresses cases where backslashes are stripped from Windows paths
@@ -73,17 +64,10 @@ func handleCdCommand(ctx context.Context, args []string) error {
 			// Use the sophisticated reconstruction function from cd_windows.go
 			reconstructed := reconstructWindowsPath(targetDir)
 
-			// Debug: Log the reconstruction attempt
-			fmt.Fprintf(os.Stderr, "DEBUG: Attempting to reconstruct Windows path: %s -> %s\n", targetDir, reconstructed)
-
 			// Validate the reconstructed path exists before using it
 			if _, err := os.Stat(reconstructed); err == nil {
 				targetDir = reconstructed
-				fmt.Fprintf(os.Stderr, "DEBUG: Successfully reconstructed path: %s\n", targetDir)
 			} else {
-				// Log a warning about malformed path detection
-				fmt.Fprintf(os.Stderr, "cd: warning: detected malformed Windows path: %s\n", targetDir)
-				// Don't treat malformed paths as relative - return error instead
 				fmt.Fprintf(os.Stderr, "cd: no such file or directory: %s\n", targetDir)
 				return fmt.Errorf("directory not found")
 			}
