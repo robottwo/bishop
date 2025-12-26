@@ -180,6 +180,12 @@ func initialModel(runner *interp.Runner) model {
 		envVar:      "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX",
 		itemType:    typeToggle,
 	}
+	defaultToYesSetting := settingItem{
+		title:       "Default to Yes",
+		description: "Prompts default to Yes when Enter is pressed",
+		envVar:      "BISH_DEFAULT_TO_YES",
+		itemType:    typeToggle,
+	}
 
 	// Top-level menu items
 	items := []list.Item{
@@ -202,6 +208,11 @@ func initialModel(runner *interp.Runner) model {
 			title:       "Safety Checks",
 			description: "Enable/Disable approved command checks",
 			setting:     &safetyChecksSetting,
+		},
+		menuItem{
+			title:       "Default to Yes",
+			description: "Prompts default to Yes when Enter is pressed",
+			setting:     &defaultToYesSetting,
 		},
 	}
 
@@ -401,7 +412,8 @@ func (m *model) handleSettingAction(s *settingItem) tea.Cmd {
 				newVal = `[".*"]`
 			}
 		} else {
-			if curr == "true" {
+			// Handle both "true"/"false" and "1"/"0" formats
+			if curr == "true" || curr == "1" {
 				newVal = "false"
 			} else {
 				newVal = "true"
@@ -491,6 +503,12 @@ func (m model) View() string {
 						} else {
 							val = "Enabled"
 						}
+					} else if mi.setting.envVar == "BISH_DEFAULT_TO_YES" {
+						if val == "1" || val == "true" {
+							val = "Yes (prompts show [Y/n])"
+						} else {
+							val = "No (prompts show [y/N])"
+						}
 					}
 					if val == "" {
 						val = "(not set)"
@@ -560,6 +578,11 @@ func getEnv(runner *interp.Runner, key string) string {
 			return `[".*"]` // Disabled for this session
 		}
 		return "[]" // Enabled (default)
+	}
+
+	// Check session overrides first (for settings modified via config UI)
+	if val, ok := sessionConfigOverrides[key]; ok {
+		return val
 	}
 
 	if v, ok := runner.Vars[key]; ok {
