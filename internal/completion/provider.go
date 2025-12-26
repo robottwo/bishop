@@ -644,11 +644,13 @@ func (p *ShellCompletionProvider) getAliasCompletions(prefix string) []string {
 func (p *ShellCompletionProvider) getBuiltinCommandCompletions(prefix string) []string {
 	builtinCommands := []string{
 		"config",
-		"new",
-		"tokens",
-		"subagents",
-		"reload-subagents",
 		"coach",
+		"fix",
+		"help",
+		"new",
+		"reload-subagents",
+		"subagents",
+		"tokens",
 	}
 
 	var completions []string
@@ -776,7 +778,13 @@ func (p *ShellCompletionProvider) GetHelpInfo(line string, pos int) string {
 
 // getBuiltinCommandHelp returns help information for built-in commands
 func (p *ShellCompletionProvider) getBuiltinCommandHelp(command string) string {
+	helpText := "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **#!help** - Show help information\n• **#!fix** - Ask AI to fix the last failed command\n• **#!new** - Start a new chat session\n• **#!tokens** - Show token usage statistics\n• **#!config** - Open the configuration menu\n• **#!coach [subcommand]** - Productivity coach\n• **#!subagents [name]** - List or show subagent details\n• **#!reload-subagents** - Reload subagent configurations"
+
 	switch command {
+	case "help":
+		return "**#!help** - Show help information\n\nDisplays comprehensive help about all available agent commands, controls, macros, subagents, and keyboard shortcuts."
+	case "fix":
+		return "**#!fix** - Ask AI to fix the last failed command\n\nAlias for #?. Analyzes the last failed command and suggests a fix. If a fix is found, you can run it immediately with a single keypress."
 	case "config":
 		return "**#!config** - Open the configuration menu\n\nLaunches an interactive UI to configure gsh settings including model configuration, assistant height, and safety checks."
 	case "new":
@@ -790,14 +798,14 @@ func (p *ShellCompletionProvider) getBuiltinCommandHelp(command string) string {
 	case "coach":
 		return "**#!coach [subcommand]** - Productivity coach dashboard\n\nSubcommands:\n• **#!coach** or **#!coach dashboard** - View main dashboard\n• **#!coach stats** - View detailed statistics\n• **#!coach achievements** - Browse achievements\n• **#!coach challenges** - View active challenges\n• **#!coach tips** - View all tips\n• **#!coach reset-tips** - Regenerate tips from history"
 	case "":
-		return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **#!config** - Open the configuration menu\n• **#!new** - Start a new chat session\n• **#!tokens** - Show token usage statistics\n• **#!subagents [name]** - List subagents or show details\n• **#!reload-subagents** - Reload subagent configurations\n• **#!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)"
+		return helpText
 	default:
 		// Check for partial matches
-		builtinCommands := []string{"config", "new", "tokens", "subagents", "reload-subagents", "coach"}
+		builtinCommands := []string{"help", "fix", "config", "new", "tokens", "subagents", "reload-subagents", "coach"}
 		for _, cmd := range builtinCommands {
 			if strings.HasPrefix(cmd, command) {
 				// Partial match, show general help
-				return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **#!config** - Open the configuration menu\n• **#!new** - Start a new chat session\n• **#!tokens** - Show token usage statistics\n• **#!subagents [name]** - List subagents or show details\n• **#!reload-subagents** - Reload subagent configurations\n• **#!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)"
+				return helpText
 			}
 		}
 		return ""
@@ -871,7 +879,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 	// If no subagent manager is available, return generic help
 	if p.SubagentProvider == nil {
 		if subagentName == "" {
-			return "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use #<subagent-name> to invoke a subagent."
+			return "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use ##<name> to invoke a subagent."
 		}
 		return ""
 	}
@@ -891,7 +899,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 			if description == "" {
 				description = "No description available"
 			}
-			subagentList = append(subagentList, fmt.Sprintf("• **#%s** - %s", id, description))
+			subagentList = append(subagentList, fmt.Sprintf("• **##%s** - %s", id, description))
 		}
 		sort.Strings(subagentList)
 
@@ -920,7 +928,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 			description = "No description available"
 		}
 
-		return fmt.Sprintf("**#%s** - %s\n\n%s%s%s%s",
+		return fmt.Sprintf("**##%s** - %s\n\n%s%s%s%s",
 			subagentName, subagent.Name, description, toolsStr, fileRegexStr, modelStr)
 	}
 
@@ -932,7 +940,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 			if description == "" {
 				description = "No description available"
 			}
-			matches = append(matches, fmt.Sprintf("• **#%s** - %s", id, description))
+			matches = append(matches, fmt.Sprintf("• **##%s** - %s", id, description))
 		}
 	}
 
@@ -944,7 +952,7 @@ func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 			if description == "" {
 				description = "No description available"
 			}
-			matches = append(matches, fmt.Sprintf("• **#%s** (%s) - %s", id, subagent.Name, description))
+			matches = append(matches, fmt.Sprintf("• **##%s** (%s) - %s", id, subagent.Name, description))
 		}
 	}
 
