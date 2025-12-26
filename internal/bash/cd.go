@@ -8,8 +8,22 @@ import (
 	"runtime"
 	"strings"
 
+	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 )
+
+// Global runner reference for the cd command handler
+// NOTE: This global variable pattern is intentionally used here due to the constraints
+// of the interp.ExecHandlerFunc signature, which doesn't allow passing additional context.
+// The runner must be available to update internal PWD/OLDPWD variables alongside OS env.
+var cdRunner *interp.Runner
+
+// SetCdRunner sets the global runner reference for the cd command handler.
+// This enables the cd command to update both OS environment variables and
+// the interpreter's internal PWD/OLDPWD variables for consistency.
+func SetCdRunner(runner *interp.Runner) {
+	cdRunner = runner
+}
 
 // NewCdCommandHandler creates a new ExecHandler middleware for the cd command
 func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
@@ -177,15 +191,13 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
 	}
 
-	// NOTE: The current implementation only updates the OS environment variables via os.Setenv()
-	// but does not update the interpreter's internal environment. This means that:
-	// 1. Child processes will see the updated PWD/OLDPWD
-	// 2. The shell's internal PWD/OLDPWD variables remain stale
-	// 3. Subsequent calls to env.Get("PWD") will return the old value
-
-	// TODO: Implement proper interpreter environment update
-	// This requires accessing the underlying runner.Vars or finding the correct interface
-	// to update the interpreter's internal environment variables.
+	// Update the interpreter's internal environment variables
+	// This ensures that shell variable expansion (e.g., $PWD) and env.Get("PWD")
+	// return the correct values, keeping prompt and completion context in sync.
+	if cdRunner != nil && cdRunner.Vars != nil {
+		cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
+		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: targetDir, Exported: true}
+	}
 
 	return nil
 }
