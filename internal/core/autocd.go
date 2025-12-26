@@ -310,7 +310,7 @@ func SetAutocdRunner(runner *interp.Runner) {
 }
 
 // NewAutocdExecHandler creates an ExecHandler that implements autocd.
-// It checks if path-like inputs are directories and executes cd instead.
+// It checks if non-command inputs are directories and executes cd instead.
 // This allows builtins and commands to take precedence naturally without
 // needing to maintain a hardcoded list of builtin names.
 func NewAutocdExecHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
@@ -333,19 +333,15 @@ func NewAutocdExecHandler() func(next interp.ExecHandlerFunc) interp.ExecHandler
 			// Get the command name (first argument)
 			cmdName := args[0]
 
-			// Quick check: if it's clearly not a path, skip autocd logic
-			// This avoids overhead for normal commands
-			if !mightBePath(cmdName) {
-				return next(ctx, args)
-			}
-
 			// Check if it's a command in PATH or a defined function
-			// If so, let it execute normally
+			// If so, let it execute normally (commands take precedence over directories)
 			if isExternalCommand(cmdName, autocdRunner) {
 				return next(ctx, args)
 			}
 
 			// Expand the path and check if it's a directory
+			// This handles simple directory names like "myproject" as well as
+			// paths like "/etc", "~/Documents", "./subdir", etc.
 			expandedPath := expandPath(cmdName, autocdRunner)
 			if isDirectory(expandedPath) {
 				// It's a directory! Execute cd instead
@@ -364,20 +360,3 @@ func NewAutocdExecHandler() func(next interp.ExecHandlerFunc) interp.ExecHandler
 	}
 }
 
-// mightBePath does a quick check to see if the string might be a filesystem path
-// This is used to avoid unnecessary directory checks for obvious non-paths
-func mightBePath(s string) bool {
-	// Paths typically start with /, ~, or .
-	// Or contain / somewhere
-	if len(s) == 0 {
-		return false
-	}
-
-	first := s[0]
-	if first == '/' || first == '~' || first == '.' {
-		return true
-	}
-
-	// Check for embedded slashes (relative paths like foo/bar)
-	return strings.Contains(s, "/")
-}

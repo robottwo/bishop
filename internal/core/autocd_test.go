@@ -341,6 +341,37 @@ func TestTryAutocd(t *testing.T) {
 	}
 }
 
+func TestTryAutocd_SimpleDirectoryName(t *testing.T) {
+	runner := createTestRunner(t)
+
+	// Create a temp directory and a subdirectory
+	tmpDir, err := os.MkdirTemp("", "autocd_simple_test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Create a subdirectory with a simple name (no path separators)
+	simpleDir := filepath.Join(tmpDir, "myproject")
+	err = os.Mkdir(simpleDir, 0755)
+	require.NoError(t, err)
+
+	// Save current directory and change to tmpDir
+	oldDir, err := os.Getwd()
+	require.NoError(t, err)
+	err = os.Chdir(tmpDir)
+	require.NoError(t, err)
+	defer func() { _ = os.Chdir(oldDir) }()
+
+	// Test that a simple directory name (no /, ~, or .) triggers autocd
+	result, triggered := TryAutocd("myproject", runner)
+	assert.True(t, triggered, "Simple directory name 'myproject' should trigger autocd")
+	assert.Equal(t, "cd myproject", result, "Should produce cd command")
+
+	// Test that a non-existent simple name does NOT trigger
+	result, triggered = TryAutocd("nonexistent", runner)
+	assert.False(t, triggered, "Non-existent directory should not trigger autocd")
+	assert.Equal(t, "nonexistent", result, "Should return original input")
+}
+
 func TestTryAutocd_HomeTilde(t *testing.T) {
 	runner := createTestRunner(t)
 	home, _ := os.UserHomeDir()
