@@ -123,22 +123,16 @@ func TestIsExternalCommand(t *testing.T) {
 		input    string
 		expected bool
 	}{
-		// Shell builtins are NOT checked by isExternalCommand
-		// They are handled by the interpreter, not by PATH lookup
-		{"cd", false},
-		{"exit", false},
-		{"export", false},
-
 		// Common external commands (should be in PATH on most systems)
 		{"ls", true},
 		{"cat", true},
 
-		// Commands that might or might not be in PATH
-		// (echo is often both a builtin AND in PATH)
-		// We check if it's in PATH, so this depends on the system
-		// {"echo", true}, // Skip - may vary by system
+		// Note: Some builtins like "cd", "echo" may also exist as binaries
+		// in /usr/bin on some systems (e.g., macOS has /usr/bin/cd).
+		// We intentionally check PATH, so these would return true on such systems.
+		// This is correct behavior - isExternalCommand checks PATH, not builtins.
 
-		// Not commands
+		// Definitely not commands
 		{"/etc", false},
 		{"..", false},
 		{"nonexistent_command_12345", false},
