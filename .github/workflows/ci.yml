@@ -25,6 +25,11 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
+      - name: Verify GitHub CLI
+        run: gh --version
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Verify go mod tidy
         run: |
           go mod tidy

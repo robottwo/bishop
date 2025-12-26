@@ -32,6 +32,17 @@ tools:
 	@echo "Installing tools..."
 	@go install golang.org/x/vuln/cmd/govulncheck@latest
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@echo ""
+	@echo "Checking for GitHub CLI (gh)..."
+	@if command -v gh >/dev/null 2>&1; then \
+		echo "✓ gh is already installed"; \
+	else \
+		echo "⚠ gh (GitHub CLI) is not installed."; \
+		echo "  Install it from: https://cli.github.com/"; \
+		echo "  - macOS: brew install gh"; \
+		echo "  - Linux: See https://github.com/cli/cli/blob/trunk/docs/install_linux.md"; \
+		echo "  - Windows: winget install GitHub.cli"; \
+	fi
 
 .PHONY: install-hooks
 install-hooks:

@@ -76,8 +76,54 @@ The configuration menu allows you to:
 
 Changes made through the configuration menu are persisted to `~/.bish_config_ui` and automatically sourced in your shell.
 
+## Autocd
+
+Autocd allows you to change directories by typing just the path, without needing to prefix it with `cd`. This is a popular feature in zsh, fish, and bash 4.0+.
+
+### Enable Autocd
+
+In your `~/.bishrc`:
+
+```bash
+# Enable autocd
+export BISH_AUTOCD=1
+
+# Optional: show the effective cd command when autocd triggers
+export BISH_AUTOCD_VERBOSE=1
+```
+
+### Usage Examples
+
+```bash
+# Without autocd
+bish> cd /home/user/projects
+
+# With autocd enabled
+bish> /home/user/projects
+# → automatically executes: cd /home/user/projects
+
+bish> ..
+# → automatically executes: cd ..
+
+bish> ~/Documents
+# → automatically executes: cd ~/Documents
+```
+
+### Behavior
+
+Autocd triggers when ALL of the following conditions are met:
+
+1. `BISH_AUTOCD` is set to `1`, `true`, `yes`, or `on`
+2. The input is a single "word" (no pipes, redirects, semicolons, or other shell operators)
+3. The input is NOT a valid command name (not found in PATH, not a builtin, not a function)
+4. The input resolves to an existing directory
+
+Commands always take precedence over directories with the same name. For example, if you have a directory named `ls`, typing `ls` will execute the `ls` command, not change to that directory.
+
 ## Common Environment Variables
 
+- `BISH_AUTOCD`: Enable autocd feature (default: enabled). Set to `0` or `false` to disable.
+- `BISH_AUTOCD_VERBOSE`: Show the effective cd command when autocd triggers (default: enabled).
 - `BISH_FAST_MODEL_ID`: Model ID for the fast LLM (default: qwen2.5).
 - `BISH_FAST_MODEL_PROVIDER`: LLM provider for fast model (ollama, openai, openrouter).
 - `BISH_MINIMUM_HEIGHT`: Minimum number of lines reserved for prompt and UI rendering.
