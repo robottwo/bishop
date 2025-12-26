@@ -383,6 +383,9 @@ func RunInteractiveShell(
 			continue
 		}
 
+		// Note: Autocd is now handled by the AutocdExecHandler in the command execution chain
+		// This allows builtins and commands to take precedence naturally
+
 		// Execute the command
 		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
 		if err != nil {
