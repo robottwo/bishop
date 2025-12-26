@@ -2,6 +2,7 @@ package core
 
 import (
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -358,4 +359,44 @@ func TestTryAutocd_HomeTilde(t *testing.T) {
 		assert.True(t, triggered, "~/Documents should trigger autocd")
 		assert.Equal(t, "cd ~/Documents", result)
 	}
+}
+
+func TestExpandPath_TildeUsername(t *testing.T) {
+	// Skip on Windows as ~username expansion behaves differently
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping ~username test on Windows")
+	}
+
+	// Get current user for testing
+	currentUser, err := user.Current()
+	if err != nil {
+		t.Skip("Could not get current user")
+	}
+
+	home, _ := os.UserHomeDir()
+
+	// Save and restore HOME
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", home)
+	defer func() {
+		if origHome != "" {
+			os.Setenv("HOME", origHome)
+		}
+	}()
+
+	runner := createTestRunner(t)
+
+	// Test ~username (should expand to user's home directory)
+	result := expandPath("~"+currentUser.Username, runner)
+	assert.Equal(t, currentUser.HomeDir, result, "~username should expand to home directory")
+
+	// Test ~username/subdir (this was the bug - should NOT have leading slash in subdir)
+	result = expandPath("~"+currentUser.Username+"/Documents", runner)
+	expected := filepath.Join(currentUser.HomeDir, "Documents")
+	assert.Equal(t, expected, result, "~username/subdir should expand correctly without leading slash")
+
+	// Test ~username/nested/path
+	result = expandPath("~"+currentUser.Username+"/a/b/c", runner)
+	expected = filepath.Join(currentUser.HomeDir, "a", "b", "c")
+	assert.Equal(t, expected, result, "~username/nested/path should expand correctly")
 }
