@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"regexp"
 	"strings"
@@ -292,56 +293,126 @@ func RunInteractiveShell(
 
 				if fixedCmd != "" {
 					defaultToYes := environment.GetDefaultToYes(runner)
-					promptText := "Run this fix? [y/N] "
-					if defaultToYes {
-						promptText = "Run this fix? [Y/n] "
-					}
 
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\nCommand: "+fixedCmd+"\n") + gline.RESET_CURSOR_COLUMN)
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(promptText) + gline.RESET_CURSOR_COLUMN)
+					// Loop to allow editing before execution
+				magicFixLoop:
+					for {
+						promptText := "Run this fix? [y/N/e/i] "
+						if defaultToYes {
+							promptText = "Run this fix? [Y/n/e/i] "
+						}
 
-					// Read single key in raw mode
-					fd := int(os.Stdin.Fd())
-					oldState, err := term.MakeRaw(fd)
-					if err != nil {
-						logger.Error("failed to set raw mode", zap.Error(err))
-						continue
-					}
-					var buf [1]byte
-					_, _ = os.Stdin.Read(buf[:])
-					_ = term.Restore(fd, oldState)
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\nCommand: "+fixedCmd+"\n") + gline.RESET_CURSOR_COLUMN)
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(promptText) + gline.RESET_CURSOR_COLUMN)
 
-					char := buf[0]
-					// Echo the character and newline
-					if char == '\r' || char == '\n' {
-						fmt.Println()
-					} else {
-						fmt.Printf("%c\n", char)
-					}
-
-					// Determine if confirmed based on default setting
-					confirmed := char == 'y' || char == 'Y'
-					if defaultToYes && (char == '\r' || char == '\n') {
-						confirmed = true
-					}
-
-					if confirmed {
-						fmt.Println()
-						shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
+						// Read single key in raw mode
+						fd := int(os.Stdin.Fd())
+						oldState, err := term.MakeRaw(fd)
 						if err != nil {
-							fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+							logger.Error("failed to set raw mode", zap.Error(err))
+							break magicFixLoop
+						}
+						var buf [1]byte
+						_, _ = os.Stdin.Read(buf[:])
+						_ = term.Restore(fd, oldState)
+
+						char := buf[0]
+						// Echo the character and newline
+						if char == '\r' || char == '\n' {
+							fmt.Println()
+						} else {
+							fmt.Printf("%c\n", char)
 						}
 
-						// Record command for terminal title updates
-						termTitleManager.RecordCommand(fixedCmd)
-
-						// Sync any gsh variables that might have been changed during command execution
-						environment.SyncVariablesToEnv(runner)
-
-						if shouldExit {
-							logger.Debug("exiting...")
-							break
+						// Handle 'e' - edit in external editor
+						if char == 'e' || char == 'E' {
+							editedCmd, err := openInEditor(fixedCmd)
+							if err != nil {
+								logger.Error("failed to open editor", zap.Error(err))
+								fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("bish: Failed to open editor: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
+								continue
+							}
+							if editedCmd == "" {
+								fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit cancelled (empty command)\n") + gline.RESET_CURSOR_COLUMN)
+								break magicFixLoop
+							}
+							fixedCmd = editedCmd
+							continue // Show the updated command and prompt again
 						}
+
+						// Handle 'i' - insert into prompt for inline editing
+						if char == 'i' || char == 'I' {
+							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit the command and press Enter to run:\n") + gline.RESET_CURSOR_COLUMN)
+
+							// Create options with the fix command pre-filled
+							editOptions := gline.NewOptions()
+							editOptions.AssistantHeight = environment.GetAssistantHeight(runner, logger)
+							editOptions.CompletionProvider = completionProvider
+							editOptions.RichHistory = richHistory
+							editOptions.CurrentDirectory = environment.GetPwd(runner)
+							editOptions.CurrentSessionID = sessionID
+							editOptions.User = environment.GetUser(runner)
+							editOptions.Host, _ = os.Hostname()
+							editOptions.InitialValue = fixedCmd
+
+							shellPrompt := environment.GetPrompt(runner, logger)
+							editedLine, editErr := gline.Gline(shellPrompt, historyCommands, "", predictor, explainer, analyticsManager, logger, editOptions)
+							if editErr != nil {
+								if editErr == gline.ErrInterrupted {
+									fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit cancelled\n") + gline.RESET_CURSOR_COLUMN)
+									break magicFixLoop
+								}
+								logger.Error("error reading edited command", zap.Error(editErr))
+								break magicFixLoop
+							}
+							if strings.TrimSpace(editedLine) == "" {
+								fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit cancelled (empty command)\n") + gline.RESET_CURSOR_COLUMN)
+								break magicFixLoop
+							}
+							fixedCmd = editedLine
+							// Execute the edited command directly
+							fmt.Println()
+							shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
+							if err != nil {
+								fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+							}
+							termTitleManager.RecordCommand(fixedCmd)
+							environment.SyncVariablesToEnv(runner)
+							if shouldExit {
+								logger.Debug("exiting...")
+								return nil
+							}
+							break magicFixLoop
+						}
+
+						// Determine if confirmed based on default setting
+						confirmed := char == 'y' || char == 'Y'
+						if defaultToYes && (char == '\r' || char == '\n') {
+							confirmed = true
+						}
+
+						if confirmed {
+							fmt.Println()
+							shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
+							if err != nil {
+								fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+							}
+
+							// Record command for terminal title updates
+							termTitleManager.RecordCommand(fixedCmd)
+
+							// Sync any gsh variables that might have been changed during command execution
+							environment.SyncVariablesToEnv(runner)
+
+							if shouldExit {
+								logger.Debug("exiting...")
+								return nil
+							}
+							break magicFixLoop
+						}
+
+						// Any other key (n, N, Escape, etc.) cancels
+						break magicFixLoop
 					}
 				}
 				continue
@@ -432,6 +503,61 @@ func RunInteractiveShell(
 	}
 
 	return nil
+}
+
+// openInEditor opens the given command in an external editor and returns the edited result.
+// It uses $EDITOR, $VISUAL, or falls back to vi/vim/nano.
+func openInEditor(command string) (string, error) {
+	// Determine editor to use
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = os.Getenv("VISUAL")
+	}
+	if editor == "" {
+		// Try common editors
+		for _, e := range []string{"vi", "vim", "nano"} {
+			if _, err := exec.LookPath(e); err == nil {
+				editor = e
+				break
+			}
+		}
+	}
+	if editor == "" {
+		return "", fmt.Errorf("no editor found (set $EDITOR)")
+	}
+
+	// Create temp file with the command
+	tmpFile, err := os.CreateTemp("", "bish-fix-*.sh")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	if _, err := tmpFile.WriteString(command); err != nil {
+		tmpFile.Close()
+		return "", fmt.Errorf("failed to write to temp file: %w", err)
+	}
+	tmpFile.Close()
+
+	// Run the editor
+	cmd := exec.Command(editor, tmpPath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("editor exited with error: %w", err)
+	}
+
+	// Read the edited content
+	content, err := os.ReadFile(tmpPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read edited file: %w", err)
+	}
+
+	// Return trimmed content (remove trailing newlines but preserve internal structure)
+	return strings.TrimSpace(string(content)), nil
 }
 
 func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer, sessionID string) (bool, error) {
@@ -625,6 +751,12 @@ SUBAGENTS
   ## <prompt>       Auto-select best subagent for your prompt
   #:<mode> <prompt> Roo Code style invocation
   Type '##' and press Tab to see available subagents
+
+MAGIC FIX OPTIONS
+  y/Y               Run the suggested fix
+  n/N               Cancel (any other key also cancels)
+  e/E               Edit the fix in your $EDITOR
+  i/I               Insert the fix into the prompt to edit inline
 
 HISTORY EXPANSION
   !!                Repeat the last command

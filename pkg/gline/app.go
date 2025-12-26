@@ -155,6 +155,10 @@ func initialModel(
 	if options.CurrentSessionID != "" {
 		textInput.SetCurrentSessionID(options.CurrentSessionID)
 	}
+	// Set initial value if provided (e.g., for editing a suggested fix)
+	if options.InitialValue != "" {
+		textInput.SetValue(options.InitialValue)
+	}
 	textInput.Cursor.SetMode(cursor.CursorStatic)
 	textInput.ShowSuggestions = true
 	textInput.CompletionProvider = options.CompletionProvider
@@ -171,7 +175,7 @@ func initialModel(
 		options:   options,
 
 		textInput:          textInput,
-		dirty:              false,
+		dirty:              options.InitialValue != "", // Mark dirty if we have initial value
 		prediction:         "",
 		explanation:        explanation,
 		defaultExplanation: explanation, // Store for restoring when buffer is blank

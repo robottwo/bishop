@@ -20,6 +20,10 @@ type Options struct {
 	User               string
 	Host               string
 
+	// InitialValue is the initial text to populate in the input field.
+	// Used for features like editing a suggested fix before execution.
+	InitialValue string
+
 	// IdleSummaryTimeout is the number of seconds of idle time before generating a summary.
 	// Set to 0 to disable idle summaries.
 	IdleSummaryTimeout int
