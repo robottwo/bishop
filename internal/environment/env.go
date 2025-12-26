@@ -58,6 +58,23 @@ func GetHistoryContextLimit(runner *interp.Runner, logger *zap.Logger) int {
 	return int(historyContextLimit)
 }
 
+// GetHistorySize returns the number of history entries to display for Up/Down navigation.
+// Defaults to 1024 if not set or invalid.
+func GetHistorySize(runner *interp.Runner, logger *zap.Logger) int {
+	historySize, err := strconv.ParseInt(
+		runner.Vars["BISH_HISTORY_SIZE"].String(), 10, 32)
+	if err != nil {
+		logger.Debug("error parsing BISH_HISTORY_SIZE", zap.Error(err))
+		historySize = 1024
+	}
+	if historySize < 1 {
+		logger.Debug("BISH_HISTORY_SIZE is less than 1, clamping to 1",
+			zap.Int64("historySize", historySize))
+		historySize = 1
+	}
+	return int(historySize)
+}
+
 func GetLogLevel(runner *interp.Runner) zap.AtomicLevel {
 	logLevel, err := zap.ParseAtomicLevel(runner.Vars["BISH_LOG_LEVEL"].String())
 	if err != nil {
