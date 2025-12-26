@@ -190,6 +190,17 @@ func RunInteractiveShell(
 
 				// Handle built-in agent controls
 				switch control {
+				case "help":
+					printHelp()
+					continue
+				case "fix":
+					// Alias for #? - trigger magic fix
+					if state.LastExitCode == 0 {
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Last command succeeded.\n") + gline.RESET_CURSOR_COLUMN)
+						continue
+					}
+					// Fall through to magic fix handling by setting chatMessage
+					chatMessage = "?"
 				case "new":
 					agent.ResetChat()
 					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Chat session reset.\n") + gline.RESET_CURSOR_COLUMN)
@@ -262,6 +273,11 @@ func RunInteractiveShell(
 				for message := range chatChannel {
 					fullResponse.WriteString(message)
 					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
+				}
+
+				// Display token usage summary
+				if tokenSummary := agent.GetTokenSummary(); tokenSummary != "" {
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(tokenSummary+"\n") + gline.RESET_CURSOR_COLUMN)
 				}
 
 				// Extract code block
@@ -375,6 +391,11 @@ func RunInteractiveShell(
 				fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
 			}
 
+			// Display token usage summary
+			if tokenSummary := agent.GetTokenSummary(); tokenSummary != "" {
+				fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(tokenSummary+"\n") + gline.RESET_CURSOR_COLUMN)
+			}
+
 			continue
 		}
 
@@ -387,6 +408,12 @@ func RunInteractiveShell(
 		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+		}
+
+		// Show helpful hint when command fails (only once per session)
+		if state.LastExitCode != 0 && !state.FixHintShown {
+			state.FixHintShown = true
+			fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("Tip: Use #? or #!fix to ask the AI to help fix this error\n") + gline.RESET_CURSOR_COLUMN)
 		}
 
 		// Record command for terminal title updates
@@ -566,4 +593,47 @@ func expandHistory(input string, historyManager *history.HistoryManager) (string
 	}
 
 	return sb.String(), expanded
+}
+
+// printHelp displays help information about Bishop shell commands
+func printHelp() {
+	helpText := `
+Bishop Shell - AI-Powered Command Line
+
+AGENT COMMANDS
+  # <message>       Chat with the AI agent
+  #? or #!fix       Ask AI to explain and fix the last failed command
+  #/<macro>         Invoke a predefined agent macro
+
+AGENT CONTROLS
+  #!help            Show this help message
+  #!new             Reset the current chat session
+  #!tokens          Display token usage statistics
+  #!config          Open interactive configuration menu
+  #!coach           Open the coaching dashboard
+    #!coach stats        View your command statistics
+    #!coach achievements View your achievements
+    #!coach challenges   View active challenges
+    #!coach tips         View personalized tips
+    #!coach reset-tips   Regenerate tips from history
+
+SUBAGENTS
+  #@<name> <msg>    Chat with a specialized subagent
+  Type '#@' and press Tab to see available subagents
+
+HISTORY EXPANSION
+  !!                Repeat the last command
+  !$                Use the last argument from previous command
+
+KEYBOARD SHORTCUTS
+  Ctrl+R            Search command history
+  Ctrl+L            Clear screen
+  Ctrl+C            Cancel current input
+  Ctrl+D            Exit shell (on empty line)
+  Tab               Autocomplete commands/paths
+
+For more information, see the documentation at:
+  https://github.com/robottwo/bishop
+`
+	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(helpText) + gline.RESET_CURSOR_COLUMN)
 }

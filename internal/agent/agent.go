@@ -8,14 +8,14 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/robottwo/bishop/internal/agent/tools"
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/history"
 	"github.com/robottwo/bishop/internal/styles"
 	"github.com/robottwo/bishop/internal/utils"
 	"github.com/robottwo/bishop/pkg/gline"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
@@ -138,6 +138,16 @@ func (agent *Agent) PrintTokenStats() {
 	fmt.Print(
 		gline.RESET_CURSOR_COLUMN + table.String() + "\n" + gline.RESET_CURSOR_COLUMN,
 	)
+}
+
+// GetTokenSummary returns a compact string showing token usage for the last request
+func (agent *Agent) GetTokenSummary() string {
+	if agent.lastRequestPromptTokens == 0 && agent.lastRequestCompletionTokens == 0 {
+		return ""
+	}
+	totalLast := agent.lastRequestPromptTokens + agent.lastRequestCompletionTokens
+	totalSession := agent.sessionPromptTokens + agent.sessionCompletionTokens
+	return fmt.Sprintf("[%d tokens, session: %d]", totalLast, totalSession)
 }
 
 func (agent *Agent) Chat(prompt string) (<-chan string, error) {
