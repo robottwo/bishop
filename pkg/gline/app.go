@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/robottwo/bishop/internal/git"
-	"github.com/robottwo/bishop/internal/system"
-	"github.com/robottwo/bishop/pkg/shellinput"
 	"github.com/charmbracelet/bubbles/cursor"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robottwo/bishop/internal/git"
+	"github.com/robottwo/bishop/internal/system"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"go.uber.org/zap"
 )
 
@@ -216,8 +216,12 @@ func (m appModel) Init() tea.Cmd {
 				stateId: m.predictionStateId,
 			}
 		},
-		m.fetchResources(),
 		m.fetchGitStatus(),
+	}
+
+	// Only start resource monitoring if enabled (interval > 0)
+	if m.options.ResourceUpdateInterval > 0 {
+		cmds = append(cmds, m.fetchResources())
 	}
 
 	// Start idle check timer if enabled
@@ -269,8 +273,9 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case resourceMsg:
 		m.borderStatus.UpdateResources(msg.resources)
-		// Schedule next update after 1 second
-		return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		// Schedule next update based on configured interval
+		interval := time.Duration(m.options.ResourceUpdateInterval) * time.Second
+		return m, tea.Tick(interval, func(t time.Time) tea.Msg {
 			// Instead of returning resourceMsg directly (which would block if done synchronously),
 			// we trigger another fetch command which runs in a goroutine
 			return "fetch_resources_trigger"
