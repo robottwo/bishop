@@ -2,9 +2,23 @@
 
 ## Setup Requirements
 
-Before starting any work, ensure the development environment is properly configured:
+Before starting any work, ensure the development environment is properly configured.
 
-### Install Git Hooks
+### Using Devcontainer (Recommended)
+
+If using VS Code, GitHub Codespaces, or Claude Code, the devcontainer automatically:
+- Installs Go 1.23
+- Installs GitHub CLI (`gh`)
+- Runs `make tools` to install linters
+- Runs `make install-hooks` to set up git hooks
+
+Just open the project in a devcontainer-compatible environment and you're ready to go.
+
+### Manual Setup
+
+If not using a devcontainer, follow these steps:
+
+#### Install Git Hooks
 
 **Always run this first** to set up the pre-commit hook that runs linters, tests, and vulnerability checks:
 
