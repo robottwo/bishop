@@ -19,11 +19,11 @@ BISH_CLEAN_LOG_FILE=0
 # Examples: typing '/etc' is equivalent to 'cd /etc', '..' is equivalent to 'cd ..'
 #
 # Enable autocd (set to 1, true, yes, or on to enable)
-BISH_AUTOCD=0
+BISH_AUTOCD=1
 
 # Show the effective cd command when autocd triggers (set to 1, true, yes, or on to enable)
 # When enabled, typing '/etc' will print 'cd /etc' before changing directory
-BISH_AUTOCD_VERBOSE=0
+BISH_AUTOCD_VERBOSE=1
 
 # Height of the assistant message box (help/completion/explanation) at the bottom of the screen
 BISH_ASSISTANT_HEIGHT=3

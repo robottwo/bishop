@@ -122,8 +122,8 @@ Commands always take precedence over directories with the same name. For example
 
 ## Common Environment Variables
 
-- `BISH_AUTOCD`: Enable autocd feature (default: disabled). Set to `1`, `true`, `yes`, or `on` to enable.
-- `BISH_AUTOCD_VERBOSE`: Show the effective cd command when autocd triggers (default: disabled).
+- `BISH_AUTOCD`: Enable autocd feature (default: enabled). Set to `0` or `false` to disable.
+- `BISH_AUTOCD_VERBOSE`: Show the effective cd command when autocd triggers (default: enabled).
 - `BISH_FAST_MODEL_ID`: Model ID for the fast LLM (default: qwen2.5).
 - `BISH_FAST_MODEL_PROVIDER`: LLM provider for fast model (ollama, openai, openrouter).
 - `BISH_MINIMUM_HEIGHT`: Minimum number of lines reserved for prompt and UI rendering.
