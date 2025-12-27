@@ -1,5 +1,72 @@
 # Changelog
 
+## [1.0.0](https://github.com/robottwo/bishop/compare/v0.28.1...v1.0.0) (2025-12-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* The activation prefix for agent commands, subagents, and macros has changed from `@` to `#`. This avoids conflict with email addresses and other common uses of `@`.
+
+### Features
+
+* Add explicit idle summary ready indicator ([304d647](https://github.com/robottwo/bishop/commit/304d64766c37a58cf7ac5571cb267bbb2e84b54e))
+* Add explicit idle summary ready indicator ([304d647](https://github.com/robottwo/bishop/commit/304d64766c37a58cf7ac5571cb267bbb2e84b54e))
+* add quality-of-life improvements for better UX ([63dc1cd](https://github.com/robottwo/bishop/commit/63dc1cd9625c713c0d2fdbda8023a0baafad7f53))
+* **config:** expose Default to Yes toggle in config UI ([ed51b7e](https://github.com/robottwo/bishop/commit/ed51b7e8cd82dd49030c9b4b5d0cbd2e2ec182b7))
+* expand SSH completion to include known_hosts and Include directives ([aad2379](https://github.com/robottwo/bishop/commit/aad2379b2d7c7e4e2b407d2d927095e1820df39b))
+* implement autocd feature for directory navigation ([ecd49a7](https://github.com/robottwo/bishop/commit/ecd49a7c54845adcf6a8ac7438440fbc5d6531f9))
+* implement autocd feature for directory navigation  ([d937f52](https://github.com/robottwo/bishop/commit/d937f529ccc4b7d1c794ba925cbd952ac87a7e28))
+* Implement missing shell shortcuts ([bb6657b](https://github.com/robottwo/bishop/commit/bb6657bace1262d8bb5ea34fd2bbaa32e9fe3e46))
+* implement missing shell shortcuts (!!, !$, Alt+., Ctrl+T, Alt+T) ([8c70d16](https://github.com/robottwo/bishop/commit/8c70d16172cb8105081cd083d0a691aefbe5ac93))
+* implement missing shell shortcuts (!!, !$, Alt+., Ctrl+T, Alt+T) ([d8c9b05](https://github.com/robottwo/bishop/commit/d8c9b05dfe3fdbfa6d89ac94014aca84d9448931))
+* implement missing shell shortcuts (!!, !$, Alt+., Ctrl+T, Alt+T) ([07aa2e9](https://github.com/robottwo/bishop/commit/07aa2e967bb3035da505b064fcae19a698deb105))
+* implement session-based history filtering ([e49061c](https://github.com/robottwo/bishop/commit/e49061c92733a9a684ab5d9ed4642494f41b100f))
+* implement session-based history filtering ([36d57ae](https://github.com/robottwo/bishop/commit/36d57ae18e6828fbb1a2722369231478c915834a))
+* Implement Session-based History Filtering ([880babb](https://github.com/robottwo/bishop/commit/880babb2f1ae5d178b2a4c4285c70fe5df4e2e8a))
+* make history size for Up/Down navigation configurable ([ab92406](https://github.com/robottwo/bishop/commit/ab92406372b359400bdb3c99300bf7d6348d169b))
+* make idle summary state more explicit with header and dismiss key ([f0775f1](https://github.com/robottwo/bishop/commit/f0775f1fa06972150dade59abbf87e2604720277))
+* quality-of-life improvements for users ([2abe447](https://github.com/robottwo/bishop/commit/2abe447945eecab8cabdb944f298e98517cdec17))
+
+
+### Bug Fixes
+
+* Add input validation for numeric and URL fields ([c99de4a](https://github.com/robottwo/bishop/commit/c99de4a2fe703459415204f4f0784a903d93f456))
+* Add input validation for numeric and URL fields ([c99de4a](https://github.com/robottwo/bishop/commit/c99de4a2fe703459415204f4f0784a903d93f456))
+* add thread safety to Linux CPU stats collection ([095634b](https://github.com/robottwo/bishop/commit/095634b29d0fcd90c95580b6a3b12b2633591b80))
+* cd environment variable handling ([b6c510c](https://github.com/robottwo/bishop/commit/b6c510caccf357a408ee5d92ae6548f3d243cfbc))
+* **core:** add error messages for failed cd commands ([abb0ce1](https://github.com/robottwo/bishop/commit/abb0ce1cb8163ca2aa5bfa4ab934636a6b939a40))
+* correct ~username path expansion to not include leading slash ([7f8a60a](https://github.com/robottwo/bishop/commit/7f8a60a275525285fb2703cee7da2c8df65ae811))
+* correct autocd test expectations ([cf99056](https://github.com/robottwo/bishop/commit/cf990565163aaa5a0a91b089551e060dccb74157))
+* correct expand.Variable nil comparison in autocd ([ed96ae4](https://github.com/robottwo/bishop/commit/ed96ae452ad76088bf486c4c9eccbb6e3fe56db3))
+* correct subagent invocation syntax in help text ([6beebcf](https://github.com/robottwo/bishop/commit/6beebcf540cca93eb95af280110ebbd0463113a1))
+* error handling ([c0d823b](https://github.com/robottwo/bishop/commit/c0d823bc39f4d3ade35d8cc85fe2d1577541a4b4))
+* make autocd tests cross-platform (Windows compatible) ([d2f55bb](https://github.com/robottwo/bishop/commit/d2f55bb4a3c7da60570d450e674b9ea2ac4df3a0))
+* preserve HOME environment variable in autocd tests ([dfd8156](https://github.com/robottwo/bishop/commit/dfd8156f9d3520c0b264503c57376897458095b8))
+* reduce energy consumption by increasing resource update interval ([404f0d6](https://github.com/robottwo/bishop/commit/404f0d680ae1466fd1d90e1ddcf8d1a3300f6ae2))
+* remove debug logging and improve Windows path reconstruction ([bdfc74e](https://github.com/robottwo/bishop/commit/bdfc74e2a4bae9c7045677d04ee1a02fd42e09cf))
+* remove duplicate build constraints from cd.go ([0053f58](https://github.com/robottwo/bishop/commit/0053f586578eb9ebbb13cbf57cdc90b347d0da8c))
+* remove system-dependent test cases for isExternalCommand ([bbd9a33](https://github.com/robottwo/bishop/commit/bbd9a335dc27295ed89e07a726534e55966550e2))
+* reorder path patterns to prevent subdir splitting ([0210f09](https://github.com/robottwo/bishop/commit/0210f0975ff5a6fac6b431c80eb24e0759ee0625))
+* separate Windows-specific code into cd_windows.go ([6a06fb8](https://github.com/robottwo/bishop/commit/6a06fb8d244284f99903d4aff2b4f8d6a039ed3e))
+* support simple directory names without path separators ([2246228](https://github.com/robottwo/bishop/commit/22462285717a5ca18fec07599a9e38284fe4de1c))
+* surface actual errors in init panic messages ([8c9801a](https://github.com/robottwo/bishop/commit/8c9801a1a9c65059eadea5171526b9cf44ff1850))
+* sync PWD/OLDPWD in interpreter's internal env on cd ([923a8d8](https://github.com/robottwo/bishop/commit/923a8d80128252fecbde7bf8067b8a40feaa3cd9))
+* **test:** complete Windows backslash parsing test with proper assertions ([681e865](https://github.com/robottwo/bishop/commit/681e865aba5ba3b59545a4a81aed3900f2a6460b))
+* **test:** resolve Windows CI failures in internal/bash package ([0be74fb](https://github.com/robottwo/bishop/commit/0be74fb20e2ef6b3881845536301e4b1d14b7e8d))
+* **test:** Windows path handling in cd command test ([a597922](https://github.com/robottwo/bishop/commit/a597922fec927b52d1889d2ba684e499e622693e))
+* update autocomplete and help for #!help and #!fix commands ([f637bbb](https://github.com/robottwo/bishop/commit/f637bbb4877d76f7f8fdc481b970c2f0c0e436b2))
+* update subagent test expectations to use ## prefix ([1329645](https://github.com/robottwo/bishop/commit/1329645953557f7d232f6b6747764c3f603e96de))
+
+
+### Performance Improvements
+
+* use Mach API instead of spawning top/vm_stat processes on macOS ([961dc32](https://github.com/robottwo/bishop/commit/961dc320e4d80c62baf5f733c8b14466eaec6703))
+
+
+### Code Refactoring
+
+* switch command prefix from @ to # ([55e5377](https://github.com/robottwo/bishop/commit/55e537768b6281eb2cc3ae4851a2013e28e86de9))
+
 ## 0.28.1 (2025-12-21)
 
 
