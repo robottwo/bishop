@@ -1,0 +1,462 @@
+=== RUN   TestCompgenCommand
+=== RUN   TestCompgenCommand/word_list_completion_with_no_filter
+=== RUN   TestCompgenCommand/word_list_completion_with_filter
+=== RUN   TestCompgenCommand/word_list_completion_with_no_matches
+=== RUN   TestCompgenCommand/function_completion
+=== RUN   TestCompgenCommand/function_completion_with_filter
+=== RUN   TestCompgenCommand/missing_-W_argument
+=== RUN   TestCompgenCommand/missing_-F_argument
+=== RUN   TestCompgenCommand/unknown_option
+=== RUN   TestCompgenCommand/no_options
+=== RUN   TestCompgenCommand/no_completion_type
+--- PASS: TestCompgenCommand (0.00s)
+    --- PASS: TestCompgenCommand/word_list_completion_with_no_filter (0.00s)
+    --- PASS: TestCompgenCommand/word_list_completion_with_filter (0.00s)
+    --- PASS: TestCompgenCommand/word_list_completion_with_no_matches (0.00s)
+    --- PASS: TestCompgenCommand/function_completion (0.00s)
+    --- PASS: TestCompgenCommand/function_completion_with_filter (0.00s)
+    --- PASS: TestCompgenCommand/missing_-W_argument (0.00s)
+    --- PASS: TestCompgenCommand/missing_-F_argument (0.00s)
+    --- PASS: TestCompgenCommand/unknown_option (0.00s)
+    --- PASS: TestCompgenCommand/no_options (0.00s)
+    --- PASS: TestCompgenCommand/no_completion_type (0.00s)
+=== RUN   TestCompletionManager
+=== RUN   TestCompletionManager/execute_completion
+=== RUN   TestCompletionManager/execute_completion/word_list_completion_-_no_filter
+=== RUN   TestCompletionManager/execute_completion/word_list_completion_-_with_filter
+=== RUN   TestCompletionManager/execute_completion/word_list_completion_-_no_matches
+=== RUN   TestCompletionManager/execute_completion/function_completion_-_basic
+=== RUN   TestCompletionManager/execute_completion/function_completion_-_with_prefix_handling
+=== RUN   TestCompletionManager/execute_completion/function_completion_-_empty_args
+=== RUN   TestCompletionManager/execute_completion/invalid_completion_type
+=== RUN   TestCompletionManager/basic_operations
+--- PASS: TestCompletionManager (0.00s)
+    --- PASS: TestCompletionManager/execute_completion (0.00s)
+        --- PASS: TestCompletionManager/execute_completion/word_list_completion_-_no_filter (0.00s)
+        --- PASS: TestCompletionManager/execute_completion/word_list_completion_-_with_filter (0.00s)
+        --- PASS: TestCompletionManager/execute_completion/word_list_completion_-_no_matches (0.00s)
+        --- PASS: TestCompletionManager/execute_completion/function_completion_-_basic (0.00s)
+        --- PASS: TestCompletionManager/execute_completion/function_completion_-_with_prefix_handling (0.00s)
+        --- PASS: TestCompletionManager/execute_completion/function_completion_-_empty_args (0.00s)
+        --- PASS: TestCompletionManager/execute_completion/invalid_completion_type (0.00s)
+    --- PASS: TestCompletionManager/basic_operations (0.00s)
+=== RUN   TestCompleteCommandHandler
+=== RUN   TestCompleteCommandHandler/completion_specifications
+=== RUN   TestCompleteCommandHandler/error_cases
+=== RUN   TestCompleteCommandHandler/error_cases/missing_word_list
+=== RUN   TestCompleteCommandHandler/error_cases/unknown_option
+=== RUN   TestCompleteCommandHandler/error_cases/no_command_specified
+=== RUN   TestCompleteCommandHandler/pass_through_non-complete_commands
+--- PASS: TestCompleteCommandHandler (0.00s)
+    --- PASS: TestCompleteCommandHandler/completion_specifications (0.00s)
+    --- PASS: TestCompleteCommandHandler/error_cases (0.00s)
+        --- PASS: TestCompleteCommandHandler/error_cases/missing_word_list (0.00s)
+        --- PASS: TestCompleteCommandHandler/error_cases/unknown_option (0.00s)
+        --- PASS: TestCompleteCommandHandler/error_cases/no_command_specified (0.00s)
+    --- PASS: TestCompleteCommandHandler/pass_through_non-complete_commands (0.00s)
+=== RUN   TestDefaultCompleter_GetCompletions
+=== RUN   TestDefaultCompleter_GetCompletions/cd_completion
+=== RUN   TestDefaultCompleter_GetCompletions/export_completion
+=== RUN   TestDefaultCompleter_GetCompletions/kill_completion
+=== RUN   TestDefaultCompleter_GetCompletions/unknown_command
+--- PASS: TestDefaultCompleter_GetCompletions (0.00s)
+    --- PASS: TestDefaultCompleter_GetCompletions/cd_completion (0.00s)
+    --- PASS: TestDefaultCompleter_GetCompletions/export_completion (0.00s)
+    --- PASS: TestDefaultCompleter_GetCompletions/kill_completion (0.00s)
+    --- PASS: TestDefaultCompleter_GetCompletions/unknown_command (0.00s)
+=== RUN   TestStaticCompleter
+=== RUN   TestStaticCompleter/docker_completion
+=== RUN   TestStaticCompleter/docker_completion_filter
+=== RUN   TestStaticCompleter/npm_completion
+--- PASS: TestStaticCompleter (0.00s)
+    --- PASS: TestStaticCompleter/docker_completion (0.00s)
+    --- PASS: TestStaticCompleter/docker_completion_filter (0.00s)
+    --- PASS: TestStaticCompleter/npm_completion (0.00s)
+=== RUN   TestGitCompleter_Subcommands
+--- PASS: TestGitCompleter_Subcommands (0.00s)
+=== RUN   TestDocumentationCompleter
+=== RUN   TestDocumentationCompleter/man_completion
+    documentation_test.go:50:
+		Error Trace:	/app/internal/completion/documentation_test.go:50
+		Error:      	"[{dummy  Manual page (3beta) } {grep  Manual page (1) } {ls.1  Manual page (gz) } {printf.3  Manual page (gz) } {tcl  Manual page (n) }]" should have 4 item(s), but has 5
+		Test:       	TestDocumentationCompleter/man_completion
+    documentation_test.go:59:
+		Error Trace:	/app/internal/completion/documentation_test.go:59
+		Error:      	"[{dummy  Manual page (3beta) } {grep  Manual page (1) } {ls.1  Manual page (gz) } {printf.3  Manual page (gz) } {tcl  Manual page (n) }]" should have 2 item(s), but has 5
+		Test:       	TestDocumentationCompleter/man_completion
+    documentation_test.go:61:
+		Error Trace:	/app/internal/completion/documentation_test.go:61
+		Error:      	Not equal:
+				expected: "printf"
+				actual  : "grep"
+
+				Diff:
+				--- Expected
+				+++ Actual
+				@@ -1 +1 @@
+				-printf
+				+grep
+		Test:       	TestDocumentationCompleter/man_completion
+=== RUN   TestDocumentationCompleter/info_completion
+=== RUN   TestDocumentationCompleter/help_completion
+    documentation_test.go:112:
+		Error Trace:	/app/internal/completion/documentation_test.go:112
+		Error:      	Should be true
+		Test:       	TestDocumentationCompleter/help_completion
+		Messages:   	help should contain man pages
+--- FAIL: TestDocumentationCompleter (0.00s)
+    --- FAIL: TestDocumentationCompleter/man_completion (0.00s)
+    --- PASS: TestDocumentationCompleter/info_completion (0.00s)
+    --- FAIL: TestDocumentationCompleter/help_completion (0.00s)
+=== RUN   TestGetEnvPaths
+=== RUN   TestGetEnvPaths/empty_env
+=== RUN   TestGetEnvPaths/no_empty_parts
+=== RUN   TestGetEnvPaths/empty_start_(defaults_first)
+=== RUN   TestGetEnvPaths/empty_end_(defaults_last)
+=== RUN   TestGetEnvPaths/empty_middle_(defaults_middle)
+--- PASS: TestGetEnvPaths (0.00s)
+    --- PASS: TestGetEnvPaths/empty_env (0.00s)
+    --- PASS: TestGetEnvPaths/no_empty_parts (0.00s)
+    --- PASS: TestGetEnvPaths/empty_start_(defaults_first) (0.00s)
+    --- PASS: TestGetEnvPaths/empty_end_(defaults_last) (0.00s)
+    --- PASS: TestGetEnvPaths/empty_middle_(defaults_middle) (0.00s)
+=== RUN   TestGetFileCompletions_Integration
+=== RUN   TestGetFileCompletions_Integration/empty_prefix_lists_all_files
+=== RUN   TestGetFileCompletions_Integration/file_prefix_matching
+=== RUN   TestGetFileCompletions_Integration/directory_prefix_matching
+=== RUN   TestGetFileCompletions_Integration/hidden_file_matching
+=== RUN   TestGetFileCompletions_Integration/subdirectory_completion
+=== RUN   TestGetFileCompletions_Integration/nested_subdirectory
+=== RUN   TestGetFileCompletions_Integration/partial_file_in_subdirectory
+=== RUN   TestGetFileCompletions_Integration/absolute_path_completion
+=== RUN   TestGetFileCompletions_Integration/absolute_directory_completion
+=== RUN   TestGetFileCompletions_Integration/home_directory_expansion
+--- PASS: TestGetFileCompletions_Integration (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/empty_prefix_lists_all_files (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/file_prefix_matching (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/directory_prefix_matching (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/hidden_file_matching (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/subdirectory_completion (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/nested_subdirectory (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/partial_file_in_subdirectory (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/absolute_path_completion (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/absolute_directory_completion (0.00s)
+    --- PASS: TestGetFileCompletions_Integration/home_directory_expansion (0.00s)
+=== RUN   TestGetFileCompletions_RelativePaths_Integration
+=== RUN   TestGetFileCompletions_RelativePaths_Integration/relative_path_from_root
+=== RUN   TestGetFileCompletions_RelativePaths_Integration/relative_path_from_subdirectory
+=== RUN   TestGetFileCompletions_RelativePaths_Integration/parent_directory_navigation
+=== RUN   TestGetFileCompletions_RelativePaths_Integration/deep_relative_path
+=== RUN   TestGetFileCompletions_RelativePaths_Integration/partial_relative_path
+--- PASS: TestGetFileCompletions_RelativePaths_Integration (0.00s)
+    --- PASS: TestGetFileCompletions_RelativePaths_Integration/relative_path_from_root (0.00s)
+    --- PASS: TestGetFileCompletions_RelativePaths_Integration/relative_path_from_subdirectory (0.00s)
+    --- PASS: TestGetFileCompletions_RelativePaths_Integration/parent_directory_navigation (0.00s)
+    --- PASS: TestGetFileCompletions_RelativePaths_Integration/deep_relative_path (0.00s)
+    --- PASS: TestGetFileCompletions_RelativePaths_Integration/partial_relative_path (0.00s)
+=== RUN   TestGetFileCompletions_EdgeCases_Integration
+=== RUN   TestGetFileCompletions_EdgeCases_Integration/files_with_spaces
+=== RUN   TestGetFileCompletions_EdgeCases_Integration/files_with_dashes
+=== RUN   TestGetFileCompletions_EdgeCases_Integration/files_with_underscores
+=== RUN   TestGetFileCompletions_EdgeCases_Integration/files_with_dots
+=== RUN   TestGetFileCompletions_EdgeCases_Integration/files_starting_with_numbers
+=== RUN   TestGetFileCompletions_EdgeCases_Integration/uppercase_files
+=== RUN   TestGetFileCompletions_EdgeCases_Integration/mixed_case_files
+=== RUN   TestGetFileCompletions_EdgeCases_Integration/partial_extension_match
+--- PASS: TestGetFileCompletions_EdgeCases_Integration (0.00s)
+    --- PASS: TestGetFileCompletions_EdgeCases_Integration/files_with_spaces (0.00s)
+    --- PASS: TestGetFileCompletions_EdgeCases_Integration/files_with_dashes (0.00s)
+    --- PASS: TestGetFileCompletions_EdgeCases_Integration/files_with_underscores (0.00s)
+    --- PASS: TestGetFileCompletions_EdgeCases_Integration/files_with_dots (0.00s)
+    --- PASS: TestGetFileCompletions_EdgeCases_Integration/files_starting_with_numbers (0.00s)
+    --- PASS: TestGetFileCompletions_EdgeCases_Integration/uppercase_files (0.00s)
+    --- PASS: TestGetFileCompletions_EdgeCases_Integration/mixed_case_files (0.00s)
+    --- PASS: TestGetFileCompletions_EdgeCases_Integration/partial_extension_match (0.00s)
+=== RUN   TestGetFileCompletions_Permissions_Integration
+=== RUN   TestGetFileCompletions_Permissions_Integration/all_files_regardless_of_permissions
+=== RUN   TestGetFileCompletions_Permissions_Integration/executable_files
+=== RUN   TestGetFileCompletions_Permissions_Integration/readable_directory
+=== RUN   TestGetFileCompletions_Permissions_Integration/no_permission_files_still_show_up_in_listing
+--- PASS: TestGetFileCompletions_Permissions_Integration (0.00s)
+    --- PASS: TestGetFileCompletions_Permissions_Integration/all_files_regardless_of_permissions (0.00s)
+    --- PASS: TestGetFileCompletions_Permissions_Integration/executable_files (0.00s)
+    --- PASS: TestGetFileCompletions_Permissions_Integration/readable_directory (0.00s)
+    --- PASS: TestGetFileCompletions_Permissions_Integration/no_permission_files_still_show_up_in_listing (0.00s)
+=== RUN   TestGetFileCompletions_LargeDirectory_Integration
+=== RUN   TestGetFileCompletions_LargeDirectory_Integration/all_files_and_directories
+=== RUN   TestGetFileCompletions_LargeDirectory_Integration/files_with_prefix
+=== RUN   TestGetFileCompletions_LargeDirectory_Integration/directories_with_prefix
+=== RUN   TestGetFileCompletions_LargeDirectory_Integration/specific_range_of_files
+=== RUN   TestGetFileCompletions_LargeDirectory_Integration/single_file_match
+--- PASS: TestGetFileCompletions_LargeDirectory_Integration (0.02s)
+    --- PASS: TestGetFileCompletions_LargeDirectory_Integration/all_files_and_directories (0.00s)
+    --- PASS: TestGetFileCompletions_LargeDirectory_Integration/files_with_prefix (0.00s)
+    --- PASS: TestGetFileCompletions_LargeDirectory_Integration/directories_with_prefix (0.00s)
+    --- PASS: TestGetFileCompletions_LargeDirectory_Integration/specific_range_of_files (0.00s)
+    --- PASS: TestGetFileCompletions_LargeDirectory_Integration/single_file_match (0.00s)
+=== RUN   TestGetFileCompletions_DotPrefixEquivalence_Integration
+=== RUN   TestGetFileCompletions_DotPrefixEquivalence_Integration/dot_prefix_shows_hidden_files
+=== RUN   TestGetFileCompletions_DotPrefixEquivalence_Integration/dot-slash-dot_prefix_shows_hidden_files_with_./_prefix
+=== RUN   TestGetFileCompletions_DotPrefixEquivalence_Integration/dot_and_dot-slash-dot_give_same_count
+=== RUN   TestGetFileCompletions_DotPrefixEquivalence_Integration/parent-dot_prefix_works_correctly
+--- PASS: TestGetFileCompletions_DotPrefixEquivalence_Integration (0.00s)
+    --- PASS: TestGetFileCompletions_DotPrefixEquivalence_Integration/dot_prefix_shows_hidden_files (0.00s)
+    --- PASS: TestGetFileCompletions_DotPrefixEquivalence_Integration/dot-slash-dot_prefix_shows_hidden_files_with_./_prefix (0.00s)
+    --- PASS: TestGetFileCompletions_DotPrefixEquivalence_Integration/dot_and_dot-slash-dot_give_same_count (0.00s)
+    --- PASS: TestGetFileCompletions_DotPrefixEquivalence_Integration/parent-dot_prefix_works_correctly (0.00s)
+=== RUN   TestGetFileCompletions_TildePrefix_Integration
+=== RUN   TestGetFileCompletions_TildePrefix_Integration/tilde_alone_lists_home_directory
+=== RUN   TestGetFileCompletions_TildePrefix_Integration/tilde-slash_lists_home_directory
+=== RUN   TestGetFileCompletions_TildePrefix_Integration/tilde-dot_shows_hidden_files_in_home
+=== RUN   TestGetFileCompletions_TildePrefix_Integration/tilde_and_tilde-slash_give_same_results
+--- PASS: TestGetFileCompletions_TildePrefix_Integration (0.00s)
+    --- PASS: TestGetFileCompletions_TildePrefix_Integration/tilde_alone_lists_home_directory (0.00s)
+    --- PASS: TestGetFileCompletions_TildePrefix_Integration/tilde-slash_lists_home_directory (0.00s)
+    --- PASS: TestGetFileCompletions_TildePrefix_Integration/tilde-dot_shows_hidden_files_in_home (0.00s)
+    --- PASS: TestGetFileCompletions_TildePrefix_Integration/tilde_and_tilde-slash_give_same_results (0.00s)
+=== RUN   TestFileCompletions
+=== RUN   TestFileCompletions/empty_prefix_lists_all_files
+=== RUN   TestFileCompletions/prefix_matches_start_of_filename
+=== RUN   TestFileCompletions/prefix_matches_directories
+=== RUN   TestFileCompletions/absolute_path_prefix
+=== RUN   TestFileCompletions/relative_path_in_subdirectory
+=== RUN   TestFileCompletions/home_directory_prefix
+=== RUN   TestFileCompletions/home_directory_with_partial_filename
+--- PASS: TestFileCompletions (0.00s)
+    --- PASS: TestFileCompletions/empty_prefix_lists_all_files (0.00s)
+    --- PASS: TestFileCompletions/prefix_matches_start_of_filename (0.00s)
+    --- PASS: TestFileCompletions/prefix_matches_directories (0.00s)
+    --- PASS: TestFileCompletions/absolute_path_prefix (0.00s)
+    --- PASS: TestFileCompletions/relative_path_in_subdirectory (0.00s)
+    --- PASS: TestFileCompletions/home_directory_prefix (0.00s)
+    --- PASS: TestFileCompletions/home_directory_with_partial_filename (0.00s)
+=== RUN   TestCompletionFunction
+=== RUN   TestCompletionFunction/basic_function_execution
+=== RUN   TestCompletionFunction/context-aware_completion
+--- PASS: TestCompletionFunction (0.00s)
+    --- PASS: TestCompletionFunction/basic_function_execution (0.00s)
+    --- PASS: TestCompletionFunction/context-aware_completion (0.00s)
+=== RUN   TestShellCompletionProvider_FileCompletion_Integration
+=== RUN   TestShellCompletionProvider_FileCompletion_Integration/file_completion_in_temp_directory_-_empty_prefix
+=== RUN   TestShellCompletionProvider_FileCompletion_Integration/file_completion_with_prefix_'file'
+=== RUN   TestShellCompletionProvider_FileCompletion_Integration/file_completion_with_prefix_'test'
+=== RUN   TestShellCompletionProvider_FileCompletion_Integration/directory_completion
+=== RUN   TestShellCompletionProvider_FileCompletion_Integration/nested_file_completion
+--- PASS: TestShellCompletionProvider_FileCompletion_Integration (0.00s)
+    --- PASS: TestShellCompletionProvider_FileCompletion_Integration/file_completion_in_temp_directory_-_empty_prefix (0.00s)
+    --- PASS: TestShellCompletionProvider_FileCompletion_Integration/file_completion_with_prefix_'file' (0.00s)
+    --- PASS: TestShellCompletionProvider_FileCompletion_Integration/file_completion_with_prefix_'test' (0.00s)
+    --- PASS: TestShellCompletionProvider_FileCompletion_Integration/directory_completion (0.00s)
+    --- PASS: TestShellCompletionProvider_FileCompletion_Integration/nested_file_completion (0.00s)
+=== RUN   TestShellCompletionProvider_MacroCompletion_Integration
+=== RUN   TestShellCompletionProvider_MacroCompletion_Integration/macro_completion_with_@/_prefix
+=== RUN   TestShellCompletionProvider_MacroCompletion_Integration/macro_completion_with_partial_prefix
+=== RUN   TestShellCompletionProvider_MacroCompletion_Integration/macro_completion_with_'test'_prefix
+=== RUN   TestShellCompletionProvider_MacroCompletion_Integration/macro_completion_with_non-matching_prefix
+--- PASS: TestShellCompletionProvider_MacroCompletion_Integration (0.00s)
+    --- PASS: TestShellCompletionProvider_MacroCompletion_Integration/macro_completion_with_@/_prefix (0.00s)
+    --- PASS: TestShellCompletionProvider_MacroCompletion_Integration/macro_completion_with_partial_prefix (0.00s)
+    --- PASS: TestShellCompletionProvider_MacroCompletion_Integration/macro_completion_with_'test'_prefix (0.00s)
+    --- PASS: TestShellCompletionProvider_MacroCompletion_Integration/macro_completion_with_non-matching_prefix (0.00s)
+=== RUN   TestShellCompletionProvider_BuiltinCompletion_Integration
+=== RUN   TestShellCompletionProvider_BuiltinCompletion_Integration/builtin_completion_with_@!_prefix
+=== RUN   TestShellCompletionProvider_BuiltinCompletion_Integration/builtin_completion_with_'n'_prefix
+=== RUN   TestShellCompletionProvider_BuiltinCompletion_Integration/builtin_completion_with_'t'_prefix
+=== RUN   TestShellCompletionProvider_BuiltinCompletion_Integration/builtin_completion_with_non-matching_prefix
+--- PASS: TestShellCompletionProvider_BuiltinCompletion_Integration (0.00s)
+    --- PASS: TestShellCompletionProvider_BuiltinCompletion_Integration/builtin_completion_with_@!_prefix (0.00s)
+    --- PASS: TestShellCompletionProvider_BuiltinCompletion_Integration/builtin_completion_with_'n'_prefix (0.00s)
+    --- PASS: TestShellCompletionProvider_BuiltinCompletion_Integration/builtin_completion_with_'t'_prefix (0.00s)
+    --- PASS: TestShellCompletionProvider_BuiltinCompletion_Integration/builtin_completion_with_non-matching_prefix (0.00s)
+=== RUN   TestShellCompletionProvider_ExecutableCompletion_Integration
+=== RUN   TestShellCompletionProvider_ExecutableCompletion_Integration/path-based_executable_completion
+=== RUN   TestShellCompletionProvider_ExecutableCompletion_Integration/path-based_completion_with_directory_slash
+--- PASS: TestShellCompletionProvider_ExecutableCompletion_Integration (0.00s)
+    --- PASS: TestShellCompletionProvider_ExecutableCompletion_Integration/path-based_executable_completion (0.00s)
+    --- PASS: TestShellCompletionProvider_ExecutableCompletion_Integration/path-based_completion_with_directory_slash (0.00s)
+=== RUN   TestShellCompletionProvider_HelpInfo_Integration
+=== RUN   TestShellCompletionProvider_HelpInfo_Integration/help_for_@!_prefix
+=== RUN   TestShellCompletionProvider_HelpInfo_Integration/help_for_@!new_command
+=== RUN   TestShellCompletionProvider_HelpInfo_Integration/help_for_@/_prefix_with_macros
+=== RUN   TestShellCompletionProvider_HelpInfo_Integration/help_for_specific_macro
+=== RUN   TestShellCompletionProvider_HelpInfo_Integration/no_help_for_regular_command
+--- PASS: TestShellCompletionProvider_HelpInfo_Integration (0.00s)
+    --- PASS: TestShellCompletionProvider_HelpInfo_Integration/help_for_@!_prefix (0.00s)
+    --- PASS: TestShellCompletionProvider_HelpInfo_Integration/help_for_@!new_command (0.00s)
+    --- PASS: TestShellCompletionProvider_HelpInfo_Integration/help_for_@/_prefix_with_macros (0.00s)
+    --- PASS: TestShellCompletionProvider_HelpInfo_Integration/help_for_specific_macro (0.00s)
+    --- PASS: TestShellCompletionProvider_HelpInfo_Integration/no_help_for_regular_command (0.00s)
+=== RUN   TestShellCompletionProvider_CompletionSpec_Integration
+=== RUN   TestShellCompletionProvider_CompletionSpec_Integration/git_command_completion
+    provider_integration_test.go:567: Got 1 completions:
+    provider_integration_test.go:569:   [0] Value="add" (bytes: [97 100 100]), Description=""
+=== RUN   TestShellCompletionProvider_CompletionSpec_Integration/git_partial_completion
+    provider_integration_test.go:567: Got 1 completions:
+    provider_integration_test.go:569:   [0] Value="checkout" (bytes: [99 104 101 99 107 111 117 116]), Description=""
+=== RUN   TestShellCompletionProvider_CompletionSpec_Integration/git_commit_completion
+    provider_integration_test.go:567: Got 2 completions:
+    provider_integration_test.go:569:   [0] Value="commit" (bytes: [99 111 109 109 105 116]), Description=""
+    provider_integration_test.go:569:   [1] Value="checkout" (bytes: [99 104 101 99 107 111 117 116]), Description=""
+--- PASS: TestShellCompletionProvider_CompletionSpec_Integration (0.00s)
+    --- PASS: TestShellCompletionProvider_CompletionSpec_Integration/git_command_completion (0.00s)
+    --- PASS: TestShellCompletionProvider_CompletionSpec_Integration/git_partial_completion (0.00s)
+    --- PASS: TestShellCompletionProvider_CompletionSpec_Integration/git_commit_completion (0.00s)
+=== RUN   TestShellCompletionProvider_GlobalCompletion_Integration
+=== RUN   TestShellCompletionProvider_GlobalCompletion_Integration/global_completion_fallback
+    provider_integration_test.go:649: Got 3 completions:
+    provider_integration_test.go:651:   [0] Value="global-option1" (bytes: [103 108 111 98 97 108 45 111 112 116 105 111 110 49]), Description=""
+    provider_integration_test.go:651:   [1] Value="global-option2" (bytes: [103 108 111 98 97 108 45 111 112 116 105 111 110 50]), Description="description2"
+    provider_integration_test.go:651:   [2] Value="global-option3" (bytes: [103 108 111 98 97 108 45 111 112 116 105 111 110 51]), Description="json desc"
+--- PASS: TestShellCompletionProvider_GlobalCompletion_Integration (0.00s)
+    --- PASS: TestShellCompletionProvider_GlobalCompletion_Integration/global_completion_fallback (0.00s)
+=== RUN   TestGetCompletions
+=== RUN   TestGetCompletions/empty_line_returns_no_completions
+=== RUN   TestGetCompletions/command_with_no_completion_spec_returns_no_completions
+=== RUN   TestGetCompletions/command_with_word_list_completion_returns_suggestions
+=== RUN   TestGetCompletions/cursor_position_in_middle_of_line_only_uses_text_up_to_cursor
+=== RUN   TestGetCompletions/file_completion_preserves_command_and_path_prefix
+=== RUN   TestGetCompletions/file_completion_with_multiple_path_segments
+=== RUN   TestGetCompletions/file_completion_with_spaces_in_path
+=== RUN   TestGetCompletions/file_completion_after_command_with_space
+=== RUN   TestGetCompletions/file_completion_after_command_with_multiple_spaces
+=== RUN   TestGetCompletions/file_completion_with_multiple_path_segments_should_only_replace_last_segment
+=== RUN   TestGetCompletions/file_completion_with_multiple_arguments_should_preserve_earlier_arguments
+=== RUN   TestGetCompletions/macro_completion_with_@/_prefix
+=== RUN   TestGetCompletions/builtin_command_completion_with_@!_prefix
+=== RUN   TestGetCompletions/partial_macro_match_should_complete_to_macro,_not_fall_back
+=== RUN   TestGetCompletions/partial_builtin_match_should_complete_to_builtin,_not_fall_back
+=== RUN   TestGetCompletions/subagent_commands_completion_with_'s'_prefix
+=== RUN   TestGetCompletions/reload-subagents_completion_with_'r'_prefix
+=== RUN   TestGetCompletions/path-based_command_completion_with_./
+=== RUN   TestGetCompletions/path-based_command_completion_with_/bin/
+=== RUN   TestGetCompletions/alias_completion_with_matching_prefix
+=== RUN   TestGetCompletions/alias_completion_with_partial_match
+=== RUN   TestGetCompletions/alias_completion_with_no_matches_falls_back_to_system_commands
+--- PASS: TestGetCompletions (0.00s)
+    --- PASS: TestGetCompletions/empty_line_returns_no_completions (0.00s)
+    --- PASS: TestGetCompletions/command_with_no_completion_spec_returns_no_completions (0.00s)
+    --- PASS: TestGetCompletions/command_with_word_list_completion_returns_suggestions (0.00s)
+    --- PASS: TestGetCompletions/cursor_position_in_middle_of_line_only_uses_text_up_to_cursor (0.00s)
+    --- PASS: TestGetCompletions/file_completion_preserves_command_and_path_prefix (0.00s)
+    --- PASS: TestGetCompletions/file_completion_with_multiple_path_segments (0.00s)
+    --- PASS: TestGetCompletions/file_completion_with_spaces_in_path (0.00s)
+    --- PASS: TestGetCompletions/file_completion_after_command_with_space (0.00s)
+    --- PASS: TestGetCompletions/file_completion_after_command_with_multiple_spaces (0.00s)
+    --- PASS: TestGetCompletions/file_completion_with_multiple_path_segments_should_only_replace_last_segment (0.00s)
+    --- PASS: TestGetCompletions/file_completion_with_multiple_arguments_should_preserve_earlier_arguments (0.00s)
+    --- PASS: TestGetCompletions/macro_completion_with_@/_prefix (0.00s)
+    --- PASS: TestGetCompletions/builtin_command_completion_with_@!_prefix (0.00s)
+    --- PASS: TestGetCompletions/partial_macro_match_should_complete_to_macro,_not_fall_back (0.00s)
+    --- PASS: TestGetCompletions/partial_builtin_match_should_complete_to_builtin,_not_fall_back (0.00s)
+    --- PASS: TestGetCompletions/subagent_commands_completion_with_'s'_prefix (0.00s)
+    --- PASS: TestGetCompletions/reload-subagents_completion_with_'r'_prefix (0.00s)
+    --- PASS: TestGetCompletions/path-based_command_completion_with_./ (0.00s)
+    --- PASS: TestGetCompletions/path-based_command_completion_with_/bin/ (0.00s)
+    --- PASS: TestGetCompletions/alias_completion_with_matching_prefix (0.00s)
+    --- PASS: TestGetCompletions/alias_completion_with_partial_match (0.00s)
+    --- PASS: TestGetCompletions/alias_completion_with_no_matches_falls_back_to_system_commands (0.00s)
+=== RUN   TestGetHelpInfo
+=== RUN   TestGetHelpInfo/help_for_@!_empty
+=== RUN   TestGetHelpInfo/help_for_@!new
+=== RUN   TestGetHelpInfo/help_for_@!tokens
+=== RUN   TestGetHelpInfo/help_for_@/_empty_(no_macros)
+=== RUN   TestGetHelpInfo/help_for_partial_@!n_(matches_new)
+=== RUN   TestGetHelpInfo/help_for_partial_@!t_(matches_tokens)
+=== RUN   TestGetHelpInfo/help_for_@!subagents
+=== RUN   TestGetHelpInfo/help_for_@!reload-subagents
+=== RUN   TestGetHelpInfo/no_help_for_regular_command
+--- PASS: TestGetHelpInfo (0.00s)
+    --- PASS: TestGetHelpInfo/help_for_@!_empty (0.00s)
+    --- PASS: TestGetHelpInfo/help_for_@!new (0.00s)
+    --- PASS: TestGetHelpInfo/help_for_@!tokens (0.00s)
+    --- PASS: TestGetHelpInfo/help_for_@/_empty_(no_macros) (0.00s)
+    --- PASS: TestGetHelpInfo/help_for_partial_@!n_(matches_new) (0.00s)
+    --- PASS: TestGetHelpInfo/help_for_partial_@!t_(matches_tokens) (0.00s)
+    --- PASS: TestGetHelpInfo/help_for_@!subagents (0.00s)
+    --- PASS: TestGetHelpInfo/help_for_@!reload-subagents (0.00s)
+    --- PASS: TestGetHelpInfo/no_help_for_regular_command (0.00s)
+=== RUN   TestGetHelpInfoWithMacros
+=== RUN   TestGetHelpInfoWithMacros/help_for_@/_with_macros
+=== RUN   TestGetHelpInfoWithMacros/help_for_specific_macro
+=== RUN   TestGetHelpInfoWithMacros/help_for_partial_macro_match
+=== RUN   TestGetHelpInfoWithMacros/help_for_partial_macro_match_with_multiple_results
+--- PASS: TestGetHelpInfoWithMacros (0.00s)
+    --- PASS: TestGetHelpInfoWithMacros/help_for_@/_with_macros (0.00s)
+    --- PASS: TestGetHelpInfoWithMacros/help_for_specific_macro (0.00s)
+    --- PASS: TestGetHelpInfoWithMacros/help_for_partial_macro_match (0.00s)
+    --- PASS: TestGetHelpInfoWithMacros/help_for_partial_macro_match_with_multiple_results (0.00s)
+=== RUN   TestSubagentCompletions
+=== RUN   TestSubagentCompletions/complete_all_subagents_with_@
+=== RUN   TestSubagentCompletions/complete_subagents_starting_with_'c'
+=== RUN   TestSubagentCompletions/complete_subagents_starting_with_'t'
+=== RUN   TestSubagentCompletions/complete_subagents_starting_with_'d'
+=== RUN   TestSubagentCompletions/no_completions_for_non-matching_prefix
+=== RUN   TestSubagentCompletions/subagent_completion_in_middle_of_line
+--- PASS: TestSubagentCompletions (0.00s)
+    --- PASS: TestSubagentCompletions/complete_all_subagents_with_@ (0.00s)
+    --- PASS: TestSubagentCompletions/complete_subagents_starting_with_'c' (0.00s)
+    --- PASS: TestSubagentCompletions/complete_subagents_starting_with_'t' (0.00s)
+    --- PASS: TestSubagentCompletions/complete_subagents_starting_with_'d' (0.00s)
+    --- PASS: TestSubagentCompletions/no_completions_for_non-matching_prefix (0.00s)
+    --- PASS: TestSubagentCompletions/subagent_completion_in_middle_of_line (0.00s)
+=== RUN   TestSubagentHelp
+=== RUN   TestSubagentHelp/help_for_@_empty_shows_all_subagents
+=== RUN   TestSubagentHelp/help_for_specific_subagent
+=== RUN   TestSubagentHelp/help_for_subagent_with_model_override
+=== RUN   TestSubagentHelp/help_for_partial_match
+--- PASS: TestSubagentHelp (0.00s)
+    --- PASS: TestSubagentHelp/help_for_@_empty_shows_all_subagents (0.00s)
+    --- PASS: TestSubagentHelp/help_for_specific_subagent (0.00s)
+    --- PASS: TestSubagentHelp/help_for_subagent_with_model_override (0.00s)
+    --- PASS: TestSubagentHelp/help_for_partial_match (0.00s)
+=== RUN   TestSubagentCompletionWithoutProvider
+--- PASS: TestSubagentCompletionWithoutProvider (0.00s)
+=== RUN   TestSplitPreservingQuotes
+=== RUN   TestSplitPreservingQuotes/empty_string
+=== RUN   TestSplitPreservingQuotes/simple_words
+=== RUN   TestSplitPreservingQuotes/multiple_spaces
+=== RUN   TestSplitPreservingQuotes/double_quotes
+=== RUN   TestSplitPreservingQuotes/single_quotes
+=== RUN   TestSplitPreservingQuotes/mixed_quotes
+=== RUN   TestSplitPreservingQuotes/quotes_with_spaces_around
+=== RUN   TestSplitPreservingQuotes/path_with_spaces
+=== RUN   TestSplitPreservingQuotes/unclosed_quotes
+=== RUN   TestSplitPreservingQuotes/escaped_quotes_inside_quotes
+=== RUN   TestSplitPreservingQuotes/quotes_in_middle_of_word
+=== RUN   TestSplitPreservingQuotes/multiple_quoted_sections
+=== RUN   TestSplitPreservingQuotes/quotes_at_start_of_input
+=== RUN   TestSplitPreservingQuotes/empty_quotes
+--- PASS: TestSplitPreservingQuotes (0.00s)
+    --- PASS: TestSplitPreservingQuotes/empty_string (0.00s)
+    --- PASS: TestSplitPreservingQuotes/simple_words (0.00s)
+    --- PASS: TestSplitPreservingQuotes/multiple_spaces (0.00s)
+    --- PASS: TestSplitPreservingQuotes/double_quotes (0.00s)
+    --- PASS: TestSplitPreservingQuotes/single_quotes (0.00s)
+    --- PASS: TestSplitPreservingQuotes/mixed_quotes (0.00s)
+    --- PASS: TestSplitPreservingQuotes/quotes_with_spaces_around (0.00s)
+    --- PASS: TestSplitPreservingQuotes/path_with_spaces (0.00s)
+    --- PASS: TestSplitPreservingQuotes/unclosed_quotes (0.00s)
+    --- PASS: TestSplitPreservingQuotes/escaped_quotes_inside_quotes (0.00s)
+    --- PASS: TestSplitPreservingQuotes/quotes_in_middle_of_word (0.00s)
+    --- PASS: TestSplitPreservingQuotes/multiple_quoted_sections (0.00s)
+    --- PASS: TestSplitPreservingQuotes/quotes_at_start_of_input (0.00s)
+    --- PASS: TestSplitPreservingQuotes/empty_quotes (0.00s)
+=== RUN   TestSplitPreservingQuotesEdgeCases
+=== RUN   TestSplitPreservingQuotesEdgeCases/only_spaces
+=== RUN   TestSplitPreservingQuotesEdgeCases/only_quotes
+=== RUN   TestSplitPreservingQuotesEdgeCases/alternating_spaces_and_quotes
+=== RUN   TestSplitPreservingQuotesEdgeCases/quotes_with_special_characters
+=== RUN   TestSplitPreservingQuotesEdgeCases/quotes_with_newlines
+=== RUN   TestSplitPreservingQuotesEdgeCases/quotes_with_tabs
+=== RUN   TestSplitPreservingQuotesEdgeCases/multiple_adjacent_quoted_strings
+--- PASS: TestSplitPreservingQuotesEdgeCases (0.00s)
+    --- PASS: TestSplitPreservingQuotesEdgeCases/only_spaces (0.00s)
+    --- PASS: TestSplitPreservingQuotesEdgeCases/only_quotes (0.00s)
+    --- PASS: TestSplitPreservingQuotesEdgeCases/alternating_spaces_and_quotes (0.00s)
+    --- PASS: TestSplitPreservingQuotesEdgeCases/quotes_with_special_characters (0.00s)
+    --- PASS: TestSplitPreservingQuotesEdgeCases/quotes_with_newlines (0.00s)
+    --- PASS: TestSplitPreservingQuotesEdgeCases/quotes_with_tabs (0.00s)
+    --- PASS: TestSplitPreservingQuotesEdgeCases/multiple_adjacent_quoted_strings (0.00s)
+FAIL
+FAIL	github.com/robottwo/bishop/internal/completion	0.064s
+FAIL

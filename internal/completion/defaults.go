@@ -25,10 +25,6 @@ func (d *DefaultCompleter) GetCompletions(command string, args []string, line st
 		return d.completeMakeTargets(args), true
 	case "kill":
 		return d.completeKillSignals(args), true
-	case "man", "help":
-		// For now, just return nil to let it fall back or implementation TODO
-		// Implementing full man page scanning is expensive for a default
-		return nil, false
 	}
 	return nil, false
 }

@@ -115,3 +115,42 @@ func TestCompletionBoxView_Paging(t *testing.T) {
 	// Ensure "1" is NOT present
 	assert.NotContains(t, view, " 1 ")
 }
+
+func TestCompletionBoxView_MultiColumnWithDescription(t *testing.T) {
+	// Items with descriptions
+	items := []string{"A", "B", "C", "D"}
+	m := setupCompletionModel(items)
+	// Add descriptions
+	for i := range m.completion.suggestions {
+		m.completion.suggestions[i].Description = "Desc"
+	}
+
+	// Max Widths:
+	// Prefix: 4 (> A )
+	// Candidate: 1 (A)
+	// Gap: 2
+	// Description: 4 (Desc)
+	// Gap: 2
+	// MaxItemWidth = 4 + 1 + 2 + 4 + 2 = 13.
+
+	// We want 2 columns. Width must be >= 26.
+	view := m.CompletionBoxView(2, 30)
+
+	lines := strings.Split(strings.TrimSpace(view), "\n")
+	assert.Equal(t, 2, len(lines)) // 4 items, 2 cols -> 2 rows
+
+	// Row 1: A and C (Column-major order)
+	// Row 2: B and D
+
+	// Check Row 1
+	assert.Contains(t, lines[0], "> A")
+	assert.Contains(t, lines[0], "Desc")
+	assert.Contains(t, lines[0], "  C")
+	// The second description should also be there
+	// Count occurrences of "Desc"
+	assert.Equal(t, 2, strings.Count(lines[0], "Desc"))
+
+	// Check Row 2
+	assert.Contains(t, lines[1], "  B")
+	assert.Contains(t, lines[1], "  D")
+}
