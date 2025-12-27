@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"unicode"
 
 	"github.com/robottwo/bishop/pkg/shellinput"
 )
@@ -35,7 +34,7 @@ func NewDocumentationCompleter() *DocumentationCompleter {
 			"times", "trap", "type", "typeset", "ulimit", "umask", "unalias",
 			"unset", "wait", "while",
 			// Bishop specific
-			"@!config", "@!new", "@!tokens", "@!subagents", "@!reload-subagents", "@!coach",
+			"#!config", "#!new", "#!tokens", "#!subagents", "#!reload-subagents", "#!coach", "#!fix", "#!help",
 		},
 	}
 }
@@ -294,14 +293,6 @@ func getEnvPaths(envVar string, defaults []string) []string {
 		}
 	}
 	return result
-}
-
-func isSection(s string) bool {
-	if s == "" {
-		return false
-	}
-	// Check if it starts with a digit
-	return unicode.IsDigit(rune(s[0]))
 }
 
 func uniqueStrings(input []string) []string {
