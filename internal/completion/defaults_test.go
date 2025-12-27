@@ -359,12 +359,12 @@ regular.host ssh-rsa AAAAB3...
 			if err != nil {
 				t.Fatalf("Failed to create temp file: %v", err)
 			}
-			defer os.Remove(tmpFile.Name())
+			defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 			if _, err := tmpFile.WriteString(tt.content); err != nil {
 				t.Fatalf("Failed to write test content: %v", err)
 			}
-			tmpFile.Close()
+			_ = tmpFile.Close()
 
 			hosts := make(map[string]bool)
 			parseKnownHosts(tmpFile.Name(), hosts)

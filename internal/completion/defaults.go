@@ -285,7 +285,7 @@ func looksLikeIPAddress(s string) bool {
 	// IPv4: all chars are digits or dots
 	allIPv4 := true
 	for _, c := range s {
-		if !((c >= '0' && c <= '9') || c == '.') {
+		if (c < '0' || c > '9') && c != '.' {
 			allIPv4 = false
 			break
 		}
@@ -298,7 +298,7 @@ func looksLikeIPAddress(s string) bool {
 	if strings.Contains(s, ":") {
 		allIPv6 := true
 		for _, c := range s {
-			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == ':' || c == '.') {
+			if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') && c != ':' && c != '.' {
 				allIPv6 = false
 				break
 			}
