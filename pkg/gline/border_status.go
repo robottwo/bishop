@@ -40,6 +40,7 @@ type BorderStatusModel struct {
 	kind          CommandKind
 	riskScore     int
 	riskLevel     RiskLevel
+	riskOverride  *RiskLevel
 
 	// Context State
 	user      string
@@ -106,10 +107,19 @@ func (m *BorderStatusModel) SetWidth(w int) {
 	m.width = w
 }
 
+func (m *BorderStatusModel) SetRiskOverride(level RiskLevel) {
+	m.riskOverride = &level
+}
+
+func (m *BorderStatusModel) ClearRiskOverride() {
+	m.riskOverride = nil
+}
+
 func (m *BorderStatusModel) UpdateInput(input string) {
 	if m.commandBuffer == input {
 		return
 	}
+	m.riskOverride = nil
 	m.commandBuffer = input
 	m.classifyCommand()
 	m.computeRisk()
@@ -245,7 +255,12 @@ func (m BorderStatusModel) RenderTopLeft() string {
 	var riskBar string
 	var riskStyle lipgloss.Style
 
-	switch m.riskLevel {
+	riskLevel := m.riskLevel
+	if m.riskOverride != nil {
+		riskLevel = *m.riskOverride
+	}
+
+	switch riskLevel {
 	case RiskCalm:
 		riskBar = "▂"
 		riskStyle = m.styles.RiskCalm
@@ -277,7 +292,12 @@ func (m BorderStatusModel) TopLeftWidth() int {
 
 	// Risk bar width based on level
 	var riskBarWidth int
-	switch m.riskLevel {
+	riskLevel := m.riskLevel
+	if m.riskOverride != nil {
+		riskLevel = *m.riskOverride
+	}
+
+	switch riskLevel {
 	case RiskCalm:
 		riskBarWidth = 1 // "▂"
 	case RiskWarning:

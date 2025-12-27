@@ -100,7 +100,7 @@ var helpHeaderRegex = regexp.MustCompile(`^\*\*[^\*]+\*\* - `)
 
 type setExplanationMsg struct {
 	stateId     int
-	explanation string
+	explanation *Explanation
 }
 
 // Idle summary messages
@@ -966,6 +966,7 @@ func (m *appModel) clearPrediction() {
 	m.explanation = ""
 	m.lastError = nil
 	m.textInput.SetSuggestions([]string{})
+	m.borderStatus.ClearRiskOverride()
 }
 
 // clearPredictionAndRestoreDefault clears the prediction and restores the default
@@ -975,6 +976,7 @@ func (m *appModel) clearPredictionAndRestoreDefault() {
 	m.explanation = m.defaultExplanation
 	m.lastError = nil
 	m.textInput.SetSuggestions([]string{})
+	m.borderStatus.ClearRiskOverride()
 }
 
 func (m appModel) setPrediction(stateId int, prediction string, inputContext string) (appModel, tea.Cmd) {
@@ -1060,7 +1062,7 @@ func (m appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.
 		m.logger.Debug(
 			"gline explained prediction",
 			zap.Int("stateId", msg.stateId),
-			zap.String("explanation", explanation),
+			zap.Any("explanation", explanation),
 		)
 		return setExplanationMsg{stateId: msg.stateId, explanation: explanation}
 	})
@@ -1094,7 +1096,21 @@ func (m appModel) setExplanation(msg setExplanationMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	m.explanation = msg.explanation
+	if msg.explanation == nil {
+		m.explanation = ""
+		m.borderStatus.ClearRiskOverride()
+	} else {
+		m.explanation = msg.explanation.Text
+		if msg.explanation.Error != "" {
+			// Format error in Red
+			// We construct the explanation to contain the error on the first line
+			m.explanation = m.errorStyle.Render(msg.explanation.Error) + "\n" + m.explanation
+			m.borderStatus.SetRiskOverride(RiskAlert)
+		} else {
+			m.borderStatus.ClearRiskOverride()
+		}
+	}
+
 	// Mark LLM as successful since explanation is the last step
 	m.llmIndicator.SetStatus(LLMStatusSuccess)
 	return m, nil
