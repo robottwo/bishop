@@ -850,3 +850,235 @@ func TestSyncVariablesToEnvRemovesUnsetVariables(t *testing.T) {
 	_, exists = dynamicEnv.bishVars["BISH_PROMPT"]
 	assert.False(t, exists, "BISH_PROMPT should be removed from dynamic environment")
 }
+
+func TestValidateAssistantHeight(t *testing.T) {
+	tests := []struct {
+		name        string
+		value       string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "valid positive integer",
+			value:       "5",
+			expectError: false,
+		},
+		{
+			name:        "valid zero",
+			value:       "0",
+			expectError: false,
+		},
+		{
+			name:        "valid max value",
+			value:       "100",
+			expectError: false,
+		},
+		{
+			name:        "empty value allowed",
+			value:       "",
+			expectError: false,
+		},
+		{
+			name:        "invalid non-numeric",
+			value:       "abc",
+			expectError: true,
+			errorMsg:    "Invalid height: \"abc\" is not a valid integer",
+		},
+		{
+			name:        "invalid negative",
+			value:       "-5",
+			expectError: true,
+			errorMsg:    "Invalid height: -5 must be non-negative",
+		},
+		{
+			name:        "invalid exceeds max",
+			value:       "101",
+			expectError: true,
+			errorMsg:    "Invalid height: 101 exceeds maximum of 100",
+		},
+		{
+			name:        "invalid float",
+			value:       "3.5",
+			expectError: true,
+			errorMsg:    "Invalid height: \"3.5\" is not a valid integer",
+		},
+		{
+			name:        "invalid with spaces",
+			value:       "  5  ",
+			expectError: true,
+			errorMsg:    "Invalid height: \"  5  \" is not a valid integer",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateAssistantHeight(tt.value)
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Equal(t, tt.errorMsg, err.Error())
+				}
+				// Verify it's a ValidationError
+				var validationErr *ValidationError
+				assert.ErrorAs(t, err, &validationErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateBaseURL(t *testing.T) {
+	tests := []struct {
+		name        string
+		value       string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "valid https URL",
+			value:       "https://api.example.com",
+			expectError: false,
+		},
+		{
+			name:        "valid http URL",
+			value:       "http://localhost:8080",
+			expectError: false,
+		},
+		{
+			name:        "valid URL with path",
+			value:       "https://api.example.com/v1",
+			expectError: false,
+		},
+		{
+			name:        "valid localhost with port",
+			value:       "http://127.0.0.1:11434",
+			expectError: false,
+		},
+		{
+			name:        "empty value allowed",
+			value:       "",
+			expectError: false,
+		},
+		{
+			name:        "missing scheme",
+			value:       "api.example.com",
+			expectError: true,
+			errorMsg:    "Invalid URL: missing scheme (e.g., http:// or https://)",
+		},
+		{
+			name:        "invalid scheme",
+			value:       "ftp://files.example.com",
+			expectError: true,
+			errorMsg:    "Invalid URL: scheme \"ftp\" not supported (use http or https)",
+		},
+		{
+			name:        "missing host",
+			value:       "http://",
+			expectError: true,
+			errorMsg:    "Invalid URL: missing host",
+		},
+		{
+			name:        "just scheme",
+			value:       "https://",
+			expectError: true,
+			errorMsg:    "Invalid URL: missing host",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateBaseURL(tt.value)
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Equal(t, tt.errorMsg, err.Error())
+				}
+				// Verify it's a ValidationError
+				var validationErr *ValidationError
+				assert.ErrorAs(t, err, &validationErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateConfigValue(t *testing.T) {
+	tests := []struct {
+		name        string
+		envVar      string
+		value       string
+		expectError bool
+	}{
+		{
+			name:        "valid assistant height",
+			envVar:      "BISH_ASSISTANT_HEIGHT",
+			value:       "5",
+			expectError: false,
+		},
+		{
+			name:        "invalid assistant height",
+			envVar:      "BISH_ASSISTANT_HEIGHT",
+			value:       "abc",
+			expectError: true,
+		},
+		{
+			name:        "valid slow model base URL",
+			envVar:      "BISH_SLOW_MODEL_BASE_URL",
+			value:       "https://api.openai.com/v1",
+			expectError: false,
+		},
+		{
+			name:        "invalid slow model base URL",
+			envVar:      "BISH_SLOW_MODEL_BASE_URL",
+			value:       "not-a-url",
+			expectError: true,
+		},
+		{
+			name:        "valid fast model base URL",
+			envVar:      "BISH_FAST_MODEL_BASE_URL",
+			value:       "http://localhost:11434",
+			expectError: false,
+		},
+		{
+			name:        "invalid fast model base URL",
+			envVar:      "BISH_FAST_MODEL_BASE_URL",
+			value:       "ftp://invalid",
+			expectError: true,
+		},
+		{
+			name:        "unknown env var passes through",
+			envVar:      "BISH_UNKNOWN_VAR",
+			value:       "any value",
+			expectError: false,
+		},
+		{
+			name:        "empty value for base URL allowed",
+			envVar:      "BISH_SLOW_MODEL_BASE_URL",
+			value:       "",
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateConfigValue(tt.envVar, tt.value)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidationError(t *testing.T) {
+	err := &ValidationError{
+		Field:   "BISH_ASSISTANT_HEIGHT",
+		Message: "Invalid height: must be non-negative",
+	}
+
+	assert.Equal(t, "Invalid height: must be non-negative", err.Error())
+	assert.Equal(t, "BISH_ASSISTANT_HEIGHT", err.Field)
+}

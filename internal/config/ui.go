@@ -611,6 +611,11 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 		return nil
 	}
 
+	// Validate input before saving
+	if err := environment.ValidateConfigValue(key, value); err != nil {
+		return err
+	}
+
 	// For other settings, update current session
 	runner.Vars[key] = expand.Variable{
 		Exported: true,
