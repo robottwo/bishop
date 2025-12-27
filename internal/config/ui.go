@@ -497,13 +497,14 @@ func (m model) View() string {
 			if mi, ok := item.(menuItem); ok {
 				if mi.setting != nil {
 					val := getEnv(m.runner, mi.setting.envVar)
-					if mi.setting.envVar == "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+					switch mi.setting.envVar {
+					case "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX":
 						if strings.Contains(val, `".*"`) || strings.Contains(val, `".+"`) {
 							val = "Disabled (All commands allowed)"
 						} else {
 							val = "Enabled"
 						}
-					} else if mi.setting.envVar == "BISH_DEFAULT_TO_YES" {
+					case "BISH_DEFAULT_TO_YES":
 						if val == "1" || val == "true" {
 							val = "Yes (prompts show [Y/n])"
 						} else {
