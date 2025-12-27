@@ -419,7 +419,7 @@ func (g *LLMTipGenerator) generateBatchWithLLM(ctx context.Context, tipContext *
 func (g *LLMTipGenerator) buildPrompt(ctx *TipContext) string {
 	var sb strings.Builder
 
-	sb.WriteString("Generate a personalized productivity tip for this gsh user.\n\n")
+	sb.WriteString("Generate a personalized productivity tip for this bish user.\n\n")
 
 	sb.WriteString("## User Profile\n")
 	sb.WriteString(fmt.Sprintf("- Username: %s\n", ctx.Username))
@@ -502,7 +502,7 @@ Respond with JSON:
 }`, count)
 }
 
-const tipGeneratorSystemPrompt = `You are an expert shell productivity coach for gsh, an intelligent shell. Your role is to analyze user command history and generate highly personalized, actionable tips.
+const tipGeneratorSystemPrompt = `You are an expert shell productivity coach for Bishop, an intelligent shell. Your role is to analyze user command history and generate highly personalized, actionable tips.
 
 ## Guidelines
 1. Tips MUST be based on the user's actual command history

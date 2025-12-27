@@ -17,7 +17,7 @@ func NewEvaluateCommandHandler(analyticsManager *analytics.AnalyticsManager) fun
 				return next(ctx, args)
 			}
 
-			if args[0] != "gsh_evaluate" {
+			if args[0] != "bish_evaluate" {
 				return next(ctx, args)
 			}
 
@@ -61,7 +61,7 @@ func NewEvaluateCommandHandler(analyticsManager *analytics.AnalyticsManager) fun
 
 func printEvaluateHelp() {
 	help := []string{
-		"Usage: gsh_evaluate [options]",
+		"Usage: bish_evaluate [options]",
 		"Evaluate how well the configured models work for you.",
 		"",
 		"Options:",

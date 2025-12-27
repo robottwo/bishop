@@ -13,14 +13,14 @@ type mockHelpCompletionProvider struct{}
 
 func (m *mockHelpCompletionProvider) GetCompletions(line string, pos int) []CompletionCandidate {
 	switch line {
-	case "@!":
+	case "#!":
 		return []CompletionCandidate{
-			{Value: "@!new"},
-			{Value: "@!tokens"},
+			{Value: "#!new"},
+			{Value: "#!tokens"},
 		}
-	case "@/":
+	case "#/":
 		return []CompletionCandidate{
-			{Value: "@/test"},
+			{Value: "#/test"},
 		}
 	default:
 		return []CompletionCandidate{}
@@ -29,19 +29,19 @@ func (m *mockHelpCompletionProvider) GetCompletions(line string, pos int) []Comp
 
 func (m *mockHelpCompletionProvider) GetHelpInfo(line string, pos int) string {
 	switch line {
-	case "@!":
+	case "#!":
 		return "**Agent Controls** - Built-in commands for managing the agent"
-	case "@!new":
-		return "**@!new** - Start a new chat session with the agent"
-	case "@!tokens":
-		return "**@!tokens** - Display token usage statistics"
-	case "@!n":
+	case "#!new":
+		return "**#!new** - Start a new chat session with the agent"
+	case "#!tokens":
+		return "**#!tokens** - Display token usage statistics"
+	case "#!n":
 		return "**Agent Controls** - Built-in commands for managing the agent"
-	case "@/":
+	case "#/":
 		return "**Chat Macros** - Quick shortcuts for common agent messages"
-	case "@/test":
-		return "**@/test** - Chat macro\n\n**Expands to:**\nThis is a test macro"
-	case "@/t":
+	case "#/test":
+		return "**#/test** - Chat macro\n\n**Expands to:**\nThis is a test macro"
+	case "#/t":
 		return "**Chat Macros** - Quick shortcuts for common agent messages"
 	default:
 		return ""
@@ -76,24 +76,24 @@ func TestHelpBoxIntegration(t *testing.T) {
 		expectedHelp string
 	}{
 		{
-			name:         "help box for @! command",
-			input:        "@!",
+			name:         "help box for #! command",
+			input:        "#!",
 			expectedHelp: "**Agent Controls** - Built-in commands for managing the agent",
 		},
 		{
-			name:         "help box for @!new command",
-			input:        "@!new",
-			expectedHelp: "**@!new** - Start a new chat session with the agent",
+			name:         "help box for #!new command",
+			input:        "#!new",
+			expectedHelp: "**#!new** - Start a new chat session with the agent",
 		},
 		{
-			name:         "help box for @/ macro",
-			input:        "@/",
+			name:         "help box for #/ macro",
+			input:        "#/",
 			expectedHelp: "**Chat Macros** - Quick shortcuts for common agent messages",
 		},
 		{
 			name:         "help box for specific macro",
-			input:        "@/test",
-			expectedHelp: "**@/test** - Chat macro\n\n**Expands to:**\nThis is a test macro",
+			input:        "#/test",
+			expectedHelp: "**#/test** - Chat macro\n\n**Expands to:**\nThis is a test macro",
 		},
 		{
 			name:         "no help box for regular command",
@@ -141,7 +141,7 @@ func TestHelpBoxWithMacroEnvironment(t *testing.T) {
 	model.CompletionProvider = &mockHelpCompletionProvider{}
 
 	// Test that help box can be displayed
-	model.SetValue("@/")
+	model.SetValue("#/")
 	model.SetCursor(2)
 
 	// Trigger help update
@@ -160,32 +160,32 @@ func TestHelpBoxSpecificCommandsAndMacros(t *testing.T) {
 		description  string
 	}{
 		{
-			name:         "specific agent control @!new",
-			input:        "@!new",
-			expectedHelp: "**@!new** - Start a new chat session with the agent",
+			name:         "specific agent control #!new",
+			input:        "#!new",
+			expectedHelp: "**#!new** - Start a new chat session with the agent",
 			description:  "Should show specific help for the 'new' command",
 		},
 		{
-			name:         "specific agent control @!tokens",
-			input:        "@!tokens",
-			expectedHelp: "**@!tokens** - Display token usage statistics",
+			name:         "specific agent control #!tokens",
+			input:        "#!tokens",
+			expectedHelp: "**#!tokens** - Display token usage statistics",
 			description:  "Should show specific help for the 'tokens' command",
 		},
 		{
-			name:         "partial agent control @!n",
-			input:        "@!n",
+			name:         "partial agent control #!n",
+			input:        "#!n",
 			expectedHelp: "**Agent Controls** - Built-in commands for managing the agent",
 			description:  "Should show general help for partial matches",
 		},
 		{
-			name:         "specific macro @/test",
-			input:        "@/test",
-			expectedHelp: "**@/test** - Chat macro\n\n**Expands to:**\nThis is a test macro",
+			name:         "specific macro #/test",
+			input:        "#/test",
+			expectedHelp: "**#/test** - Chat macro\n\n**Expands to:**\nThis is a test macro",
 			description:  "Should show specific macro expansion",
 		},
 		{
-			name:         "partial macro @/t",
-			input:        "@/t",
+			name:         "partial macro #/t",
+			input:        "#/t",
 			expectedHelp: "**Chat Macros** - Quick shortcuts for common agent messages",
 			description:  "Should show macro help for partial matches",
 		},
@@ -220,27 +220,27 @@ func TestHelpBoxUpdatesOnCompletionNavigation(t *testing.T) {
 	model.Focus()
 	model.CompletionProvider = &mockHelpCompletionProvider{}
 
-	// Start with @! to trigger agent control completions
-	model.SetValue("@!")
+	// Start with #! to trigger agent control completions
+	model.SetValue("#!")
 	model.SetCursor(2)
 
 	// Simulate TAB to start completion (ambiguous, so no selection yet)
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyTab})
 
-	// Simulate another TAB to navigate to the first completion (@!new)
+	// Simulate another TAB to navigate to the first completion (#!new)
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyTab})
 
-	// Check that help shows specific help for @!new
+	// Check that help shows specific help for #!new
 	helpBox := model.HelpBoxView()
-	assert.Contains(t, helpBox, "**@!new**", "Should show specific help for @!new after selecting first completion")
+	assert.Contains(t, helpBox, "**#!new**", "Should show specific help for #!new after selecting first completion")
 	assert.True(t, model.completion.shouldShowHelpBox(), "Help box should be visible")
 
-	// Simulate another TAB to navigate to next completion (@!tokens)
+	// Simulate another TAB to navigate to next completion (#!tokens)
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyTab})
 
-	// Check that help updates to show specific help for @!tokens
+	// Check that help updates to show specific help for #!tokens
 	helpBox = model.HelpBoxView()
-	assert.Contains(t, helpBox, "**@!tokens**", "Should show specific help for @!tokens after second selection")
+	assert.Contains(t, helpBox, "**#!tokens**", "Should show specific help for #!tokens after second selection")
 	assert.True(t, model.completion.shouldShowHelpBox(), "Help box should still be visible")
 }
 

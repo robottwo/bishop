@@ -14,6 +14,17 @@ BISH_LOG_LEVEL="info"
 # Whether bishop should remove existing content in the log file when it starts
 BISH_CLEAN_LOG_FILE=0
 
+# -------- Autocd Configuration --------
+# Autocd allows you to change directories by typing just the path, without the 'cd' prefix.
+# Examples: typing '/etc' is equivalent to 'cd /etc', '..' is equivalent to 'cd ..'
+#
+# Enable autocd (set to 1, true, yes, or on to enable)
+BISH_AUTOCD=1
+
+# Show the effective cd command when autocd triggers (set to 1, true, yes, or on to enable)
+# When enabled, typing '/etc' will print 'cd /etc' before changing directory
+BISH_AUTOCD_VERBOSE=1
+
 # Height of the assistant message box (help/completion/explanation) at the bottom of the screen
 BISH_ASSISTANT_HEIGHT=3
 

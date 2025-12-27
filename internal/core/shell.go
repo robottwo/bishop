@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/robottwo/bishop/internal/agent"
 	"github.com/robottwo/bishop/internal/analytics"
 	"github.com/robottwo/bishop/internal/bash"
@@ -42,6 +44,9 @@ func RunInteractiveShell(
 	logger *zap.Logger,
 	stderrCapturer *StderrCapturer,
 ) error {
+	// Generate session ID
+	sessionID := uuid.New().String()
+
 	state := &ShellState{}
 	contextProvider := &rag.ContextProvider{
 		Logger: logger,
@@ -58,10 +63,10 @@ func RunInteractiveShell(
 		NullStatePredictor: predict.NewLLMNullStatePredictor(runner, logger),
 	}
 	explainer := predict.NewLLMExplainer(runner, logger)
-	agent := agent.NewAgent(runner, historyManager, logger)
+	agent := agent.NewAgent(runner, historyManager, logger, sessionID)
 
 	// Set up subagent integration
-	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger)
+	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger, sessionID)
 
 	// Set up completion
 	completionProvider := completion.NewShellCompletionProvider(completionManager, runner)
@@ -96,7 +101,8 @@ func RunInteractiveShell(
 
 		// Fetch recent entries for standard history (Up/Down) - scoped to current directory for now, or generally recent
 		// Note: GetRecentEntries reverses the list (oldest first) so standard history navigation works correctly
-		historyEntries, err := historyManager.GetRecentEntries(environment.GetPwd(runner), 1024)
+		historySize := environment.GetHistorySize(runner, logger)
+		historyEntries, err := historyManager.GetRecentEntries(environment.GetPwd(runner), historySize)
 		if err != nil {
 			logger.Warn("error getting recent history entries", zap.Error(err))
 			historyEntries = []history.HistoryEntry{}
@@ -120,6 +126,7 @@ func RunInteractiveShell(
 				Command:   entry.Command,
 				Directory: entry.Directory,
 				Timestamp: entry.CreatedAt,
+				SessionID: entry.SessionID,
 			}
 		}
 
@@ -129,9 +136,9 @@ func RunInteractiveShell(
 		options.CompletionProvider = completionProvider
 		options.RichHistory = richHistory
 		options.CurrentDirectory = environment.GetPwd(runner)
+		options.CurrentSessionID = sessionID
 
 		// Populate context for border status
-		options.CurrentDirectory = environment.GetPwd(runner)
 		options.User = environment.GetUser(runner)
 		options.Host, _ = os.Hostname()
 
@@ -171,7 +178,7 @@ func RunInteractiveShell(
 		}
 
 		// Handle agent chat and macros
-		if strings.HasPrefix(line, "@") {
+		if strings.HasPrefix(line, "#") {
 			chatMessage := strings.TrimSpace(line[1:])
 
 			// Handle agent controls
@@ -185,6 +192,17 @@ func RunInteractiveShell(
 
 				// Handle built-in agent controls
 				switch control {
+				case "help":
+					printHelp()
+					continue
+				case "fix":
+					// Alias for #? - trigger magic fix
+					if state.LastExitCode == 0 {
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Last command succeeded.\n") + gline.RESET_CURSOR_COLUMN)
+						continue
+					}
+					// Fall through to magic fix handling by setting chatMessage
+					chatMessage = "?"
 				case "new":
 					agent.ResetChat()
 					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Chat session reset.\n") + gline.RESET_CURSOR_COLUMN)
@@ -228,7 +246,7 @@ func RunInteractiveShell(
 							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(result+"\n") + gline.RESET_CURSOR_COLUMN)
 						default:
 							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Unknown coach command: "+coachArgs+"\n") + gline.RESET_CURSOR_COLUMN)
-							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("Available: @!coach [stats|achievements|challenges|tips|reset-tips]\n") + gline.RESET_CURSOR_COLUMN)
+							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("Available: #!coach [stats|achievements|challenges|tips|reset-tips]\n") + gline.RESET_CURSOR_COLUMN)
 						}
 						continue
 					}
@@ -259,6 +277,11 @@ func RunInteractiveShell(
 					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
 				}
 
+				// Display token usage summary
+				if tokenSummary := agent.GetTokenSummary(); tokenSummary != "" {
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(tokenSummary+"\n") + gline.RESET_CURSOR_COLUMN)
+				}
+
 				// Extract code block
 				responseStr := fullResponse.String()
 				codeBlockRegex := regexp.MustCompile("(?s)```(?:bash|sh|zsh)?\\s+(.*?)\\s+```")
@@ -271,56 +294,120 @@ func RunInteractiveShell(
 
 				if fixedCmd != "" {
 					defaultToYes := environment.GetDefaultToYes(runner)
-					promptText := "Run this fix? [y/N] "
-					if defaultToYes {
-						promptText = "Run this fix? [Y/n] "
-					}
 
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\nCommand: "+fixedCmd+"\n") + gline.RESET_CURSOR_COLUMN)
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(promptText) + gline.RESET_CURSOR_COLUMN)
+					// Loop to allow editing before execution
+				magicFixLoop:
+					for {
+						promptText := "Run this fix? [y/N/e/i] "
+						if defaultToYes {
+							promptText = "Run this fix? [Y/n/e/i] "
+						}
 
-					// Read single key in raw mode
-					fd := int(os.Stdin.Fd())
-					oldState, err := term.MakeRaw(fd)
-					if err != nil {
-						logger.Error("failed to set raw mode", zap.Error(err))
-						continue
-					}
-					var buf [1]byte
-					_, _ = os.Stdin.Read(buf[:])
-					_ = term.Restore(fd, oldState)
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\nCommand: "+fixedCmd+"\n") + gline.RESET_CURSOR_COLUMN)
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(promptText) + gline.RESET_CURSOR_COLUMN)
 
-					char := buf[0]
-					// Echo the character and newline
-					if char == '\r' || char == '\n' {
-						fmt.Println()
-					} else {
-						fmt.Printf("%c\n", char)
-					}
-
-					// Determine if confirmed based on default setting
-					confirmed := char == 'y' || char == 'Y'
-					if defaultToYes && (char == '\r' || char == '\n') {
-						confirmed = true
-					}
-
-					if confirmed {
-						fmt.Println()
-						shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer)
+						// Read single key in raw mode (terminal state restored via defer)
+						char, err := readSingleKey(logger)
 						if err != nil {
-							fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+							logger.Error("failed to read key", zap.Error(err))
+							break magicFixLoop
+						}
+						// Echo the character and newline
+						if char == '\r' || char == '\n' {
+							fmt.Println()
+						} else {
+							fmt.Printf("%c\n", char)
 						}
 
-						// Record command for terminal title updates
-						termTitleManager.RecordCommand(fixedCmd)
-
-						// Sync any gsh variables that might have been changed during command execution
-						environment.SyncVariablesToEnv(runner)
-
-						if shouldExit {
-							logger.Debug("exiting...")
-							break
+						// Handle 'e' - edit in external editor
+						if char == 'e' || char == 'E' {
+							editedCmd, err := openInEditor(fixedCmd)
+							if err != nil {
+								logger.Error("failed to open editor", zap.Error(err))
+								fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("bish: Failed to open editor: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
+								continue
+							}
+							if editedCmd == "" {
+								fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit cancelled (empty command)\n") + gline.RESET_CURSOR_COLUMN)
+								break magicFixLoop
+							}
+							fixedCmd = editedCmd
+							continue // Show the updated command and prompt again
 						}
+
+						// Handle 'i' - insert into prompt for inline editing
+						if char == 'i' || char == 'I' {
+							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit the command and press Enter to run:\n") + gline.RESET_CURSOR_COLUMN)
+
+							// Create options with the fix command pre-filled
+							editOptions := gline.NewOptions()
+							editOptions.AssistantHeight = environment.GetAssistantHeight(runner, logger)
+							editOptions.CompletionProvider = completionProvider
+							editOptions.RichHistory = richHistory
+							editOptions.CurrentDirectory = environment.GetPwd(runner)
+							editOptions.CurrentSessionID = sessionID
+							editOptions.User = environment.GetUser(runner)
+							editOptions.Host, _ = os.Hostname()
+							editOptions.InitialValue = fixedCmd
+
+							shellPrompt := environment.GetPrompt(runner, logger)
+							editedLine, editErr := gline.Gline(shellPrompt, historyCommands, "", predictor, explainer, analyticsManager, logger, editOptions)
+							if editErr != nil {
+								if editErr == gline.ErrInterrupted {
+									fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit cancelled\n") + gline.RESET_CURSOR_COLUMN)
+									break magicFixLoop
+								}
+								logger.Error("error reading edited command", zap.Error(editErr))
+								break magicFixLoop
+							}
+							if strings.TrimSpace(editedLine) == "" {
+								fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit cancelled (empty command)\n") + gline.RESET_CURSOR_COLUMN)
+								break magicFixLoop
+							}
+							fixedCmd = editedLine
+							// Execute the edited command directly
+							fmt.Println()
+							shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
+							if err != nil {
+								fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+							}
+							termTitleManager.RecordCommand(fixedCmd)
+							environment.SyncVariablesToEnv(runner)
+							if shouldExit {
+								logger.Debug("exiting...")
+								return nil
+							}
+							break magicFixLoop
+						}
+
+						// Determine if confirmed based on default setting
+						confirmed := char == 'y' || char == 'Y'
+						if defaultToYes && (char == '\r' || char == '\n') {
+							confirmed = true
+						}
+
+						if confirmed {
+							fmt.Println()
+							shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
+							if err != nil {
+								fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+							}
+
+							// Record command for terminal title updates
+							termTitleManager.RecordCommand(fixedCmd)
+
+							// Sync any gsh variables that might have been changed during command execution
+							environment.SyncVariablesToEnv(runner)
+
+							if shouldExit {
+								logger.Debug("exiting...")
+								return nil
+							}
+							break magicFixLoop
+						}
+
+						// Any other key (n, N, Escape, etc.) cancels
+						break magicFixLoop
 					}
 				}
 				continue
@@ -353,7 +440,7 @@ func RunInteractiveShell(
 
 				// Handle subagent response with subagent identification
 				for message := range chatChannel {
-					prefix := fmt.Sprintf("gsh [%s]: ", subagent.Name)
+					prefix := fmt.Sprintf("bish [%s]: ", subagent.Name)
 					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(prefix+message+"\n") + gline.RESET_CURSOR_COLUMN)
 				}
 				continue
@@ -370,6 +457,11 @@ func RunInteractiveShell(
 				fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
 			}
 
+			// Display token usage summary
+			if tokenSummary := agent.GetTokenSummary(); tokenSummary != "" {
+				fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(tokenSummary+"\n") + gline.RESET_CURSOR_COLUMN)
+			}
+
 			continue
 		}
 
@@ -378,10 +470,19 @@ func RunInteractiveShell(
 			continue
 		}
 
+		// Note: Autocd is now handled by the AutocdExecHandler in the command execution chain
+		// This allows builtins and commands to take precedence naturally
+
 		// Execute the command
-		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer)
+		shouldExit, err := executeCommand(ctx, line, historyManager, coachManager, runner, logger, state, stderrCapturer, sessionID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+		}
+
+		// Show helpful hint when command fails (only once per session)
+		if state.LastExitCode != 0 && !state.FixHintShown {
+			state.FixHintShown = true
+			fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("Tip: Use #? or #!fix to ask the AI to help fix this error\n") + gline.RESET_CURSOR_COLUMN)
 		}
 
 		// Record command for terminal title updates
@@ -399,8 +500,94 @@ func RunInteractiveShell(
 	return nil
 }
 
-func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer) (bool, error) {
-	// Pre-process input to transform typeset/declare -f/-F/-p commands to gsh_typeset
+// readSingleKey reads a single key from stdin in raw mode.
+// It ensures the terminal state is always restored, even on panic.
+func readSingleKey(logger *zap.Logger) (byte, error) {
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		if restoreErr := term.Restore(fd, oldState); restoreErr != nil {
+			logger.Error("failed to restore terminal state", zap.Error(restoreErr))
+		}
+	}()
+
+	var buf [1]byte
+	_, err = os.Stdin.Read(buf[:])
+	if err != nil {
+		return 0, err
+	}
+	return buf[0], nil
+}
+
+// openInEditor opens the given command in an external editor and returns the edited result.
+// It uses $EDITOR, $VISUAL, or falls back to vi/vim/nano.
+func openInEditor(command string) (string, error) {
+	// Determine editor to use
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = os.Getenv("VISUAL")
+	}
+	if editor == "" {
+		// Try common editors
+		for _, e := range []string{"vi", "vim", "nano"} {
+			if _, err := exec.LookPath(e); err == nil {
+				editor = e
+				break
+			}
+		}
+	}
+	if editor == "" {
+		return "", fmt.Errorf("no editor found (set $EDITOR)")
+	}
+
+	// Create temp file with the command
+	tmpFile, err := os.CreateTemp("", "bish-fix-*.sh")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
+
+	if _, err := tmpFile.WriteString(command); err != nil {
+		_ = tmpFile.Close()
+		return "", fmt.Errorf("failed to write to temp file: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return "", fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	// Run the editor
+	cmd := exec.Command(editor, tmpPath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("editor exited with error: %w", err)
+	}
+
+	// Read the edited content
+	content, err := os.ReadFile(tmpPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read edited file: %w", err)
+	}
+
+	// Return trimmed content (remove trailing newlines but preserve internal structure)
+	return strings.TrimSpace(string(content)), nil
+}
+
+func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, coachManager *coach.CoachManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer, sessionID string) (bool, error) {
+	// History expansion
+	expandedInput, expanded := expandHistory(input, historyManager)
+	if expanded {
+		input = expandedInput
+		fmt.Fprintln(os.Stderr, input)
+	}
+
+	// Pre-process input to transform typeset/declare -f/-F/-p commands to bish_typeset
 	logger.Debug("preprocessing input", zap.String("original_input", input), zap.Int("input_length", len(input)))
 
 	// Validate input before preprocessing
@@ -445,7 +632,7 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 		return false, err
 	}
 
-	historyEntry, _ := historyManager.StartCommand(input, environment.GetPwd(runner))
+	historyEntry, _ := historyManager.StartCommand(input, environment.GetPwd(runner), sessionID)
 
 	state.LastCommand = input
 	if stderrCapturer != nil {
@@ -488,4 +675,121 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 	}
 
 	return exited, nil
+}
+
+func expandHistory(input string, historyManager *history.HistoryManager) (string, bool) {
+	// Quick check
+	if !strings.Contains(input, "!") {
+		return input, false
+	}
+
+	entries, err := historyManager.GetAllEntries()
+	if err != nil || len(entries) == 0 {
+		return input, false
+	}
+	lastEntry := entries[0]
+	lastCmd := lastEntry.Command
+
+	// Get last argument
+	lastArg := shellinput.GetLastArgument(lastCmd)
+
+	var sb strings.Builder
+	expanded := false
+	inSingleQuote := false
+
+	runes := []rune(input)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+
+		if r == '\'' {
+			inSingleQuote = !inSingleQuote
+			sb.WriteRune(r)
+			continue
+		}
+
+		if inSingleQuote {
+			sb.WriteRune(r)
+			continue
+		}
+
+		if r == '\\' {
+			sb.WriteRune(r)
+			if i+1 < len(runes) {
+				sb.WriteRune(runes[i+1])
+				i++
+			}
+			continue
+		}
+
+		// Check for !!
+		if r == '!' && i+1 < len(runes) && runes[i+1] == '!' {
+			sb.WriteString(lastCmd)
+			expanded = true
+			i++ // Skip next !
+			continue
+		}
+
+		// Check for !$
+		if r == '!' && i+1 < len(runes) && runes[i+1] == '$' {
+			sb.WriteString(lastArg)
+			expanded = true
+			i++ // Skip next $
+			continue
+		}
+
+		sb.WriteRune(r)
+	}
+
+	return sb.String(), expanded
+}
+
+// printHelp displays help information about Bishop shell commands
+func printHelp() {
+	helpText := `
+Bishop Shell - AI-Powered Command Line
+
+AGENT COMMANDS
+  # <message>       Chat with the AI agent
+  #? or #!fix       Ask AI to explain and fix the last failed command
+  #/<macro>         Invoke a predefined agent macro
+
+AGENT CONTROLS
+  #!help            Show this help message
+  #!new             Reset the current chat session
+  #!tokens          Display token usage statistics
+  #!config          Open interactive configuration menu
+  #!coach           Open the coaching dashboard
+    #!coach stats        View your command statistics
+    #!coach achievements View your achievements
+    #!coach challenges   View active challenges
+    #!coach tips         View personalized tips
+    #!coach reset-tips   Regenerate tips from history
+
+SUBAGENTS
+  ##<name> <prompt> Chat with a specific subagent (e.g., ##git commit this)
+  ## <prompt>       Auto-select best subagent for your prompt
+  #:<mode> <prompt> Roo Code style invocation
+  Type '##' and press Tab to see available subagents
+
+MAGIC FIX OPTIONS
+  y/Y               Run the suggested fix
+  n/N               Cancel (any other key also cancels)
+  e/E               Edit the fix in your $EDITOR
+  i/I               Insert the fix into the prompt to edit inline
+
+HISTORY EXPANSION
+  !!                Repeat the last command
+  !$                Use the last argument from previous command
+
+KEYBOARD SHORTCUTS
+  Ctrl+R            Search command history
+  Ctrl+L            Clear screen
+  Ctrl+C            Cancel current input
+  Ctrl+D            Exit shell (on empty line)
+  Tab               Autocomplete commands/paths
+
+For more information, see the documentation at:
+  https://github.com/robottwo/bishop
+`
+	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(helpText) + gline.RESET_CURSOR_COLUMN)
 }

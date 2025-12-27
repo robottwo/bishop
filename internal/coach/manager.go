@@ -748,7 +748,7 @@ func (m *CoachManager) GetStartupContent() *CoachDisplayContent {
 		Icon:    icon,
 		Title:   greeting + ", " + m.profile.Username + "!",
 		Content: content,
-		Action:  "Type @!coach for your dashboard",
+		Action:  "Type #!coach for your dashboard",
 	}
 }
 

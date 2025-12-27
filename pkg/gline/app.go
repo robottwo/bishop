@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/robottwo/bishop/internal/git"
-	"github.com/robottwo/bishop/internal/system"
-	"github.com/robottwo/bishop/pkg/shellinput"
 	"github.com/charmbracelet/bubbles/cursor"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robottwo/bishop/internal/git"
+	"github.com/robottwo/bishop/internal/system"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"go.uber.org/zap"
 )
 
@@ -56,10 +56,13 @@ type appModel struct {
 	borderStatus BorderStatusModel
 
 	// Idle summary tracking
-	lastInputTime      time.Time
-	idleSummaryShown   bool
-	idleSummaryPending bool
-	idleSummaryStateId int
+	lastInputTime        time.Time
+	idleSummaryShown     bool
+	idleSummaryPending   bool
+	idleSummaryStateId   int
+	originalCoachTip     string // Stored to restore after dismissing idle summary
+	idleSummaryStyle     lipgloss.Style
+	idleSummaryHintStyle lipgloss.Style
 }
 
 type attemptPredictionMsg struct {
@@ -92,7 +95,7 @@ type errorMsg struct {
 	err     error
 }
 
-// helpHeaderRegex matches redundant help headers like "**@name** - "
+// helpHeaderRegex matches redundant help headers like "**#name** - "
 var helpHeaderRegex = regexp.MustCompile(`^\*\*[^\*]+\*\* - `)
 
 type setExplanationMsg struct {
@@ -152,6 +155,13 @@ func initialModel(
 	if options.CurrentDirectory != "" {
 		textInput.SetCurrentDirectory(options.CurrentDirectory)
 	}
+	if options.CurrentSessionID != "" {
+		textInput.SetCurrentSessionID(options.CurrentSessionID)
+	}
+	// Set initial value if provided (e.g., for editing a suggested fix)
+	if options.InitialValue != "" {
+		textInput.SetValue(options.InitialValue)
+	}
 	textInput.Cursor.SetMode(cursor.CursorStatic)
 	textInput.ShowSuggestions = true
 	textInput.CompletionProvider = options.CompletionProvider
@@ -168,7 +178,7 @@ func initialModel(
 		options:   options,
 
 		textInput:          textInput,
-		dirty:              false,
+		dirty:              options.InitialValue != "", // Mark dirty if we have initial value
 		prediction:         "",
 		explanation:        explanation,
 		defaultExplanation: explanation, // Store for restoring when buffer is blank
@@ -198,10 +208,13 @@ func initialModel(
 		borderStatus: borderStatus,
 
 		// Initialize idle summary tracking
-		lastInputTime:      time.Now(),
-		idleSummaryShown:   false,
-		idleSummaryPending: false,
-		idleSummaryStateId: 0,
+		lastInputTime:        time.Now(),
+		idleSummaryShown:     false,
+		idleSummaryPending:   false,
+		idleSummaryStateId:   0,
+		originalCoachTip:     explanation, // Store original coach tip
+		idleSummaryStyle:     lipgloss.NewStyle().Foreground(lipgloss.Color("75")),  // Soft blue for summary
+		idleSummaryHintStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("241")), // Subtle gray for hint
 	}
 }
 
@@ -213,8 +226,12 @@ func (m appModel) Init() tea.Cmd {
 				stateId: m.predictionStateId,
 			}
 		},
-		m.fetchResources(),
 		m.fetchGitStatus(),
+	}
+
+	// Only start resource monitoring if enabled (interval > 0)
+	if m.options.ResourceUpdateInterval > 0 {
+		cmds = append(cmds, m.fetchResources())
 	}
 
 	// Start idle check timer if enabled
@@ -266,8 +283,9 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case resourceMsg:
 		m.borderStatus.UpdateResources(msg.resources)
-		// Schedule next update after 1 second
-		return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		// Schedule next update based on configured interval
+		interval := time.Duration(m.options.ResourceUpdateInterval) * time.Second
+		return m, tea.Tick(interval, func(t time.Time) tea.Msg {
 			// Instead of returning resourceMsg directly (which would block if done synchronously),
 			// we trigger another fetch command which runs in a goroutine
 			return "fetch_resources_trigger"
@@ -333,6 +351,14 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
+
+		case "esc":
+			// Dismiss idle summary if shown, otherwise ignore
+			if m.idleSummaryShown {
+				m.dismissIdleSummary()
+				return m, m.scheduleIdleCheck()
+			}
+			return m, nil
 
 		// TODO: replace with custom keybindings
 		case "backspace":
@@ -467,8 +493,8 @@ func (m appModel) View() string {
 			isPreformatted = true
 		} else if completionBox != "" && helpBox != "" {
 			// Clean up help box text to avoid redundancy
-			// Remove headers like "**@name** - " or "**name** - " using regex
-			// This covers patterns like "**@debug-assistant** - " or "**@!new** - "
+			// Remove headers like "**#name** - " or "**name** - " using regex
+			// This covers patterns like "**#debug-assistant** - " or "**#!new** - "
 			helpBox = helpHeaderRegex.ReplaceAllString(helpBox, "")
 
 			// Render side-by-side
@@ -503,6 +529,14 @@ func (m appModel) View() string {
 
 	// Track if this is a coach tip for styling after word wrap
 	isCoachTip := m.explanation == m.defaultExplanation && m.explanation != ""
+	isIdleSummary := m.idleSummaryShown && isCoachTip
+
+	// Add header and dismiss hint for idle summaries
+	if isIdleSummary && assistantContent != "" {
+		header := m.idleSummaryStyle.Render("💭 Idle summary ready")
+		hint := m.idleSummaryHintStyle.Render("(Esc to dismiss)")
+		assistantContent = header + "\n" + assistantContent + "\n" + hint
+	}
 
 	// Render Assistant Box with custom border that includes LLM indicators
 	boxWidth := max(0, m.textInput.Width-2)
@@ -526,7 +560,8 @@ func (m appModel) View() string {
 	lines := strings.Split(wrappedContent, "\n")
 
 	// Apply faded style to each line of coach tips after word wrapping
-	if isCoachTip {
+	// Skip styling for idle summaries as they have their own styling applied in header/content
+	if isCoachTip && !isIdleSummary {
 		for i, line := range lines {
 			if line != "" {
 				lines[i] = m.coachTipStyle.Render(line)
@@ -676,12 +711,12 @@ func (m appModel) View() string {
 		padding := max(0, contentWidth-lineWidth)
 		result.WriteString(borderStyle.Render("│"))
 		result.WriteString(" ") // Left padding
-		if isCoachTip {
-			// Right-justify coach tips
+		if isCoachTip && !isIdleSummary {
+			// Right-justify coach tips (but not idle summaries)
 			result.WriteString(strings.Repeat(" ", padding))
 			result.WriteString(line)
 		} else {
-			// Left-justify other content
+			// Left-justify other content including idle summaries
 			result.WriteString(line)
 			result.WriteString(strings.Repeat(" ", padding))
 		}
@@ -986,8 +1021,8 @@ func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cm
 	if msg.stateId != m.predictionStateId {
 		return m, nil
 	}
-	// Skip LLM prediction for @ commands (agentic commands)
-	if strings.HasPrefix(strings.TrimSpace(m.textInput.Value()), "@") {
+	// Skip LLM prediction for # commands (agentic commands)
+	if strings.HasPrefix(strings.TrimSpace(m.textInput.Value()), "#") {
 		// Don't show indicator when buffer is empty - just return clean state
 		return m, nil
 	}
@@ -1145,9 +1180,14 @@ func (m appModel) handleSetIdleSummary(msg setIdleSummaryMsg) (tea.Model, tea.Cm
 		return m, nil
 	}
 
-	// Set the summary as the default explanation
+	// Store original coach tip before replacing (if not already stored)
+	if m.originalCoachTip == "" {
+		m.originalCoachTip = m.defaultExplanation
+	}
+
+	// Set the summary with explicit header and dismiss hint
 	m.idleSummaryShown = true
-	m.defaultExplanation = "💭 " + msg.summary
+	m.defaultExplanation = msg.summary
 	m.explanation = m.defaultExplanation
 
 	m.logger.Debug("idle summary displayed",
@@ -1155,6 +1195,23 @@ func (m appModel) handleSetIdleSummary(msg setIdleSummaryMsg) (tea.Model, tea.Cm
 	)
 
 	return m, nil
+}
+
+// dismissIdleSummary restores the original coach tip and resets idle summary state
+func (m *appModel) dismissIdleSummary() {
+	if !m.idleSummaryShown {
+		return
+	}
+
+	m.idleSummaryShown = false
+	m.idleSummaryStateId++
+	m.lastInputTime = time.Now()
+
+	// Restore original coach tip
+	if m.originalCoachTip != "" {
+		m.defaultExplanation = m.originalCoachTip
+		m.explanation = m.defaultExplanation
+	}
 }
 
 func Gline(

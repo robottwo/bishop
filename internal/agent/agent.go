@@ -8,14 +8,14 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/robottwo/bishop/internal/agent/tools"
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/history"
 	"github.com/robottwo/bishop/internal/styles"
 	"github.com/robottwo/bishop/internal/utils"
 	"github.com/robottwo/bishop/pkg/gline"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
@@ -24,6 +24,7 @@ import (
 type Agent struct {
 	runner         *interp.Runner
 	historyManager *history.HistoryManager
+	sessionID      string
 	contextText    string
 	logger         *zap.Logger
 	llmClient      *openai.Client
@@ -43,12 +44,14 @@ func NewAgent(
 	runner *interp.Runner,
 	historyManager *history.HistoryManager,
 	logger *zap.Logger,
+	sessionID string,
 ) *Agent {
 	llmClient, modelConfig := utils.GetLLMClient(runner, utils.SlowModel)
 
 	return &Agent{
 		runner:         runner,
 		historyManager: historyManager,
+		sessionID:      sessionID,
 		contextText:    "",
 		logger:         logger,
 		llmClient:      llmClient,
@@ -76,14 +79,14 @@ func (agent *Agent) UpdateContext(context *map[string]string) {
 // updateSystemMessage resets the system message with latest context
 func (agent *Agent) updateSystemMessage() {
 	agent.messages[0].Content = `
-You are gsh, an intelligent shell program. You answer my questions or help me complete tasks.
+You are Bishop, an intelligent shell program. You answer my questions or help me complete tasks.
 
 # Instructions
 
 * Whenever possible, prefer using the bash tool to complete tasks for me rather than telling them how to do it themselves.
 * You do not need to complete the task with a single command. You are able to run multiple commands in sequence.
 * I'm able to see the output of any bash tool you run so there's no need to repeat that in your response. 
-* If you see a tool call response enclosed in <gsh_tool_call_error> tags, that means the tool call failed; otherwise, the tool call succeeded and whatever you see in the response is the actual result from the tool.
+* If you see a tool call response enclosed in <bish_tool_call_error> tags, that means the tool call failed; otherwise, the tool call succeeded and whatever you see in the response is the actual result from the tool.
 * Never call multiple tools in parallel. Always call at most one tool at a time.
 
 # Best practices
@@ -135,6 +138,16 @@ func (agent *Agent) PrintTokenStats() {
 	fmt.Print(
 		gline.RESET_CURSOR_COLUMN + table.String() + "\n" + gline.RESET_CURSOR_COLUMN,
 	)
+}
+
+// GetTokenSummary returns a compact string showing token usage for the last request
+func (agent *Agent) GetTokenSummary() string {
+	if agent.lastRequestPromptTokens == 0 && agent.lastRequestCompletionTokens == 0 {
+		return ""
+	}
+	totalLast := agent.lastRequestPromptTokens + agent.lastRequestCompletionTokens
+	totalSession := agent.sessionPromptTokens + agent.sessionCompletionTokens
+	return fmt.Sprintf("[%d tokens, session: %d]", totalLast, totalSession)
 }
 
 func (agent *Agent) Chat(prompt string) (<-chan string, error) {
@@ -292,7 +305,7 @@ func (agent *Agent) handleToolCall(toolCall openai.ToolCall, responseChannel cha
 		toolResponse = "ok"
 	case tools.BashToolDefinition.Function.Name:
 		// bash
-		toolResponse = tools.BashTool(agent.runner, agent.historyManager, agent.logger, params)
+		toolResponse = tools.BashTool(agent.runner, agent.historyManager, agent.logger, agent.sessionID, params)
 	case tools.ViewFileToolDefinition.Function.Name:
 		// view_file
 		toolResponse = tools.ViewFileTool(agent.runner, agent.logger, params)

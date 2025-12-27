@@ -35,18 +35,29 @@ var loginShell = flag.Bool("l", false, "run as a login shell")
 var rcFile = flag.String("rcfile", "", "use a custom rc file instead of ~/.bishrc")
 var strictConfig = flag.Bool("strict-config", false, "fail fast if configuration files contain errors (like bash 'set -e')")
 
-var helpFlag = flag.Bool("h", false, "display help information")
-var versionFlag = flag.Bool("ver", false, "display build version")
+var helpFlag bool
+var versionFlag bool
+
+func init() {
+	// Register help flags: -h and --help
+	flag.BoolVar(&helpFlag, "h", false, "display help information")
+	flag.BoolVar(&helpFlag, "help", false, "display help information")
+
+	// Register version flags: -v, -ver, and --version
+	flag.BoolVar(&versionFlag, "v", false, "display build version")
+	flag.BoolVar(&versionFlag, "ver", false, "display build version")
+	flag.BoolVar(&versionFlag, "version", false, "display build version")
+}
 
 func main() {
 	flag.Parse()
 
-	if *versionFlag {
+	if versionFlag {
 		fmt.Println(BUILD_VERSION)
 		return
 	}
 
-	if *helpFlag {
+	if helpFlag {
 		fmt.Println("Usage of bish:")
 		flag.PrintDefaults()
 		return
@@ -55,13 +66,13 @@ func main() {
 	// Initialize the history manager
 	historyManager, err := initializeHistoryManager()
 	if err != nil {
-		panic("failed to initialize history manager")
+		panic(fmt.Sprintf("failed to initialize history manager: %v", err))
 	}
 
 	// Initialize the analytics manager
 	analyticsManager, err := initializeAnalyticsManager()
 	if err != nil {
-		panic("failed to initialize analytics manager")
+		panic(fmt.Sprintf("failed to initialize analytics manager: %v", err))
 	}
 
 	// Initialize the completion manager
@@ -90,7 +101,7 @@ func main() {
 
 	analyticsManager.Logger = logger
 
-	logger.Info("-------- new gsh session --------", zap.Any("args", os.Args))
+	logger.Info("-------- new bish session --------", zap.Any("args", os.Args))
 
 	// Initialize the coach manager (uses same database as history)
 	coachManager, err := coach.NewCoachManager(historyManager.GetDB(), historyManager, runner, logger)
@@ -125,12 +136,12 @@ func run(
 ) error {
 	ctx := context.Background()
 
-	// gsh -c "echo hello"
+	// bish -c "echo hello"
 	if *command != "" {
 		return bash.RunBashScriptFromReader(ctx, runner, strings.NewReader(*command), "bish")
 	}
 
-	// gsh
+	// bish
 	if flag.NArg() == 0 {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
 			return core.RunInteractiveShell(ctx, runner, historyManager, analyticsManager, completionManager, coachManager, logger, stderrCapturer)
@@ -139,7 +150,7 @@ func run(
 		return bash.RunBashScriptFromReader(ctx, runner, os.Stdin, "bish")
 	}
 
-	// gsh script.sh
+	// bish script.sh
 	for _, filePath := range flag.Args() {
 		if err := bash.RunBashScriptFromFile(ctx, runner, filePath); err != nil {
 			return err
@@ -218,6 +229,8 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		interp.Env(env),
 		interp.StdIO(os.Stdin, os.Stdout, stderrCapturer),
 		interp.ExecHandlers(
+			core.NewAutocdExecHandler(), // Must be first to intercept path-like commands
+			bash.NewCdCommandHandler(),
 			bash.NewTypesetCommandHandler(),
 			bash.SetBuiltinHandler(),
 			analytics.NewAnalyticsCommandHandler(analyticsManager),
@@ -230,6 +243,9 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		panic(err)
 	}
 
+	// Set the runner for the autocd handler
+	core.SetAutocdRunner(runner)
+
 	// load default vars
 	if err := bash.RunBashScriptFromReader(
 		context.Background(),
@@ -237,6 +253,12 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		bytes.NewReader(DEFAULT_VARS),
 		"bish",
 	); err != nil {
+		panic(err)
+	}
+
+	// Override cd command to use bish_cd implementation
+	// This allows us to provide better error messages when cd fails
+	if _, _, err := bash.RunBashCommand(context.Background(), runner, `function cd() { bish_cd "$@"; }`); err != nil {
 		panic(err)
 	}
 
@@ -287,8 +309,9 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 
 	analyticsManager.Runner = runner
 
-	// Set the global runner for the typeset command handler
+	// Set the global runner for command handlers that need to update interpreter state
 	bash.SetTypesetRunner(runner)
+	bash.SetCdRunner(runner)
 
 	return runner, nil
 }

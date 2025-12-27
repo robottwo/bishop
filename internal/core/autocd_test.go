@@ -1,0 +1,429 @@
+package core
+
+import (
+	"os"
+	"os/user"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/interp"
+)
+
+func TestIsCompoundCommand(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		// Simple commands - not compound
+		{"ls", false},
+		{"/etc", false},
+		{"path/to/dir", false},
+		{"..", false},
+		{".", false},
+		{"~", false},
+		{"~/Documents", false},
+		{"ls -la", false}, // args don't make it compound
+		{"/path/with spaces", false},
+
+		// Compound commands
+		{"ls | grep foo", true},
+		{"ls; pwd", true},
+		{"ls && pwd", true},
+		{"ls || pwd", true},
+		{"ls > file", true},
+		{"ls >> file", true},
+		{"cat < file", true},
+		{"echo $(pwd)", true},
+		{"echo `pwd`", true},
+		{"(ls)", true},
+		{"ls &", true},
+
+		// Quoted content - pipes/operators inside quotes should NOT make it compound
+		{"echo 'hello | world'", false},
+		{"echo \"hello | world\"", false},
+		{"echo 'hello; world'", false},
+		{"echo \"hello && world\"", false},
+
+		// Edge cases
+		{"", false},
+		{"   ", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := isCompoundCommand(tt.input)
+			assert.Equal(t, tt.expected, result, "isCompoundCommand(%q)", tt.input)
+		})
+	}
+}
+
+func TestHasArguments(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		// Single words - no arguments
+		{"ls", false},
+		{"/etc", false},
+		{"path/to/dir", false},
+		{"..", false},
+		{"~", false},
+
+		// Commands with arguments
+		{"ls -la", true},
+		{"cd /tmp", true},
+		{"echo hello", true},
+		{"git status", true},
+
+		// Quoted content - treated as single word
+		{"'path with spaces'", false},
+		{"\"path with spaces\"", false},
+
+		// Mixed
+		{"echo 'hello world'", true}, // echo + one quoted arg = 2 words
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := hasArguments(tt.input)
+			assert.Equal(t, tt.expected, result, "hasArguments(%q)", tt.input)
+		})
+	}
+}
+
+func createTestRunner(t *testing.T) *interp.Runner {
+	t.Helper()
+
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+
+	// Create a simple environment
+	env := expand.ListEnviron(
+		"HOME="+home,
+		"PWD="+os.TempDir(),
+		"PATH=/usr/bin:/bin",
+		"TEST_VAR=/test/path",
+	)
+
+	runner, err := interp.New(interp.Env(env))
+	require.NoError(t, err)
+
+	return runner
+}
+
+func TestIsExternalCommand(t *testing.T) {
+	runner := createTestRunner(t)
+
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		// Common external commands (should be in PATH on most systems)
+		{"ls", true},
+		{"cat", true},
+
+		// Note: Some builtins like "cd", "echo" may also exist as binaries
+		// in /usr/bin on some systems (e.g., macOS has /usr/bin/cd).
+		// We intentionally check PATH, so these would return true on such systems.
+		// This is correct behavior - isExternalCommand checks PATH, not builtins.
+
+		// Definitely not commands
+		{"/etc", false},
+		{"..", false},
+		{"nonexistent_command_12345", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := isExternalCommand(tt.input, runner)
+			assert.Equal(t, tt.expected, result, "isExternalCommand(%q)", tt.input)
+		})
+	}
+}
+
+func TestExpandPath(t *testing.T) {
+	home, _ := os.UserHomeDir()
+
+	// Save and restore environment variables (needed for cross-platform compatibility)
+	origHome := os.Getenv("HOME")
+	origTestVar := os.Getenv("TEST_VAR")
+	_ = os.Setenv("HOME", home)
+	_ = os.Setenv("TEST_VAR", "/test/path")
+	defer func() {
+		if origHome != "" {
+			_ = os.Setenv("HOME", origHome)
+		}
+		if origTestVar != "" {
+			_ = os.Setenv("TEST_VAR", origTestVar)
+		} else {
+			_ = os.Unsetenv("TEST_VAR")
+		}
+	}()
+
+	runner := createTestRunner(t)
+
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		// Tilde expansion
+		{"~", home},
+		{"~/Documents", filepath.Join(home, "Documents")},
+		{"~/a/b/c", filepath.Join(home, "a", "b", "c")},
+
+		// Environment variable expansion (from OS env)
+		{"$HOME", home},
+		{"$HOME/test", home + "/test"},
+		{"$TEST_VAR", "/test/path"},
+		{"$TEST_VAR/sub", "/test/path/sub"},
+
+		// No expansion needed
+		{"/etc", "/etc"},
+		{"/tmp/foo", "/tmp/foo"},
+		{".", "."},
+		{"..", ".."},
+		{"relative/path", "relative/path"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := expandPath(tt.input, runner)
+			assert.Equal(t, tt.expected, result, "expandPath(%q)", tt.input)
+		})
+	}
+}
+
+func TestIsDirectory(t *testing.T) {
+	// Create a temp directory for testing
+	tmpDir, err := os.MkdirTemp("", "autocd_test")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create a file in the temp directory
+	tmpFile := filepath.Join(tmpDir, "testfile")
+	err = os.WriteFile(tmpFile, []byte("test"), 0644)
+	require.NoError(t, err)
+
+	tests := []struct {
+		input    string
+		expected bool
+		unixOnly bool // skip on Windows
+	}{
+		{tmpDir, true, false},
+		{tmpFile, false, false},
+		{"/nonexistent/path/12345", false, false},
+		{"/etc", true, true}, // Unix only
+		{"/tmp", true, true}, // Unix only
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if tt.unixOnly && runtime.GOOS == "windows" {
+				t.Skip("Skipping Unix-specific path test on Windows")
+			}
+			result := isDirectory(tt.input)
+			assert.Equal(t, tt.expected, result, "isDirectory(%q)", tt.input)
+		})
+	}
+}
+
+func TestShellQuote(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		// No quoting needed
+		{"simple", "simple"},
+		{"/etc/passwd", "/etc/passwd"},
+		{"path/to/file", "path/to/file"},
+
+		// Quoting needed
+		{"path with spaces", "'path with spaces'"},
+		{"path\twith\ttabs", "'path\twith\ttabs'"},
+		{"path$var", "'path$var'"},
+		{"path`cmd`", "'path`cmd`'"},
+		{"path*glob", "'path*glob'"},
+		{"path?glob", "'path?glob'"},
+
+		// Single quotes in path
+		{"it's", "'it'\\''s'"},
+		{"path'quote", "'path'\\''quote'"},
+
+		// Empty string
+		{"", "''"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := shellQuote(tt.input)
+			assert.Equal(t, tt.expected, result, "shellQuote(%q)", tt.input)
+		})
+	}
+}
+
+func TestTryAutocd(t *testing.T) {
+	runner := createTestRunner(t)
+
+	// Create a temp directory for testing
+	tmpDir, err := os.MkdirTemp("", "autocd_test")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create a subdirectory
+	subDir := filepath.Join(tmpDir, "subdir")
+	err = os.Mkdir(subDir, 0755)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name            string
+		input           string
+		expectTriggered bool
+		expectCd        bool // if triggered, expect "cd " prefix
+		unixOnly        bool // skip on Windows
+	}{
+		// Commands should NOT trigger autocd
+		{"ls command", "ls", false, false, false},
+		{"pwd command", "pwd", false, false, false},
+		{"cd command", "cd /tmp", false, false, false},
+
+		// Existing directories should trigger autocd
+		{"/tmp directory", "/tmp", true, true, true}, // Unix only
+		{"/etc directory", "/etc", true, true, true}, // Unix only
+		{"temp dir", tmpDir, true, true, false},
+		{"sub dir", subDir, true, true, false},
+
+		// Special paths (note: "." is a shell builtin for source, so it won't trigger)
+		{".. parent", "..", true, true, false},
+
+		// Compound commands should NOT trigger
+		{"pipe", "ls | grep foo", false, false, false},
+		{"semicolon", "ls; pwd", false, false, false},
+		{"and", "ls && pwd", false, false, false},
+
+		// Non-existent paths should NOT trigger
+		{"nonexistent", "/nonexistent/path/12345", false, false, false},
+
+		// Empty input
+		{"empty", "", false, false, false},
+		{"whitespace", "   ", false, false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.unixOnly && runtime.GOOS == "windows" {
+				t.Skip("Skipping Unix-specific path test on Windows")
+			}
+
+			result, triggered := TryAutocd(tt.input, runner)
+
+			assert.Equal(t, tt.expectTriggered, triggered, "TryAutocd(%q) triggered", tt.input)
+
+			if tt.expectCd && triggered {
+				assert.True(t, strings.HasPrefix(result, "cd "), "Expected 'cd ' prefix, got %q", result)
+			}
+
+			if !triggered && tt.input != "" && tt.input != "   " {
+				// For non-empty, non-whitespace input that doesn't trigger, expect original
+				assert.Equal(t, tt.input, result, "When not triggered, should return original input")
+			}
+		})
+	}
+}
+
+func TestTryAutocd_SimpleDirectoryName(t *testing.T) {
+	runner := createTestRunner(t)
+
+	// Create a temp directory and a subdirectory
+	tmpDir, err := os.MkdirTemp("", "autocd_simple_test")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create a subdirectory with a simple name (no path separators)
+	simpleDir := filepath.Join(tmpDir, "myproject")
+	err = os.Mkdir(simpleDir, 0755)
+	require.NoError(t, err)
+
+	// Save current directory and change to tmpDir
+	oldDir, err := os.Getwd()
+	require.NoError(t, err)
+	err = os.Chdir(tmpDir)
+	require.NoError(t, err)
+	defer func() { _ = os.Chdir(oldDir) }()
+
+	// Test that a simple directory name (no /, ~, or .) triggers autocd
+	result, triggered := TryAutocd("myproject", runner)
+	assert.True(t, triggered, "Simple directory name 'myproject' should trigger autocd")
+	assert.Equal(t, "cd myproject", result, "Should produce cd command")
+
+	// Test that a non-existent simple name does NOT trigger
+	result, triggered = TryAutocd("nonexistent", runner)
+	assert.False(t, triggered, "Non-existent directory should not trigger autocd")
+	assert.Equal(t, "nonexistent", result, "Should return original input")
+}
+
+func TestTryAutocd_HomeTilde(t *testing.T) {
+	runner := createTestRunner(t)
+	home, _ := os.UserHomeDir()
+
+	// Only test if home directory exists
+	if _, err := os.Stat(home); err != nil {
+		t.Skip("Home directory not accessible")
+	}
+
+	result, triggered := TryAutocd("~", runner)
+	assert.True(t, triggered, "~ should trigger autocd")
+	assert.Equal(t, "cd ~", result, "should produce cd ~ command")
+
+	// Test ~/subdir if it exists
+	docs := filepath.Join(home, "Documents")
+	if _, err := os.Stat(docs); err == nil {
+		result, triggered = TryAutocd("~/Documents", runner)
+		assert.True(t, triggered, "~/Documents should trigger autocd")
+		assert.Equal(t, "cd ~/Documents", result)
+	}
+}
+
+func TestExpandPath_TildeUsername(t *testing.T) {
+	// Skip on Windows as ~username expansion behaves differently
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping ~username test on Windows")
+	}
+
+	// Get current user for testing
+	currentUser, err := user.Current()
+	if err != nil {
+		t.Skip("Could not get current user")
+	}
+
+	home, _ := os.UserHomeDir()
+
+	// Save and restore HOME
+	origHome := os.Getenv("HOME")
+	_ = os.Setenv("HOME", home)
+	defer func() {
+		if origHome != "" {
+			_ = os.Setenv("HOME", origHome)
+		}
+	}()
+
+	runner := createTestRunner(t)
+
+	// Test ~username (should expand to user's home directory)
+	result := expandPath("~"+currentUser.Username, runner)
+	assert.Equal(t, currentUser.HomeDir, result, "~username should expand to home directory")
+
+	// Test ~username/subdir (this was the bug - should NOT have leading slash in subdir)
+	result = expandPath("~"+currentUser.Username+"/Documents", runner)
+	expected := filepath.Join(currentUser.HomeDir, "Documents")
+	assert.Equal(t, expected, result, "~username/subdir should expand correctly without leading slash")
+
+	// Test ~username/nested/path
+	result = expandPath("~"+currentUser.Username+"/a/b/c", runner)
+	expected = filepath.Join(currentUser.HomeDir, "a", "b", "c")
+	assert.Equal(t, expected, result, "~username/nested/path should expand correctly")
+}

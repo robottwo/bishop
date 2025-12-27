@@ -22,6 +22,7 @@ type HistoryEntry struct {
 
 	Command   string
 	Directory string
+	SessionID string `gorm:"index"`
 	ExitCode  sql.NullInt32
 }
 
@@ -58,10 +59,11 @@ func (historyManager *HistoryManager) GetDB() *gorm.DB {
 	return historyManager.db
 }
 
-func (historyManager *HistoryManager) StartCommand(command string, directory string) (*HistoryEntry, error) {
+func (historyManager *HistoryManager) StartCommand(command string, directory string, sessionID string) (*HistoryEntry, error) {
 	entry := HistoryEntry{
 		Command:   command,
 		Directory: directory,
+		SessionID: sessionID,
 	}
 
 	result := historyManager.db.Create(&entry)

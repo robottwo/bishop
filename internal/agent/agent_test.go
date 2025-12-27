@@ -38,7 +38,7 @@ func TestResetChat(t *testing.T) {
 	assert.Equal(t, "system", agent.messages[0].Role, "Expected the remaining message to be 'system'")
 
 	// Verify that the system message contains the latest context
-	assert.Contains(t, agent.messages[0].Content, "You are gsh", "Expected system message to contain the latest context")
+	assert.Contains(t, agent.messages[0].Content, "You are Bishop", "Expected system message to contain the latest context")
 }
 
 func TestPruneMessages(t *testing.T) {
