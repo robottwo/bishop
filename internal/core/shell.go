@@ -532,13 +532,15 @@ func openInEditor(command string) (string, error) {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
+	defer func() { _ = os.Remove(tmpPath) }()
 
 	if _, err := tmpFile.WriteString(command); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return "", fmt.Errorf("failed to write to temp file: %w", err)
 	}
-	tmpFile.Close()
+	if err := tmpFile.Close(); err != nil {
+		return "", fmt.Errorf("failed to close temp file: %w", err)
+	}
 
 	// Run the editor
 	cmd := exec.Command(editor, tmpPath)
