@@ -56,10 +56,13 @@ type appModel struct {
 	borderStatus BorderStatusModel
 
 	// Idle summary tracking
-	lastInputTime      time.Time
-	idleSummaryShown   bool
-	idleSummaryPending bool
-	idleSummaryStateId int
+	lastInputTime        time.Time
+	idleSummaryShown     bool
+	idleSummaryPending   bool
+	idleSummaryStateId   int
+	originalCoachTip     string // Stored to restore after dismissing idle summary
+	idleSummaryStyle     lipgloss.Style
+	idleSummaryHintStyle lipgloss.Style
 }
 
 type attemptPredictionMsg struct {
@@ -201,10 +204,13 @@ func initialModel(
 		borderStatus: borderStatus,
 
 		// Initialize idle summary tracking
-		lastInputTime:      time.Now(),
-		idleSummaryShown:   false,
-		idleSummaryPending: false,
-		idleSummaryStateId: 0,
+		lastInputTime:        time.Now(),
+		idleSummaryShown:     false,
+		idleSummaryPending:   false,
+		idleSummaryStateId:   0,
+		originalCoachTip:     explanation, // Store original coach tip
+		idleSummaryStyle:     lipgloss.NewStyle().Foreground(lipgloss.Color("75")),  // Soft blue for summary
+		idleSummaryHintStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("241")), // Subtle gray for hint
 	}
 }
 
@@ -341,6 +347,14 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
+
+		case "esc":
+			// Dismiss idle summary if shown, otherwise ignore
+			if m.idleSummaryShown {
+				m.dismissIdleSummary()
+				return m, m.scheduleIdleCheck()
+			}
+			return m, nil
 
 		// TODO: replace with custom keybindings
 		case "backspace":
@@ -511,6 +525,14 @@ func (m appModel) View() string {
 
 	// Track if this is a coach tip for styling after word wrap
 	isCoachTip := m.explanation == m.defaultExplanation && m.explanation != ""
+	isIdleSummary := m.idleSummaryShown && isCoachTip
+
+	// Add header and dismiss hint for idle summaries
+	if isIdleSummary && assistantContent != "" {
+		header := m.idleSummaryStyle.Render("💭 Idle summary ready")
+		hint := m.idleSummaryHintStyle.Render("(Esc to dismiss)")
+		assistantContent = header + "\n" + assistantContent + "\n" + hint
+	}
 
 	// Render Assistant Box with custom border that includes LLM indicators
 	boxWidth := max(0, m.textInput.Width-2)
@@ -534,7 +556,8 @@ func (m appModel) View() string {
 	lines := strings.Split(wrappedContent, "\n")
 
 	// Apply faded style to each line of coach tips after word wrapping
-	if isCoachTip {
+	// Skip styling for idle summaries as they have their own styling applied in header/content
+	if isCoachTip && !isIdleSummary {
 		for i, line := range lines {
 			if line != "" {
 				lines[i] = m.coachTipStyle.Render(line)
@@ -684,12 +707,12 @@ func (m appModel) View() string {
 		padding := max(0, contentWidth-lineWidth)
 		result.WriteString(borderStyle.Render("│"))
 		result.WriteString(" ") // Left padding
-		if isCoachTip {
-			// Right-justify coach tips
+		if isCoachTip && !isIdleSummary {
+			// Right-justify coach tips (but not idle summaries)
 			result.WriteString(strings.Repeat(" ", padding))
 			result.WriteString(line)
 		} else {
-			// Left-justify other content
+			// Left-justify other content including idle summaries
 			result.WriteString(line)
 			result.WriteString(strings.Repeat(" ", padding))
 		}
@@ -1137,9 +1160,14 @@ func (m appModel) handleSetIdleSummary(msg setIdleSummaryMsg) (tea.Model, tea.Cm
 		return m, nil
 	}
 
-	// Set the summary as the default explanation
+	// Store original coach tip before replacing (if not already stored)
+	if m.originalCoachTip == "" {
+		m.originalCoachTip = m.defaultExplanation
+	}
+
+	// Set the summary with explicit header and dismiss hint
 	m.idleSummaryShown = true
-	m.defaultExplanation = "💭 " + msg.summary
+	m.defaultExplanation = msg.summary
 	m.explanation = m.defaultExplanation
 
 	m.logger.Debug("idle summary displayed",
@@ -1147,6 +1175,23 @@ func (m appModel) handleSetIdleSummary(msg setIdleSummaryMsg) (tea.Model, tea.Cm
 	)
 
 	return m, nil
+}
+
+// dismissIdleSummary restores the original coach tip and resets idle summary state
+func (m *appModel) dismissIdleSummary() {
+	if !m.idleSummaryShown {
+		return
+	}
+
+	m.idleSummaryShown = false
+	m.idleSummaryStateId++
+	m.lastInputTime = time.Now()
+
+	// Restore original coach tip
+	if m.originalCoachTip != "" {
+		m.defaultExplanation = m.originalCoachTip
+		m.explanation = m.defaultExplanation
+	}
 }
 
 func Gline(
