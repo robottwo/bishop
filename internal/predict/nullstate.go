@@ -54,7 +54,7 @@ func (p *LLMNullStatePredictor) Predict(input string) (string, string, error) {
 		return "", "", err
 	}
 
-	userMessage := fmt.Sprintf(`You are gsh, an intelligent shell program.
+	userMessage := fmt.Sprintf(`You are Bishop, an intelligent shell program.
 You are asked to predict the next command I'm likely to want to run.
 
 # Instructions

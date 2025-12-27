@@ -190,7 +190,7 @@ func parseToolsList(toolsStr string) []string {
 	return tools
 }
 
-// parseRooGroups converts Roo Code group configurations to gsh tool permissions
+// parseRooGroups converts Roo Code group configurations to bish tool permissions
 func parseRooGroups(groups []interface{}) ([]string, string) {
 	var allowedTools []string
 	var fileRegex string
@@ -253,7 +253,7 @@ func parseRooGroups(groups []interface{}) ([]string, string) {
 	return allowedTools, fileRegex
 }
 
-// mapRooGroupToTools maps Roo Code tool groups to gsh tools
+// mapRooGroupToTools maps Roo Code tool groups to bish tools
 func mapRooGroupToTools(group string) []string {
 	switch group {
 	case "read":
@@ -263,7 +263,7 @@ func mapRooGroupToTools(group string) []string {
 	case "command":
 		return []string{"bash"}
 	case "browser":
-		// Not applicable in gsh context, but we could add web-related tools in future
+		// Not applicable in bish context, but we could add web-related tools in future
 		return []string{}
 	case "mcp":
 		// Future extension point for MCP tools
@@ -286,7 +286,7 @@ func ValidateSubagent(subagent *Subagent) error {
 		return fmt.Errorf("subagent system prompt cannot be empty")
 	}
 
-	// Validate allowed tools against known gsh tools
+	// Validate allowed tools against known bish tools
 	knownTools := map[string]bool{
 		"bash":           true,
 		"view_file":      true,

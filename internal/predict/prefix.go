@@ -75,7 +75,7 @@ func (p *LLMPrefixPredictor) Predict(input string) (string, string, error) {
 		}
 	}
 
-	userMessage := fmt.Sprintf(`You are gsh, an intelligent shell program.
+	userMessage := fmt.Sprintf(`You are Bishop, an intelligent shell program.
 You will be given a partial bash command prefix entered by me, enclosed in <prefix> tags.
 You are asked to predict what the complete bash command is.
 

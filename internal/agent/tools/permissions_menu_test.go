@@ -462,7 +462,7 @@ func TestSimplePermissionsModelNavigation(t *testing.T) {
 
 func TestProcessMenuSelectionWithFileOperations(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_permissions_menu")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_permissions_menu")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the environment variables for testing
@@ -651,7 +651,7 @@ func TestGenerateCommandPrefixesEdgeCases(t *testing.T) {
 
 func TestShowPermissionsMenuIntegration(t *testing.T) {
 	// Create a temporary config directory for testing
-	tempConfigDir := filepath.Join(os.TempDir(), "gsh_test_permissions_integration")
+	tempConfigDir := filepath.Join(os.TempDir(), "bish_test_permissions_integration")
 	tempAuthorizedFile := filepath.Join(tempConfigDir, "authorized_commands")
 
 	// Override the environment variables for testing

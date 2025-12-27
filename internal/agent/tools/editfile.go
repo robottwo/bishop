@@ -83,7 +83,7 @@ func validateAndReplaceContent(content, oldStr, newStr string) (string, string) 
 }
 
 func previewAndConfirm(runner *interp.Runner, logger *zap.Logger, path string, newContent string) string {
-	tmpFile, err := os.CreateTemp("", "gsh_edit_file_preview")
+	tmpFile, err := os.CreateTemp("", "bish_edit_file_preview")
 	if err != nil {
 		logger.Error("edit_file tool failed to create temporary file", zap.Error(err))
 		return fmt.Sprintf("Error creating temporary file: %s", err)

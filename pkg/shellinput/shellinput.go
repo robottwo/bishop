@@ -42,6 +42,7 @@ import (
 	"github.com/muesli/ansi"
 	"github.com/muesli/reflow/wrap"
 	"github.com/rivo/uniseg"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // Internal messages for clipboard operations.
@@ -93,6 +94,9 @@ type KeyMap struct {
 	ClearScreen             key.Binding
 	ReverseSearch           key.Binding
 	HistorySort             key.Binding
+	SwapCharacters          key.Binding
+	SwapWords               key.Binding
+	InsertLastArg           key.Binding
 }
 
 // DefaultKeyMap is the default set of key bindings for navigating and acting
@@ -120,6 +124,9 @@ var DefaultKeyMap = KeyMap{
 	ClearScreen:             key.NewBinding(key.WithKeys("ctrl+l")),
 	ReverseSearch:           key.NewBinding(key.WithKeys("ctrl+r")),
 	HistorySort:             key.NewBinding(key.WithKeys("ctrl+o")),
+	SwapCharacters:          key.NewBinding(key.WithKeys("ctrl+t")),
+	SwapWords:               key.NewBinding(key.WithKeys("alt+t")),
+	InsertLastArg:           key.NewBinding(key.WithKeys("alt+.")),
 }
 
 const (
@@ -194,6 +201,11 @@ type Model struct {
 	lastYankActive     bool
 	lastYankStart      int
 	lastYankEnd        int
+
+	// State for Alt+. (Insert Last Argument)
+	lastArgInsertionIndex   int
+	lastCommandWasInsertArg bool
+	lastInsertedArgLen      int
 
 	// Validate is a function that checks whether or not the text within the
 	// input is valid. If it is not valid, the `Err` field will be set to the
@@ -383,6 +395,13 @@ func (m *Model) insertRunesFromUserInput(v []rune) {
 	m.suppressSuggestionsUntilInput = false
 	m.lastCommandWasKill = false
 	m.lastYankActive = false
+	// Only reset lastCommandWasInsertArg if it wasn't set by insertLastArg just before calling this
+	// But insertLastArg calls this, so it will be reset.
+	// So insertLastArg must re-set it to true.
+	// However, if the user types a normal character, it calls this, and we WANT to reset it.
+	// So I can't distinguish here easily.
+	// Solution: insertRunesFromUserInput always resets it. insertLastArg re-sets it after calling this.
+	m.lastCommandWasInsertArg = false
 
 	// Clean up any special characters in the input provided by the
 	// clipboard. This avoids bugs due to e.g. tab characters and
@@ -685,6 +704,217 @@ func (m *Model) wordForward() {
 	}
 }
 
+// swapCharacters swaps the character before the cursor with the one before that.
+func (m *Model) swapCharacters() {
+	if m.pos == 0 || len(m.values[m.selectedValueIndex]) < 2 {
+		return
+	}
+
+	// If at end of line, swap the two characters before the cursor
+	idx := m.pos
+	if idx == len(m.values[m.selectedValueIndex]) {
+		// Swap idx-1 and idx-2
+		m.values[m.selectedValueIndex][idx-1], m.values[m.selectedValueIndex][idx-2] = m.values[m.selectedValueIndex][idx-2], m.values[m.selectedValueIndex][idx-1]
+		m.values[0] = m.values[m.selectedValueIndex]
+		// Cursor stays at end
+		return
+	}
+
+	// Swap idx-1 and idx
+	m.values[m.selectedValueIndex][idx-1], m.values[m.selectedValueIndex][idx] = m.values[m.selectedValueIndex][idx], m.values[m.selectedValueIndex][idx-1]
+	m.values[0] = m.values[m.selectedValueIndex]
+	m.SetCursor(m.pos + 1)
+}
+
+// swapWords swaps the word before the cursor with the word before that.
+func (m *Model) swapWords() {
+	v := m.values[m.selectedValueIndex]
+	if len(v) == 0 {
+		return
+	}
+
+	// Step 1: Check if there is a word at or after pos.
+	hasWordAfter := false
+	temp := m.pos
+	for temp < len(v) {
+		if !unicode.IsSpace(v[temp]) {
+			hasWordAfter = true
+			break
+		}
+		temp++
+	}
+	w2Start := temp
+	var w2End int
+
+	if hasWordAfter {
+		// Word 2 starts at w2Start. Find its end.
+		w2End = w2Start
+		for w2End < len(v) && !unicode.IsSpace(v[w2End]) {
+			w2End++
+		}
+	} else {
+		// No word after. Treat word before cursor (or EOL) as Word 2.
+		// Scan back from EOL to find end of Word 2.
+		w2End = len(v)
+		for w2End > 0 && unicode.IsSpace(v[w2End-1]) {
+			w2End--
+		}
+		if w2End == 0 {
+			return
+		} // No words
+
+		// Find start of Word 2
+		w2Start = w2End
+		for w2Start > 0 && !unicode.IsSpace(v[w2Start-1]) {
+			w2Start--
+		}
+	}
+
+	// Now we have Word 2 (w2Start, w2End).
+	// Find Word 1 before Word 2.
+	w1End := w2Start
+	// Skip spaces backwards
+	for w1End > 0 && unicode.IsSpace(v[w1End-1]) {
+		w1End--
+	}
+	if w1End == 0 {
+		return
+	} // No Word 1
+
+	// Find start of Word 1
+	w1Start := w1End
+	for w1Start > 0 && !unicode.IsSpace(v[w1Start-1]) {
+		w1Start--
+	}
+
+	// Construct new value
+	// ... w1 ... w2 ...
+	// ... w1Start ... w1End ... w2Start ... w2End ...
+
+	// We need to preserve text between words (usually spaces)
+	// part1: 0 to w1Start
+	// part2: w1 (w1Start to w1End)
+	// part3: w1End to w2Start (separator)
+	// part4: w2 (w2Start to w2End)
+	// part5: w2End to end
+
+	// New: part1 + part4 + part3 + part2 + part5
+
+	part1 := v[:w1Start]
+	part2 := v[w1Start:w1End]
+	part3 := v[w1End:w2Start]
+	part4 := v[w2Start:w2End]
+	part5 := v[w2End:]
+
+	var newValue []rune
+	newValue = append(newValue, part1...)
+	newValue = append(newValue, part4...)
+	newValue = append(newValue, part3...)
+	newValue = append(newValue, part2...)
+	newValue = append(newValue, part5...)
+
+	m.values[0] = newValue
+	m.values[m.selectedValueIndex] = newValue
+
+	// Cursor should move to end of inserted word2 (which is now in second position? No, Bash says "moving point over that word as well")
+	// If "one two|", result "two one|". Cursor moves to end of "one" (which is now last).
+	// So cursor should be at: len(part1) + len(part4) + len(part3) + len(part2)
+
+	m.SetCursor(len(part1) + len(part4) + len(part3) + len(part2))
+}
+
+// insertLastArg inserts the last argument of the previous command.
+func (m *Model) insertLastArg() {
+	if len(m.values) <= 1 {
+		return
+	}
+
+	// Determine which history entry to look at
+	// m.values[0] is current input. m.values[1] is last command.
+	// Index 1 is most recent history.
+
+	if !m.lastCommandWasInsertArg {
+		m.lastArgInsertionIndex = 1
+	} else {
+		m.lastArgInsertionIndex++
+	}
+
+	if m.lastArgInsertionIndex >= len(m.values) {
+		m.lastArgInsertionIndex = 1 // Cycle back to start
+	}
+
+	histLine := string(m.values[m.lastArgInsertionIndex])
+
+	// Parse to find last argument
+	lastArg := GetLastArgument(histLine)
+	if lastArg == "" {
+		return
+	}
+
+	runesToInsert := []rune(lastArg)
+
+	if m.lastCommandWasInsertArg {
+		// Replace previously inserted arg
+		// Cursor is at end of inserted arg.
+		// Remove m.lastInsertedArgLen characters before cursor.
+		start := m.pos - m.lastInsertedArgLen
+		if start < 0 {
+			start = 0
+		} // Should not happen
+
+		// Remove
+		// value = value[:start] + value[m.pos:]
+		v := m.values[m.selectedValueIndex]
+		remaining := v[m.pos:]
+		prefix := v[:start]
+
+		// Construct new
+		var newValue []rune
+		newValue = append(newValue, prefix...)
+		newValue = append(newValue, runesToInsert...)
+		newValue = append(newValue, remaining...)
+
+		m.values[0] = newValue
+		m.values[m.selectedValueIndex] = newValue
+		m.SetCursor(start + len(runesToInsert))
+	} else {
+		// Insert at cursor
+		m.insertRunesFromUserInput(runesToInsert)
+		// insertRunesFromUserInput updates pos
+	}
+
+	m.lastInsertedArgLen = len(runesToInsert)
+	m.lastCommandWasInsertArg = true
+}
+
+func GetLastArgument(line string) string {
+	p := syntax.NewParser()
+	f, err := p.Parse(strings.NewReader(line), "")
+	if err != nil {
+		// Fallback to simple split?
+		parts := strings.Fields(line)
+		if len(parts) > 0 {
+			return parts[len(parts)-1]
+		}
+		return ""
+	}
+
+	var lastArg string
+	syntax.Walk(f, func(node syntax.Node) bool {
+		if word, ok := node.(*syntax.Word); ok {
+			// We want the literal value of the word
+			var sb strings.Builder
+			printer := syntax.NewPrinter()
+			_ = printer.Print(&sb, word)
+			lastArg = sb.String()
+		}
+		return true
+	})
+
+	// The walker visits in order. So lastArg will be overwritten by the last word found.
+	return lastArg
+}
+
 func (m Model) echoTransform(v string) string {
 	switch m.EchoMode {
 	case EchoPassword:
@@ -710,6 +940,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Reset lastCommandWasInsertArg unless InsertLastArg was pressed
+		if !key.Matches(msg, m.KeyMap.InsertLastArg) {
+			m.lastCommandWasInsertArg = false
+		}
+
 		// Handle reverse search specific keys
 		if m.inReverseSearch {
 			switch {
@@ -808,6 +1043,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, m.KeyMap.PrevSuggestion) && m.completion.active:
 			m.handleBackwardCompletion()
 			return m, nil
+		case key.Matches(msg, m.KeyMap.SwapCharacters):
+			m.swapCharacters()
+		case key.Matches(msg, m.KeyMap.SwapWords):
+			m.swapWords()
+		case key.Matches(msg, m.KeyMap.InsertLastArg):
+			m.insertLastArg()
 		case key.Matches(msg, m.KeyMap.DeleteWordBackward):
 			m.deleteWordBackward()
 		case key.Matches(msg, m.KeyMap.DeleteCharacterBackward):
