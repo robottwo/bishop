@@ -305,18 +305,12 @@ func RunInteractiveShell(
 						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\nCommand: "+fixedCmd+"\n") + gline.RESET_CURSOR_COLUMN)
 						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(promptText) + gline.RESET_CURSOR_COLUMN)
 
-						// Read single key in raw mode
-						fd := int(os.Stdin.Fd())
-						oldState, err := term.MakeRaw(fd)
+						// Read single key in raw mode (terminal state restored via defer)
+						char, err := readSingleKey(logger)
 						if err != nil {
-							logger.Error("failed to set raw mode", zap.Error(err))
+							logger.Error("failed to read key", zap.Error(err))
 							break magicFixLoop
 						}
-						var buf [1]byte
-						_, _ = os.Stdin.Read(buf[:])
-						_ = term.Restore(fd, oldState)
-
-						char := buf[0]
 						// Echo the character and newline
 						if char == '\r' || char == '\n' {
 							fmt.Println()
@@ -503,6 +497,28 @@ func RunInteractiveShell(
 	}
 
 	return nil
+}
+
+// readSingleKey reads a single key from stdin in raw mode.
+// It ensures the terminal state is always restored, even on panic.
+func readSingleKey(logger *zap.Logger) (byte, error) {
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		if restoreErr := term.Restore(fd, oldState); restoreErr != nil {
+			logger.Error("failed to restore terminal state", zap.Error(restoreErr))
+		}
+	}()
+
+	var buf [1]byte
+	_, err = os.Stdin.Read(buf[:])
+	if err != nil {
+		return 0, err
+	}
+	return buf[0], nil
 }
 
 // openInEditor opens the given command in an external editor and returns the edited result.
