@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0](https://github.com/robottwo/bishop/compare/v0.28.1...v1.0.0) (2025-12-27)
+## [0.30.0](https://github.com/robottwo/bishop/compare/v0.28.1...v0.30.0) (2025-12-27)
 
 
 ### ⚠ BREAKING CHANGES
