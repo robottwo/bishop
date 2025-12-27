@@ -68,16 +68,16 @@ func TestVersionFlag(t *testing.T) {
 
 			// Reset flags for each test
 			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-			versionFlag = flag.Bool("ver", false, "display build version")
+			flag.BoolVar(&versionFlag, "ver", false, "display build version")
 
 			// Parse test flags
 			os.Args = append([]string{"bish"}, tt.args...)
 			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-			versionFlag = flag.Bool("ver", false, "display build version")
+			flag.BoolVar(&versionFlag, "ver", false, "display build version")
 			flag.Parse()
 
 			// Check if version flag is set
-			if *versionFlag {
+			if versionFlag {
 				// This simulates the main() version check
 				assert.True(t, tt.expectExit, "Version flag should cause early exit")
 				assert.Equal(t, tt.buildVersion, BUILD_VERSION, "BUILD_VERSION should match")
@@ -93,16 +93,16 @@ func TestHelpFlag(t *testing.T) {
 
 	// Reset flags
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	helpFlag = flag.Bool("h", false, "display help information")
-	
+	flag.BoolVar(&helpFlag, "h", false, "display help information")
+
 	// Set test args
 	os.Args = []string{"bish", "-h"}
-	
+
 	// Parse flags
 	flag.Parse()
-	
+
 	// Verify help flag is set
-	assert.True(t, *helpFlag, "Help flag should be set")
+	assert.True(t, helpFlag, "Help flag should be set")
 }
 
 func TestCommandFlag(t *testing.T) {
@@ -361,12 +361,12 @@ func TestFlagDefinitions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset flag set
 			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-			
+
 			// Re-register the flags as they would be in main
 			command = flag.String("c", "", "run a command")
 			loginShell = flag.Bool("l", false, "run as a login shell")
-			helpFlag = flag.Bool("h", false, "display help information")
-			versionFlag = flag.Bool("ver", false, "display build version")
+			flag.BoolVar(&helpFlag, "h", false, "display help information")
+			flag.BoolVar(&versionFlag, "ver", false, "display build version")
 
 			// Get the flag
 			f := flag.Lookup(tt.flagName)

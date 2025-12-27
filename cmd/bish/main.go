@@ -35,18 +35,29 @@ var loginShell = flag.Bool("l", false, "run as a login shell")
 var rcFile = flag.String("rcfile", "", "use a custom rc file instead of ~/.bishrc")
 var strictConfig = flag.Bool("strict-config", false, "fail fast if configuration files contain errors (like bash 'set -e')")
 
-var helpFlag = flag.Bool("h", false, "display help information")
-var versionFlag = flag.Bool("ver", false, "display build version")
+var helpFlag bool
+var versionFlag bool
+
+func init() {
+	// Register help flags: -h and --help
+	flag.BoolVar(&helpFlag, "h", false, "display help information")
+	flag.BoolVar(&helpFlag, "help", false, "display help information")
+
+	// Register version flags: -v, -ver, and --version
+	flag.BoolVar(&versionFlag, "v", false, "display build version")
+	flag.BoolVar(&versionFlag, "ver", false, "display build version")
+	flag.BoolVar(&versionFlag, "version", false, "display build version")
+}
 
 func main() {
 	flag.Parse()
 
-	if *versionFlag {
+	if versionFlag {
 		fmt.Println(BUILD_VERSION)
 		return
 	}
 
-	if *helpFlag {
+	if helpFlag {
 		fmt.Println("Usage of bish:")
 		flag.PrintDefaults()
 		return
