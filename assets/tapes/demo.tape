@@ -32,7 +32,7 @@ Enter
 Sleep 2s
 
 # === Feature 2: Quick agent interaction ===
-Type "# Summarize the previus command output"
+Type "# Summarize the previous command output"
 Sleep 1s
 Enter
 Sleep 5s
