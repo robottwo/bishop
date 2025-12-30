@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.31.0](https://github.com/robottwo/bishop/compare/v0.30.0...v0.31.0) (2025-12-30)
+
+
+### Features
+
+* Add editing capability to Magic Fix suggestions ([#24](https://github.com/robottwo/bishop/issues/24)) ([015b5f6](https://github.com/robottwo/bishop/commit/015b5f6ac1fb2867cf292dfcf4a765bb1ee4cc9b))
+* add VHS tape files for reproducible GIF recordings ([c32b4b6](https://github.com/robottwo/bishop/commit/c32b4b63aaab49673ae59dee119feec8ac73884e))
+* add VHS tape files for reproducible GIF recordings ([#28](https://github.com/robottwo/bishop/issues/28)) ([e781e03](https://github.com/robottwo/bishop/commit/e781e03ce24553b9d4ae31212ad2b2a6b179e291))
+
+
+### Bug Fixes
+
+* ensure terminal state restoration on panic via defer in readSingleKey helper ([47a2960](https://github.com/robottwo/bishop/commit/47a29604d0f5cd34f3a6c147f0120364bd93b805))
+* handle error returns in openInEditor for linter compliance ([780aa4b](https://github.com/robottwo/bishop/commit/780aa4bf3d488f0365e99f2cf83572a5dda1fdff))
+* resolve golangci-lint errors ([#27](https://github.com/robottwo/bishop/issues/27)) ([f0e16eb](https://github.com/robottwo/bishop/commit/f0e16eb28464958d2b45ebf5535746bfd8910e6b))
+* resolve golangci-lint errors for errcheck and staticcheck ([ade401c](https://github.com/robottwo/bishop/commit/ade401c11eb0996df47a0a9d0c298ecd3227dd6f))
+
 ## [0.30.0](https://github.com/robottwo/bishop/compare/v0.28.1...v0.30.0) (2025-12-27)
 
 
