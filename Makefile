@@ -1,6 +1,35 @@
 .PHONY: all
 all: ci
 
+# === VHS Tape to GIF compilation ===
+# Find all tape files and derive GIF names
+TAPE_FILES := $(wildcard assets/tapes/*.tape)
+GIF_FILES := $(patsubst assets/tapes/%.tape,assets/%.gif,$(TAPE_FILES))
+BISH_DEMO_HOME := /tmp/bish-demo
+
+# Pattern rule: compile .tape to .gif
+assets/%.gif: assets/tapes/%.tape
+	@echo "Recording $< -> $@"
+	@vhs $<
+
+.PHONY: tapes
+tapes: tapes-setup
+	# @$(MAKE) -j$(words $(GIF_FILES)) $(GIF_FILES) || ($(MAKE) tapes-cleanup && exit 1)
+	@$(MAKE) $(GIF_FILES) || ($(MAKE) tapes-cleanup && exit 1)
+	@$(MAKE) tapes-cleanup
+	@echo "All tapes compiled"
+
+.PHONY: tapes-setup
+tapes-setup:
+	@echo "Setting up isolated bish demo environment..."
+	@rm -rf $(BISH_DEMO_HOME)
+	@mkdir -p $(BISH_DEMO_HOME)
+	@if [ -f ~/.bishrc ]; then cp ~/.bishrc $(BISH_DEMO_HOME)/.bishrc; fi
+
+.PHONY: tapes-cleanup
+tapes-cleanup:
+	@rm -rf $(BISH_DEMO_HOME)
+
 .PHONY: build
 build:
 	@echo "=== Building bishop ==="
@@ -32,6 +61,20 @@ tools:
 	@echo "Installing tools..."
 	@go install golang.org/x/vuln/cmd/govulncheck@latest
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@echo ""
+	@echo "Checking for vhs (GIF recorder)..."
+ifeq ($(OS),Windows_NT)
+	@where vhs >nul 2>&1 && \
+		echo "✓ vhs is already installed" || \
+		(echo "⚠ vhs is not installed." && \
+		echo "  Install it from: https://github.com/charmbracelet/vhs")
+else
+	@command -v vhs >/dev/null 2>&1 && \
+		echo "✓ vhs is already installed" || \
+		(echo "⚠ vhs is not installed." && \
+		echo "  - macOS: brew install vhs" && \
+		echo "  - Linux: See https://github.com/charmbracelet/vhs")
+endif
 	@echo ""
 	@echo "Checking for GitHub CLI (gh)..."
 ifeq ($(OS),Windows_NT)
