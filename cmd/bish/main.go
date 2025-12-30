@@ -49,6 +49,25 @@ func init() {
 	flag.BoolVar(&versionFlag, "version", false, "display build version")
 }
 
+// main is the entry point of the bish shell program.
+// It initializes all the core components including:
+// - Command-line flag parsing for version (-v), help (-h), and execution modes
+// - History manager for command history tracking
+// - Analytics manager for usage analytics
+// - Completion manager for tab completion
+// - Shell interpreter runner with stderr capture
+// - Logger for debugging and monitoring
+// - Coach manager for AI-powered assistance (optional)
+//
+// The function supports multiple execution modes:
+// 1. Version display: bish -v
+// 2. Help display: bish -h
+// 3. Command execution: bish -c "command"
+// 4. Interactive shell: bish (when stdin is a terminal)
+// 5. Script execution: bish script.sh
+//
+// After initialization, it delegates to the run() function which handles
+// the actual execution based on the detected mode and handles exit codes.
 func main() {
 	flag.Parse()
 
