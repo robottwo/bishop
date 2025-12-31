@@ -619,7 +619,7 @@
 
     <section class="hero">
         <div class="container animate-in">
-            <span class="version-badge">Latest: <strong>v0.31.0</strong></span>
+            <span class="version-badge">Latest: <strong id="version-number">...</strong></span>
             <h1>Your Shell, But Smarter</h1>
             <p class="tagline">A modern, POSIX-compatible shell with AI enhancements</p>
             <p class="subtitle">Get intelligent command suggestions, explanations before you execute, and an AI agent that works on your behalf&mdash;all while keeping full compatibility with your existing scripts.</p>
@@ -962,6 +962,22 @@ make build
     </footer>
 
     <script>
+        // Fetch latest version from GitHub
+        (async function() {
+            const versionEl = document.getElementById('version-number');
+            try {
+                const res = await fetch('https://api.github.com/repos/robottwo/bishop/releases/latest');
+                if (res.ok) {
+                    const data = await res.json();
+                    versionEl.textContent = data.tag_name;
+                } else {
+                    versionEl.textContent = 'latest';
+                }
+            } catch (e) {
+                versionEl.textContent = 'latest';
+            }
+        })();
+
         // Tab switching
         document.querySelectorAll('.install-tab').forEach(tab => {
             tab.addEventListener('click', () => {
