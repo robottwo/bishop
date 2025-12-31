@@ -32,6 +32,7 @@ var (
 	headerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Bold(true)
 	helpStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("243"))
 	errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("196")) // Red for errors
+	savedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))  // Green for success
 )
 
 // sessionConfigOverrides stores config values set via the UI that should override shell variables
@@ -58,6 +59,7 @@ type model struct {
 	width          int
 	height         int
 	errorMsg       string // Temporary error message to display
+	savedMsg       string // Temporary saved confirmation message
 }
 
 type state int
@@ -273,8 +275,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectionList.SetHeight(msg.Height)
 
 	case tea.KeyMsg:
-		// Clear any previous error message on new key press
+		// Clear any previous messages on new key press
 		m.errorMsg = ""
+		m.savedMsg = ""
 
 		// Handle text editing state
 		if m.state == stateEditing {
@@ -298,6 +301,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.errorMsg = fmt.Sprintf("Failed to save %s: %v", m.activeSetting.envVar, err)
 					return m, nil
 				}
+				m.savedMsg = fmt.Sprintf("Saved to ~/.bish_config_ui")
 				if m.activeSubmenu != nil {
 					m.state = stateSubmenu
 				} else {
@@ -332,6 +336,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.errorMsg = fmt.Sprintf("Failed to save %s: %v", m.activeSetting.envVar, err)
 						return m, nil
 					}
+					m.savedMsg = fmt.Sprintf("Saved to ~/.bish_config_ui")
 					if m.activeSubmenu != nil {
 						m.state = stateSubmenu
 					} else {
@@ -421,6 +426,13 @@ func (m *model) handleSettingAction(s *settingItem) tea.Cmd {
 		}
 		if err := saveConfig(s.envVar, newVal, m.runner); err != nil {
 			m.errorMsg = fmt.Sprintf("Failed to save %s: %v", s.envVar, err)
+		} else {
+			// Safety checks only affect the session, not persisted to file
+			if s.envVar == "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+				m.savedMsg = "Saved (session only)"
+			} else {
+				m.savedMsg = "Saved to ~/.bish_config_ui"
+			}
 		}
 		return nil
 	}
@@ -548,10 +560,12 @@ func (m model) View() string {
 		boxContent.WriteString("\n")
 	}
 
-	// Footer with help text and error message
+	// Footer with help text and status messages
 	footerContent := helpStyle.Render(helpText)
 	if m.errorMsg != "" {
 		footerContent = errorStyle.Render(m.errorMsg) + "\n" + footerContent
+	} else if m.savedMsg != "" {
+		footerContent = savedStyle.Render(m.savedMsg) + "\n" + footerContent
 	}
 	boxContent.WriteString("\n" + footerContent)
 
