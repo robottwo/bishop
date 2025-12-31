@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bishop - Your Shell, But Smarter</title>
+    <meta name="description" content="Bishop is a modern, POSIX-compatible shell with AI enhancements. Get intelligent command suggestions, explanations, and an AI agent right in your terminal.">
+    <meta name="keywords" content="shell, terminal, AI, bash, zsh, fish, command line, CLI, LLM, productivity">
+    <meta property="og:title" content="Bishop - Your Shell, But Smarter">
+    <meta property="og:description" content="A modern, POSIX-compatible shell with AI enhancements. Command prediction, explanations, and an intelligent agent.">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♗</text></svg>">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --green: #3fb950;
+            --red: #f85149;
+            --yellow: #d29922;
+            --border: #30363d;
+            --code-bg: #0d1117;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 16px 0;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            font-size: 1.8rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-cta {
+            background: var(--accent);
+            color: var(--bg-primary) !important;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .nav-cta:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 160px 0 100px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero .tagline {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+            transform: translateY(-2px);
+        }
+
+        /* Features Grid */
+        .features {
+            padding: 100px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            margin-bottom: 64px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+        }
+
+        /* Demo Section */
+        .demos {
+            padding: 100px 0;
+            background: var(--bg-secondary);
+        }
+
+        .demo-container {
+            margin-bottom: 80px;
+        }
+
+        .demo-container:last-child {
+            margin-bottom: 0;
+        }
+
+        .demo-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+
+        .demo-content.reverse {
+            direction: rtl;
+        }
+
+        .demo-content.reverse > * {
+            direction: ltr;
+        }
+
+        .demo-text h3 {
+            font-size: 2rem;
+            margin-bottom: 16px;
+        }
+
+        .demo-text p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 24px;
+        }
+
+        .demo-features {
+            list-style: none;
+        }
+
+        .demo-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        .demo-features li::before {
+            content: "✓";
+            color: var(--green);
+            font-weight: bold;
+        }
+
+        .demo-gif {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .demo-gif img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Installation Section */
+        .installation {
+            padding: 100px 0;
+        }
+
+        .install-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .install-tab {
+            padding: 10px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .install-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .install-tab.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .install-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .install-panel {
+            display: none;
+        }
+
+        .install-panel.active {
+            display: block;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            white-space: pre;
+        }
+
+        .code-block .comment {
+            color: var(--text-muted);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        .copy-btn.copied {
+            background: var(--green);
+            color: var(--bg-primary);
+            border-color: var(--green);
+        }
+
+        /* Comparison Table */
+        .comparison {
+            padding: 100px 0;
+            background: var(--bg-secondary);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        th:first-child {
+            text-align: left;
+        }
+
+        td:not(:first-child), th:not(:first-child) {
+            text-align: center;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .check {
+            color: var(--green);
+            font-weight: bold;
+        }
+
+        .cross {
+            color: var(--text-muted);
+        }
+
+        .partial {
+            color: var(--yellow);
+        }
+
+        .bishop-col {
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        /* Docs Section */
+        .docs {
+            padding: 100px 0;
+        }
+
+        .docs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .doc-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .doc-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+        }
+
+        .doc-card h3 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .doc-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        footer .logo {
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+
+        .footer-copy {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .demo-content {
+                grid-template-columns: 1fr;
+            }
+
+            .demo-content.reverse {
+                direction: ltr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        /* Version badge */
+        .version-badge {
+            display: inline-block;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .version-badge strong {
+            color: var(--green);
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="#" class="logo">
+                <span class="logo-icon">♗</span>
+                Bishop
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#demos">Demos</a></li>
+                <li><a href="#install">Install</a></li>
+                <li><a href="#compare">Compare</a></li>
+                <li><a href="#docs">Docs</a></li>
+                <li><a href="https://github.com/robottwo/bishop" class="nav-cta">GitHub</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container animate-in">
+            <span class="version-badge">Latest: <strong>v0.31.0</strong></span>
+            <h1>Your Shell, But Smarter</h1>
+            <p class="tagline">A modern, POSIX-compatible shell with AI enhancements</p>
+            <p class="subtitle">Get intelligent command suggestions, explanations before you execute, and an AI agent that works on your behalf&mdash;all while keeping full compatibility with your existing scripts.</p>
+            <div class="hero-buttons">
+                <a href="#install" class="btn btn-primary">Get Started</a>
+                <a href="https://github.com/robottwo/bishop" class="btn btn-secondary">View on GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Why Bishop?</h2>
+            <p class="section-subtitle">The only shell that combines POSIX compatibility with modern AI features</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔮</div>
+                    <h3>Command Prediction</h3>
+                    <p>Get intelligent suggestions for your next command based on history and context. Lightweight predictions load instantly.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📖</div>
+                    <h3>Command Explanation</h3>
+                    <p>Understand any command before you run it. See what flags do, validate effects, and prevent costly mistakes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>Intelligent Agent</h3>
+                    <p>Let an AI agent perform tasks on your behalf with your approval. Preview file edits, get rich summaries of completed work.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧩</div>
+                    <h3>Specialized Subagents</h3>
+                    <p>Create AI assistants focused on specific tasks, tools, or workflows. Directory-aware with automatic discovery.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Privacy First</h3>
+                    <p>Use local models via Ollama for completely private operation. Zero external API calls when you want it.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Full POSIX Compatible</h3>
+                    <p>Drop-in replacement for bash. History expansion, job control, and all your existing scripts just work.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="demos" class="demos">
+        <div class="container">
+            <h2 class="section-title">See It In Action</h2>
+            <p class="section-subtitle">Watch Bishop enhance your terminal workflow</p>
+
+            <div class="demo-container">
+                <div class="demo-content">
+                    <div class="demo-text">
+                        <h3>Command Prediction</h3>
+                        <p>Bishop learns from your command history and suggests the next command you're likely to run.</p>
+                        <ul class="demo-features">
+                            <li>Context-aware suggestions based on current directory</li>
+                            <li>Instant predictions that don't slow you down</li>
+                            <li>Tab to accept, keep typing to ignore</li>
+                            <li>Works with local models for privacy</li>
+                        </ul>
+                    </div>
+                    <div class="demo-gif">
+                        <img src="../assets/prediction.gif" alt="Command prediction demo" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-container">
+                <div class="demo-content reverse">
+                    <div class="demo-text">
+                        <h3>Command Explanation</h3>
+                        <p>Never run a command you don't understand. Get instant explanations of what any command will do.</p>
+                        <ul class="demo-features">
+                            <li>Explains flags and options in plain English</li>
+                            <li>Shows potential side effects</li>
+                            <li>Perfect for learning new CLI tools</li>
+                            <li>Prevents destructive mistakes</li>
+                        </ul>
+                    </div>
+                    <div class="demo-gif">
+                        <img src="../assets/explanation.gif" alt="Command explanation demo" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-container">
+                <div class="demo-content">
+                    <div class="demo-text">
+                        <h3>AI Agent</h3>
+                        <p>Let Bishop's agent handle complex tasks while you stay in control with interactive permissions.</p>
+                        <ul class="demo-features">
+                            <li>Execute multi-step workflows automatically</li>
+                            <li>Preview all file changes before applying</li>
+                            <li>Granular command approval system</li>
+                            <li>Magic Fix: <code>#?</code> to fix failed commands</li>
+                        </ul>
+                    </div>
+                    <div class="demo-gif">
+                        <img src="../assets/agent.gif" alt="AI agent demo" loading="lazy">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="install" class="installation">
+        <div class="container">
+            <h2 class="section-title">Installation</h2>
+            <p class="section-subtitle">Get up and running in seconds</p>
+
+            <div class="install-tabs">
+                <button class="install-tab active" data-tab="homebrew">Homebrew</button>
+                <button class="install-tab" data-tab="nix">Nix</button>
+                <button class="install-tab" data-tab="linux">Linux Binary</button>
+                <button class="install-tab" data-tab="source">From Source</button>
+            </div>
+
+            <div class="install-content">
+                <div class="install-panel active" id="homebrew">
+                    <div class="code-block">
+                        <code><span class="comment"># Add the tap and install</span>
+brew tap robottwo/bishop && brew install bish</code>
+                        <button class="copy-btn" data-copy="brew tap robottwo/bishop && brew install bish">
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="install-panel" id="nix">
+                    <div class="code-block">
+                        <code><span class="comment"># Using Nix Flakes</span>
+nix profile install github:robottwo/bishop</code>
+                        <button class="copy-btn" data-copy="nix profile install github:robottwo/bishop">
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="install-panel" id="linux">
+                    <div class="code-block">
+                        <code><span class="comment"># Download and install the latest release</span>
+curl -LO https://github.com/robottwo/bishop/releases/latest/download/bish_Linux_x86_64.tar.gz
+tar -xzf bish_Linux_x86_64.tar.gz
+sudo install -m 0755 bish /usr/local/bin/bish</code>
+                        <button class="copy-btn" data-copy="curl -LO https://github.com/robottwo/bishop/releases/latest/download/bish_Linux_x86_64.tar.gz && tar -xzf bish_Linux_x86_64.tar.gz && sudo install -m 0755 bish /usr/local/bin/bish">
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="install-panel" id="source">
+                    <div class="code-block">
+                        <code><span class="comment"># Clone and build</span>
+git clone https://github.com/robottwo/bishop.git
+cd bishop
+make build
+./bin/bish</code>
+                        <button class="copy-btn" data-copy="git clone https://github.com/robottwo/bishop.git && cd bishop && make build && ./bin/bish">
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="compare" class="comparison">
+        <div class="container">
+            <h2 class="section-title">How Bishop Compares</h2>
+            <p class="section-subtitle">The best of traditional shells meets modern AI</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th class="bishop-col">Bishop</th>
+                            <th>Bash</th>
+                            <th>Zsh</th>
+                            <th>Fish</th>
+                            <th>Nushell</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>AI Command Prediction</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>AI Command Explanation</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>AI Agent Automation</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>Specialized Subagents</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>Local LLM Support</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>POSIX Compatible</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>History Expansion (!!, !$)</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>Job Control (fg/bg)</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>Smart Tab Completion</td>
+                            <td class="bishop-col"><span class="check">LLM-assisted</span></td>
+                            <td><span class="partial">Basic</span></td>
+                            <td><span class="check">Good</span></td>
+                            <td><span class="check">Great</span></td>
+                            <td><span class="check">Great</span></td>
+                        </tr>
+                        <tr>
+                            <td>Permission System</td>
+                            <td class="bishop-col"><span class="check">Advanced</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="cross">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>Autocd</td>
+                            <td class="bishop-col"><span class="check">✓</span></td>
+                            <td><span class="cross">-</span></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Modern TUI</td>
+                            <td class="bishop-col"><span class="check">Excellent</span></td>
+                            <td><span class="partial">Basic</span></td>
+                            <td><span class="partial">Fair</span></td>
+                            <td><span class="check">Good</span></td>
+                            <td><span class="check">Good</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="docs" class="docs">
+        <div class="container">
+            <h2 class="section-title">Documentation</h2>
+            <p class="section-subtitle">Everything you need to get productive with Bishop</p>
+
+            <div class="docs-grid">
+                <a href="GETTING_STARTED.md" class="doc-card">
+                    <h3>🚀 Getting Started</h3>
+                    <p>Installation, configuration, and your first steps with Bishop.</p>
+                </a>
+                <a href="FEATURES.md" class="doc-card">
+                    <h3>✨ Features</h3>
+                    <p>Deep dive into all of Bishop's capabilities and how to use them.</p>
+                </a>
+                <a href="AGENT.md" class="doc-card">
+                    <h3>🤖 Agent Guide</h3>
+                    <p>Learn how to use the AI agent for automated workflows.</p>
+                </a>
+                <a href="SUBAGENTS.md" class="doc-card">
+                    <h3>🧩 Subagents</h3>
+                    <p>Create specialized AI assistants for your specific workflows.</p>
+                </a>
+                <a href="CONFIGURATION.md" class="doc-card">
+                    <h3>⚙️ Configuration</h3>
+                    <p>Customize Bishop to match your preferences and environment.</p>
+                </a>
+                <a href="https://github.com/robottwo/bishop" class="doc-card">
+                    <h3>📦 GitHub</h3>
+                    <p>Source code, issues, and contribution guidelines.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <a href="#" class="logo">
+                <span class="logo-icon">♗</span>
+                Bishop
+            </a>
+            <div class="footer-links">
+                <a href="https://github.com/robottwo/bishop">GitHub</a>
+                <a href="https://github.com/robottwo/bishop/releases">Releases</a>
+                <a href="https://github.com/robottwo/bishop/issues">Issues</a>
+                <a href="GETTING_STARTED.md">Documentation</a>
+            </div>
+            <p class="footer-copy">Released under the GPLv3 License. Built with Go.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.install-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.install-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.install-panel').forEach(p => p.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Copy button functionality
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const text = btn.dataset.copy;
+                try {
+                    await navigator.clipboard.writeText(text);
+                    btn.classList.add('copied');
+                    btn.querySelector('span').textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        btn.querySelector('span').textContent = 'Copy';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                }
+            });
+        });
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
