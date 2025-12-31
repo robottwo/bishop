@@ -156,3 +156,13 @@ func (historyManager *HistoryManager) GetEntriesSince(since time.Time) ([]Histor
 
 	return entries, nil
 }
+
+// GetEntryByID returns a history entry by its ID (for !n expansion)
+func (historyManager *HistoryManager) GetEntryByID(id uint) (*HistoryEntry, error) {
+	var entry HistoryEntry
+	result := historyManager.db.First(&entry, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &entry, nil
+}

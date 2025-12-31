@@ -7,8 +7,10 @@ import (
 	"os/exec"
 	"os/signal"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/robottwo/bishop/internal/agent"
@@ -737,10 +739,99 @@ func expandHistory(input string, historyManager *history.HistoryManager) (string
 			continue
 		}
 
+		// Check for !-n (nth previous command)
+		if r == '!' && i+1 < len(runes) && runes[i+1] == '-' {
+			// Parse the number after !-
+			numStart := i + 2
+			numEnd := numStart
+			for numEnd < len(runes) && unicode.IsDigit(runes[numEnd]) {
+				numEnd++
+			}
+			if numEnd > numStart {
+				numStr := string(runes[numStart:numEnd])
+				n, err := strconv.Atoi(numStr)
+				if err == nil && n > 0 && n <= len(entries) {
+					// !-1 is the last command (entries[0]), !-2 is second to last (entries[1]), etc.
+					sb.WriteString(entries[n-1].Command)
+					expanded = true
+					i = numEnd - 1 // Move past the parsed number
+					continue
+				}
+			}
+			// Invalid !-n, write the ! and continue
+			sb.WriteRune(r)
+			continue
+		}
+
+		// Check for !n (command by history number)
+		if r == '!' && i+1 < len(runes) && unicode.IsDigit(runes[i+1]) {
+			// Parse the number after !
+			numStart := i + 1
+			numEnd := numStart
+			for numEnd < len(runes) && unicode.IsDigit(runes[numEnd]) {
+				numEnd++
+			}
+			if numEnd > numStart {
+				numStr := string(runes[numStart:numEnd])
+				n, err := strconv.Atoi(numStr)
+				if err == nil && n > 0 {
+					// Look up command by ID
+					entry, err := historyManager.GetEntryByID(uint(n))
+					if err == nil {
+						sb.WriteString(entry.Command)
+						expanded = true
+						i = numEnd - 1 // Move past the parsed number
+						continue
+					}
+				}
+			}
+			// Invalid !n, write the ! and continue
+			sb.WriteRune(r)
+			continue
+		}
+
+		// Check for !string (most recent command starting with string)
+		if r == '!' && i+1 < len(runes) && isHistoryStringChar(runes[i+1]) {
+			// Parse the string after !
+			strStart := i + 1
+			strEnd := strStart
+			for strEnd < len(runes) && isHistoryStringChar(runes[strEnd]) {
+				strEnd++
+			}
+			if strEnd > strStart {
+				prefix := string(runes[strStart:strEnd])
+				// Find most recent command starting with prefix
+				matchingEntries, err := historyManager.GetRecentEntriesByPrefix(prefix, 1)
+				if err == nil && len(matchingEntries) > 0 {
+					sb.WriteString(matchingEntries[0].Command)
+					expanded = true
+					i = strEnd - 1 // Move past the parsed string
+					continue
+				}
+			}
+			// No match found, write the ! and continue
+			sb.WriteRune(r)
+			continue
+		}
+
 		sb.WriteRune(r)
 	}
 
 	return sb.String(), expanded
+}
+
+// isHistoryStringChar returns true if the character can be part of a !string history expansion.
+// This excludes special characters that terminate the expansion.
+func isHistoryStringChar(r rune) bool {
+	// Exclude whitespace, special shell characters, and history special chars
+	if unicode.IsSpace(r) {
+		return false
+	}
+	switch r {
+	case '!', '$', '\'', '"', '\\', '`', '|', '&', ';', '<', '>', '(', ')', '{', '}', '[', ']', '\n', '\r':
+		return false
+	}
+	return true
 }
 
 // printHelp displays help information about Bishop shell commands
@@ -780,6 +871,9 @@ MAGIC FIX OPTIONS
 HISTORY EXPANSION
   !!                Repeat the last command
   !$                Use the last argument from previous command
+  !n                Execute command with history ID n
+  !-n               Execute nth previous command (e.g., !-1 = last, !-2 = second to last)
+  !string           Execute most recent command starting with 'string'
 
 KEYBOARD SHORTCUTS
   Ctrl+R            Search command history
