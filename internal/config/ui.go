@@ -176,7 +176,7 @@ func initialModel(runner *interp.Runner) model {
 	}
 	safetyChecksSetting := settingItem{
 		title:       "Safety Checks",
-		description: "Enable/Disable approved command checks",
+		description: "Enable/Disable approved command checks (session only)",
 		envVar:      "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX",
 		itemType:    typeToggle,
 	}
@@ -206,7 +206,7 @@ func initialModel(runner *interp.Runner) model {
 		},
 		menuItem{
 			title:       "Safety Checks",
-			description: "Enable/Disable approved command checks",
+			description: "Enable/Disable approved command checks (session only)",
 			setting:     &safetyChecksSetting,
 		},
 		menuItem{
@@ -500,7 +500,7 @@ func (m model) View() string {
 					switch mi.setting.envVar {
 					case "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX":
 						if strings.Contains(val, `".*"`) || strings.Contains(val, `".+"`) {
-							val = "Disabled (All commands allowed)"
+							val = "Disabled for this session"
 						} else {
 							val = "Enabled"
 						}
