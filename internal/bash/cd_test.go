@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/robottwo/bishop/internal/environment"
@@ -220,4 +221,47 @@ func TestCdCommandHandler(t *testing.T) {
 func RunScript(ctx context.Context, r *interp.Runner, code string) error {
 	_, _, err := RunBashCommand(ctx, r, code)
 	return err
+}
+
+func TestCdMinusPrintsPath(t *testing.T) {
+	// Setup temporary directory structure
+	tmpDir, err := os.MkdirTemp("", "bish-cd-minus-test")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
+
+	// Create a subdirectory
+	subDir := filepath.Join(tmpDir, "subdir")
+	err = os.Mkdir(subDir, 0755)
+	require.NoError(t, err)
+
+	// Save original working directory
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalWd)
+	}()
+
+	// Start in tmpDir
+	require.NoError(t, os.Chdir(tmpDir))
+
+	// Setup environment with OLDPWD pointing to subDir
+	dynamicEnv := environment.NewDynamicEnviron()
+	dynamicEnv.UpdateSystemEnv()
+	dynamicEnv.UpdateBishVar("OLDPWD", subDir)
+
+	r, err := interp.New(interp.Env(dynamicEnv), interp.ExecHandlers(NewCdCommandHandler()))
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Run cd - and capture output
+	stdout, _, err := RunBashCommand(ctx, r, "bish_cd -")
+	require.NoError(t, err)
+
+	// Verify the path was printed to stdout (with trailing newline)
+	expectedPath, _ := filepath.EvalSymlinks(subDir)
+	actualPath, _ := filepath.EvalSymlinks(strings.TrimSpace(stdout))
+	assert.Equal(t, expectedPath, actualPath, "cd - should print the new directory path")
 }

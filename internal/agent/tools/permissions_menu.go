@@ -328,9 +328,10 @@ func (m *simplePermissionsModel) View() string {
 	// Show each option with clear formatting like the completion box
 	for i, atom := range m.state.atoms {
 		// Selection indicator (like completion box)
-		indicator := "     "
-		if i == m.state.selectedIndex {
-			indicator = ">    "
+		isSelected := i == m.state.selectedIndex
+		indicator := "  "
+		if isSelected {
+			indicator = "➜ "
 		}
 
 		// Checkbox
@@ -345,20 +346,28 @@ func (m *simplePermissionsModel) View() string {
 			command = command[:57] + "..."
 		}
 
-		content.WriteString(fmt.Sprintf("%s%s %s\n", indicator, checkbox, command))
+		line := fmt.Sprintf("   %s%s %s", indicator, checkbox, command)
+
+		// Highlight selected line
+		if isSelected {
+			// Use AGENT_QUESTION style (yellow/bold) for the selected item
+			// But we need to be careful not to double-apply if the style function adds a newline (it doesn't appear to)
+			line = styles.AGENT_QUESTION(line)
+		}
+
+		content.WriteString(line + "\n")
 	}
 
 	content.WriteString("\n")
-	content.WriteString("Controls: j/k=navigate, space=toggle, enter=apply, esc=cancel\n")
-	content.WriteString("Direct: y=yes (one-time), n=no (deny)\n")
+	content.WriteString(styles.AGENT_MESSAGE(" Controls:") + "\n")
+	content.WriteString("  ↑/k   Navigate Up      Space  Toggle Permission\n")
+	content.WriteString("  ↓/j   Navigate Down    Enter  Confirm & Apply\n")
+	content.WriteString("  Esc   Cancel           y/n    Yes/No (Once)\n\n")
 
-	// Current state
-	currentCmd := m.state.atoms[m.state.selectedIndex].Command
-	if len(currentCmd) > 50 {
-		currentCmd = currentCmd[:47] + "..."
-	}
-	content.WriteString(fmt.Sprintf("\nCurrent: %s\n", currentCmd))
-	content.WriteString(fmt.Sprintf("Enabled: %s\n", m.getEnabledPermissionsList()))
+	content.WriteString(styles.AGENT_MESSAGE(" Tip: ") + "Enabling a permission allows matching future commands to run without prompting.\n")
+
+	// Current state - simplify for cleaner look
+	content.WriteString(fmt.Sprintf(" Enabled: %s\n", m.getEnabledPermissionsList()))
 
 	return content.String()
 }
