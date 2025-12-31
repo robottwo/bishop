@@ -23,6 +23,7 @@ import (
 	"github.com/robottwo/bishop/internal/predict"
 	"github.com/robottwo/bishop/internal/rag"
 	"github.com/robottwo/bishop/internal/rag/retrievers"
+	"github.com/robottwo/bishop/internal/setup"
 	"github.com/robottwo/bishop/internal/styles"
 	"github.com/robottwo/bishop/internal/subagent"
 	"github.com/robottwo/bishop/internal/termtitle"
@@ -30,6 +31,7 @@ import (
 	"github.com/robottwo/bishop/pkg/shellinput"
 	"go.uber.org/zap"
 	"golang.org/x/term"
+	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -217,6 +219,23 @@ func RunInteractiveShell(
 					}
 					// Sync any gsh variables that were changed in the config UI
 					environment.SyncVariablesToEnv(runner)
+					continue
+				case "setup":
+					result, err := setup.RunWizard()
+					if err != nil {
+						logger.Error("error running setup wizard", zap.Error(err))
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("bish: Error running setup: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
+					} else if !result.Skipped {
+						if err := setup.SaveConfiguration(result); err != nil {
+							logger.Error("error saving setup configuration", zap.Error(err))
+							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("bish: Error saving config: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
+						} else {
+							// Apply configuration to current session
+							applySetupToRunner(runner, result)
+							environment.SyncVariablesToEnv(runner)
+							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Configuration updated.\n") + gline.RESET_CURSOR_COLUMN)
+						}
+					}
 					continue
 				default:
 					// Handle coach command with subcommands
@@ -743,6 +762,46 @@ func expandHistory(input string, historyManager *history.HistoryManager) (string
 	return sb.String(), expanded
 }
 
+// applySetupToRunner applies the setup wizard result to the runner's environment variables
+func applySetupToRunner(runner *interp.Runner, result setup.WizardResult) {
+	if result.Skipped {
+		return
+	}
+
+	// Helper to set a variable
+	setVar := func(name, value string) {
+		runner.Vars[name] = expand.Variable{
+			Exported: true,
+			Kind:     expand.String,
+			Str:      value,
+		}
+	}
+
+	// Apply fast model settings
+	setVar("BISH_FAST_MODEL_PROVIDER", result.Provider)
+	if result.APIKey != "" {
+		setVar("BISH_FAST_MODEL_API_KEY", result.APIKey)
+	}
+	if result.BaseURL != "" {
+		setVar("BISH_FAST_MODEL_BASE_URL", result.BaseURL)
+	}
+	if result.ModelID != "" {
+		setVar("BISH_FAST_MODEL_ID", result.ModelID)
+	}
+
+	// Apply slow model settings (same as fast)
+	setVar("BISH_SLOW_MODEL_PROVIDER", result.Provider)
+	if result.APIKey != "" {
+		setVar("BISH_SLOW_MODEL_API_KEY", result.APIKey)
+	}
+	if result.BaseURL != "" {
+		setVar("BISH_SLOW_MODEL_BASE_URL", result.BaseURL)
+	}
+	if result.ModelID != "" {
+		setVar("BISH_SLOW_MODEL_ID", result.ModelID)
+	}
+}
+
 // printHelp displays help information about Bishop shell commands
 func printHelp() {
 	helpText := `
@@ -758,6 +817,7 @@ AGENT CONTROLS
   #!new             Reset the current chat session
   #!tokens          Display token usage statistics
   #!config          Open interactive configuration menu
+  #!setup           Run the LLM provider setup wizard
   #!coach           Open the coaching dashboard
     #!coach stats        View your command statistics
     #!coach achievements View your achievements

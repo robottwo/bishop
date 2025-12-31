@@ -19,6 +19,7 @@ import (
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/evaluate"
 	"github.com/robottwo/bishop/internal/history"
+	"github.com/robottwo/bishop/internal/setup"
 	"github.com/robottwo/bishop/internal/styles"
 	"go.uber.org/zap"
 	"golang.org/x/term"
@@ -163,6 +164,23 @@ func run(
 	// bish
 	if flag.NArg() == 0 {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
+			// Run first-run setup wizard if needed
+			if setup.IsFirstRun() {
+				result, err := setup.RunWizard()
+				if err != nil {
+					// Log the error but continue - the user can configure manually
+					fmt.Fprintf(os.Stderr, "Setup wizard error: %v\n", err)
+				} else if !result.Skipped {
+					// Save the configuration
+					if err := setup.SaveConfiguration(result); err != nil {
+						fmt.Fprintf(os.Stderr, "Failed to save configuration: %v\n", err)
+					} else {
+						// Apply the configuration to the current session
+						applySetupResult(runner, result)
+					}
+				}
+			}
+
 			return core.RunInteractiveShell(ctx, runner, historyManager, analyticsManager, completionManager, coachManager, logger, stderrCapturer)
 		}
 
@@ -405,4 +423,70 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 	bash.SetCdRunner(runner)
 
 	return runner, nil
+}
+
+// applySetupResult applies the setup wizard result to the runner's environment variables
+func applySetupResult(runner *interp.Runner, result setup.WizardResult) {
+	if result.Skipped {
+		return
+	}
+
+	// Apply fast model settings
+	runner.Vars["BISH_FAST_MODEL_PROVIDER"] = expand.Variable{
+		Exported: true,
+		Kind:     expand.String,
+		Str:      result.Provider,
+	}
+	if result.APIKey != "" {
+		runner.Vars["BISH_FAST_MODEL_API_KEY"] = expand.Variable{
+			Exported: true,
+			Kind:     expand.String,
+			Str:      result.APIKey,
+		}
+	}
+	if result.BaseURL != "" {
+		runner.Vars["BISH_FAST_MODEL_BASE_URL"] = expand.Variable{
+			Exported: true,
+			Kind:     expand.String,
+			Str:      result.BaseURL,
+		}
+	}
+	if result.ModelID != "" {
+		runner.Vars["BISH_FAST_MODEL_ID"] = expand.Variable{
+			Exported: true,
+			Kind:     expand.String,
+			Str:      result.ModelID,
+		}
+	}
+
+	// Apply slow model settings (same as fast)
+	runner.Vars["BISH_SLOW_MODEL_PROVIDER"] = expand.Variable{
+		Exported: true,
+		Kind:     expand.String,
+		Str:      result.Provider,
+	}
+	if result.APIKey != "" {
+		runner.Vars["BISH_SLOW_MODEL_API_KEY"] = expand.Variable{
+			Exported: true,
+			Kind:     expand.String,
+			Str:      result.APIKey,
+		}
+	}
+	if result.BaseURL != "" {
+		runner.Vars["BISH_SLOW_MODEL_BASE_URL"] = expand.Variable{
+			Exported: true,
+			Kind:     expand.String,
+			Str:      result.BaseURL,
+		}
+	}
+	if result.ModelID != "" {
+		runner.Vars["BISH_SLOW_MODEL_ID"] = expand.Variable{
+			Exported: true,
+			Kind:     expand.String,
+			Str:      result.ModelID,
+		}
+	}
+
+	// Sync to environment
+	environment.SyncVariablesToEnv(runner)
 }
