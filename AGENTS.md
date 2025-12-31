@@ -7,7 +7,7 @@ Before starting any work, ensure the development environment is properly configu
 ### Using Devcontainer (Recommended)
 
 If using VS Code, GitHub Codespaces, or Claude Code, the devcontainer automatically:
-- Installs Go 1.23
+- Installs Go 1.24
 - Installs GitHub CLI (`gh`)
 - Runs `make tools` to install linters
 - Runs `make install-hooks` to set up git hooks

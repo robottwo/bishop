@@ -73,16 +73,18 @@ func (g *GitCompleter) GetCompletions(args []string, line string) []shellinput.C
 }
 
 func (g *GitCompleter) completeBranches(prefix string) []shellinput.CompletionCandidate {
-	// Run git branch with format to get branch names and their latest commit messages
+	// Run git branch --all with format to get both local and remote branch names
 	// Format: branch_name|commit_subject
-	cmd := exec.Command("git", "branch", "--format=%(refname:short)|%(contents:subject)")
+	cmd := exec.Command("git", "branch", "--all", "--format=%(refname:short)|%(contents:subject)")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil
 	}
 
 	var candidates []shellinput.CompletionCandidate
+	seenBranches := make(map[string]bool) // Track branches we've already added
 	lines := strings.Split(string(out), "\n")
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -101,11 +103,43 @@ func (g *GitCompleter) completeBranches(prefix string) []shellinput.CompletionCa
 			}
 		}
 
-		if strings.HasPrefix(branchName, prefix) {
+		// Skip HEAD pointer entries (e.g., "origin/HEAD")
+		if strings.HasSuffix(branchName, "/HEAD") {
+			continue
+		}
+
+		// Check if this is a remote branch (contains a slash like "origin/branch-name")
+		isRemote := false
+		displayName := branchName
+		if idx := strings.Index(branchName, "/"); idx != -1 {
+			isRemote = true
+			// Extract just the branch name without remote prefix for checkout convenience
+			// e.g., "origin/feature-branch" -> "feature-branch"
+			displayName = branchName[idx+1:]
+		}
+
+		// Skip if we've already added this branch name (prefer local over remote)
+		if seenBranches[displayName] {
+			continue
+		}
+
+		if strings.HasPrefix(displayName, prefix) {
+			description := commitMsg
+			if isRemote {
+				// Extract remote name for the description
+				remoteName := branchName[:strings.Index(branchName, "/")]
+				if commitMsg != "" {
+					description = "[" + remoteName + "] " + commitMsg
+				} else {
+					description = "[" + remoteName + "]"
+				}
+			}
+
 			candidates = append(candidates, shellinput.CompletionCandidate{
-				Value:       branchName,
-				Description: commitMsg,
+				Value:       displayName,
+				Description: description,
 			})
+			seenBranches[displayName] = true
 		}
 	}
 	return candidates

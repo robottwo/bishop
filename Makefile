@@ -17,7 +17,14 @@ tapes: tapes-setup
 	# @$(MAKE) -j$(words $(GIF_FILES)) $(GIF_FILES) || ($(MAKE) tapes-cleanup && exit 1)
 	@$(MAKE) $(GIF_FILES) || ($(MAKE) tapes-cleanup && exit 1)
 	@$(MAKE) tapes-cleanup
+	@$(MAKE) publish-docs
 	@echo "All tapes compiled"
+
+.PHONY: publish-docs
+publish-docs:
+	@echo "Publishing GIFs to docs/..."
+	@cp assets/*.gif docs/
+	@echo "✓ GIFs published to docs/"
 
 .PHONY: tapes-setup
 tapes-setup:

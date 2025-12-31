@@ -1,10 +1,10 @@
 # Agent
 
-gsh can act as an agent that invokes commands on your behalf. Commands starting with "#" are sent to the agent as a chat message.
+bishop can act as an agent that invokes commands on your behalf. Commands starting with "#" are sent to the agent as a chat message.
 
 ![Agent](../assets/agent.gif)
 
-gsh can even code for you!
+bishop can even code for you!
 
 ![Agent Coding](../assets/agent_coding.gif)
 
@@ -31,7 +31,7 @@ See [Configuration](../README.md#configuration) for more details.
 
 ## Permission System
 
-When the agent wants to execute commands on your behalf, gsh provides a flexible permission system to ensure you maintain control over what gets executed.
+When the agent wants to execute commands on your behalf, bishop provides a flexible permission system to ensure you maintain control over what gets executed.
 
 ### Response Options
 
@@ -46,7 +46,7 @@ When prompted for permission to run a command, you have several response options
 
 The `m` (manage) response option opens an **interactive real-time permissions menu**:
 
-1. When you respond with `m` or `manage`, gsh displays a clean menu with all command prefixes
+1. When you respond with `m` or `manage`, bishop displays a clean menu with all command prefixes
 2. Navigate and control the menu using **immediate keyboard input** (no Enter required):
    - **j/k** to move between options instantly
    - **SPACE** to toggle permissions for individual prefixes (shows ✓ when enabled)
@@ -101,7 +101,7 @@ Agent wants to run: git status -s
 
 ### Pattern Generation
 
-gsh intelligently generates regex patterns based on the command structure:
+bishop intelligently generates regex patterns based on the command structure:
 
 - **Regular commands**: `ls -la` → `^ls.*` (matches any `ls` command)
 - **Commands with subcommands**: `git commit -m "message"` → `^git commit.*` (matches any `git commit` command)
@@ -120,7 +120,7 @@ This system works alongside the existing `BISH_AGENT_APPROVED_BASH_COMMAND_REGEX
 
 ## Compound Command Security
 
-gsh provides robust security for compound commands (commands using `;`, `&&`, `||`, `|`, or subshells) by analyzing each individual command separately:
+bishop provides robust security for compound commands (commands using `;`, `&&`, `||`, `|`, or subshells) by analyzing each individual command separately:
 
 ### Security Model
 

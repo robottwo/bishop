@@ -9,7 +9,7 @@ Fork repository: https://github.com/robottwo/bishop
 
 The shell loads configuration in this order:
 
-1. If launched as a login shell `gsh -l`, sources:
+1. If launched as a login shell `bish -l`, sources:
    - `/etc/profile`
    - `~/.bish_profile`
 2. Always loads:
@@ -62,7 +62,7 @@ export OLLAMA_HOST="http://127.0.0.1:11434"
 
 ## Interactive Configuration Menu
 
-gsh provides an interactive configuration menu accessible via the `#!config` command:
+bishop provides an interactive configuration menu accessible via the `#!config` command:
 
 ```bash
 bish> #!config
@@ -150,24 +150,24 @@ eval "$(starship init bash)"  # or zsh if you prefer
 ```
 
 Notes:
-- The example includes prompt sections for exit code, duration, and gsh build version in dev mode.
+- The example includes prompt sections for exit code, duration, and bish build version in dev mode.
 - Adjust symbols, colors, and modules per your preference.
 
 ## Login Shell Setup
 
-To make gsh your login shell (not recommended yet; experimental):
+To make bish your login shell (not recommended yet; experimental):
 
 ```bash
-which gsh
-echo "/path/to/gsh" | sudo tee -a /etc/shells
-chsh -s "/path/to/gsh"
+which bish
+echo "/path/to/bish" | sudo tee -a /etc/shells
+chsh -s "/path/to/bish"
 ```
 
-If you choose to run as a login shell, `gsh -l` will source `/etc/profile` and `~/.bish_profile` before `~/.bishrc`.
+If you choose to run as a login shell, `bish -l` will source `/etc/profile` and `~/.bish_profile` before `~/.bishrc`.
 
 ## Authorized Commands Store
 
-When you approve commands during agent operations, gsh stores regex patterns in:
+When you approve commands during agent operations, bishop stores regex patterns in:
 
 - `~/.config/gsh/authorized_commands`
 

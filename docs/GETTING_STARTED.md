@@ -10,7 +10,7 @@ If you're new, start here to install, build, and run bishop quickly.
 ## Requirements
 
 - macOS or Linux
-- Go 1.21+ installed and in your PATH
+- Go 1.24+ installed and in your PATH
 
 ## Install and Build
 

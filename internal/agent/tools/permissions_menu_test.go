@@ -370,7 +370,8 @@ func TestSimplePermissionsModel(t *testing.T) {
 	assert.Contains(t, view, "Permission Management")
 	assert.Contains(t, view, "ls")
 	assert.Contains(t, view, "ls -la")
-	assert.Contains(t, view, ">")
+	// The indicator changed from ">" to "➜"
+	assert.Contains(t, view, "➜")
 	assert.Contains(t, view, "[ ]")
 	assert.Contains(t, view, "[✓]")
 
