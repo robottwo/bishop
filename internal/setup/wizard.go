@@ -656,10 +656,26 @@ func (m Model) GetResult() WizardResult {
 	}
 }
 
+// homeDirOverride is used for testing to override the home directory
+var homeDirOverride string
+
+// SetHomeDirForTesting sets a custom home directory for testing purposes
+func SetHomeDirForTesting(dir string) {
+	homeDirOverride = dir
+}
+
+// getHomeDir returns the home directory, respecting the test override
+func getHomeDir() (string, error) {
+	if homeDirOverride != "" {
+		return homeDirOverride, nil
+	}
+	return os.UserHomeDir()
+}
+
 // IsFirstRun checks if this is the first time the shell is being run
 // by checking if the configuration files exist and have LLM settings
 func IsFirstRun() bool {
-	homeDir, err := os.UserHomeDir()
+	homeDir, err := getHomeDir()
 	if err != nil {
 		return false
 	}
@@ -668,21 +684,6 @@ func IsFirstRun() bool {
 	bishrcPath := filepath.Join(homeDir, ".bishrc")
 	if _, err := os.Stat(bishrcPath); os.IsNotExist(err) {
 		return true
-	}
-
-	// Check if .bishenv exists with LLM settings
-	bishenvPath := filepath.Join(homeDir, ".bishenv")
-	if _, err := os.Stat(bishenvPath); os.IsNotExist(err) {
-		// Check if .bishrc has LLM settings
-		content, err := os.ReadFile(bishrcPath)
-		if err != nil {
-			return true
-		}
-		// If no provider is configured, consider it first run
-		if !strings.Contains(string(content), "BISH_SLOW_MODEL_PROVIDER") &&
-			!strings.Contains(string(content), "BISH_FAST_MODEL_PROVIDER") {
-			return true
-		}
 	}
 
 	// Check if .bish_config_ui exists with LLM settings
@@ -695,6 +696,7 @@ func IsFirstRun() bool {
 	}
 
 	// Check .bishenv for provider settings
+	bishenvPath := filepath.Join(homeDir, ".bishenv")
 	if content, err := os.ReadFile(bishenvPath); err == nil {
 		if strings.Contains(string(content), "BISH_SLOW_MODEL_PROVIDER") ||
 			strings.Contains(string(content), "BISH_FAST_MODEL_PROVIDER") {
@@ -719,7 +721,7 @@ func SaveConfiguration(result WizardResult) error {
 		return nil
 	}
 
-	homeDir, err := os.UserHomeDir()
+	homeDir, err := getHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
