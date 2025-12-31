@@ -297,11 +297,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case tea.KeyEnter:
 				newValue := m.textInput.Value()
-				if err := saveConfig(m.activeSetting.envVar, newValue, m.runner); err != nil {
+				savedPath, err := saveConfig(m.activeSetting.envVar, newValue, m.runner)
+				if err != nil {
 					m.errorMsg = fmt.Sprintf("Failed to save %s: %v", m.activeSetting.envVar, err)
 					return m, nil
 				}
-				m.savedMsg = fmt.Sprintf("Saved to ~/.bish_config_ui")
+				m.savedMsg = fmt.Sprintf("Saved to %s", savedPath)
 				if m.activeSubmenu != nil {
 					m.state = stateSubmenu
 				} else {
@@ -332,11 +333,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case tea.KeyEnter:
 				if i, ok := m.selectionList.SelectedItem().(simpleItem); ok {
 					newValue := string(i)
-					if err := saveConfig(m.activeSetting.envVar, newValue, m.runner); err != nil {
+					savedPath, err := saveConfig(m.activeSetting.envVar, newValue, m.runner)
+					if err != nil {
 						m.errorMsg = fmt.Sprintf("Failed to save %s: %v", m.activeSetting.envVar, err)
 						return m, nil
 					}
-					m.savedMsg = fmt.Sprintf("Saved to ~/.bish_config_ui")
+					m.savedMsg = fmt.Sprintf("Saved to %s", savedPath)
 					if m.activeSubmenu != nil {
 						m.state = stateSubmenu
 					} else {
@@ -424,15 +426,14 @@ func (m *model) handleSettingAction(s *settingItem) tea.Cmd {
 				newVal = "true"
 			}
 		}
-		if err := saveConfig(s.envVar, newVal, m.runner); err != nil {
+		savedPath, err := saveConfig(s.envVar, newVal, m.runner)
+		if err != nil {
 			m.errorMsg = fmt.Sprintf("Failed to save %s: %v", s.envVar, err)
+		} else if savedPath == "" {
+			// Session-only setting (like safety checks)
+			m.savedMsg = "Saved (session only)"
 		} else {
-			// Safety checks only affect the session, not persisted to file
-			if s.envVar == "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
-				m.savedMsg = "Saved (session only)"
-			} else {
-				m.savedMsg = "Saved to ~/.bish_config_ui"
-			}
+			m.savedMsg = fmt.Sprintf("Saved to %s", savedPath)
 		}
 		return nil
 	}
@@ -606,7 +607,7 @@ func getEnv(runner *interp.Runner, key string) string {
 	return ""
 }
 
-func saveConfig(key, value string, runner *interp.Runner) error {
+func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err error) {
 	// Handle Safety Checks specially - only affects current session, not persisted
 	// Uses BISH_SAFETY_CHECKS_DISABLED flag which is checked in GetApprovedBashCommandRegex
 	if key == "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
@@ -623,12 +624,12 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 			delete(runner.Vars, "BISH_SAFETY_CHECKS_DISABLED")
 		}
 		// Don't persist this setting - it only affects the current session
-		return nil
+		return "", nil
 	}
 
 	// Validate input before saving
 	if err := environment.ValidateConfigValue(key, value); err != nil {
-		return err
+		return "", err
 	}
 
 	// For other settings, update current session
@@ -648,7 +649,7 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 	configPath := filepath.Join(homeDir(), ".bish_config_ui")
 	f, err := os.OpenFile(configPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Write export command
@@ -657,10 +658,10 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 
 	if _, err := f.WriteString(line); err != nil {
 		_ = f.Close()
-		return err
+		return "", err
 	}
 	if err := f.Close(); err != nil {
-		return err
+		return "", err
 	}
 
 	// Ensure sourced in .bishrc
@@ -669,12 +670,12 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 
 	content, err := os.ReadFile(gshrcPath)
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to read %s: %w", gshrcPath, err)
+		return "", fmt.Errorf("failed to read %s: %w", gshrcPath, err)
 	}
 
 	// Check if already contains the source snippet
 	if err == nil && strings.Contains(string(content), ".bish_config_ui") {
-		return nil // Already configured
+		return configPath, nil // Already configured
 	}
 
 	// Need to add the source snippet - either append to existing or create new
@@ -682,12 +683,12 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 	if os.IsNotExist(err) {
 		f2, err = os.Create(gshrcPath)
 		if err != nil {
-			return fmt.Errorf("failed to create %s: %w", gshrcPath, err)
+			return "", fmt.Errorf("failed to create %s: %w", gshrcPath, err)
 		}
 	} else {
 		f2, err = os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
-			return fmt.Errorf("failed to open %s for appending: %w", gshrcPath, err)
+			return "", fmt.Errorf("failed to open %s for appending: %w", gshrcPath, err)
 		}
 	}
 
@@ -700,8 +701,8 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 
 	if _, err := f2.WriteString(sourceSnippet); err != nil {
 		writeErr = fmt.Errorf("failed to write to %s: %w", gshrcPath, err)
-		return writeErr
+		return "", writeErr
 	}
 
-	return writeErr
+	return configPath, writeErr
 }
