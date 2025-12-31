@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/robottwo/bishop/internal/environment"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robottwo/bishop/internal/environment"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 )
@@ -46,20 +46,20 @@ func GetSessionOverride(key string) (string, bool) {
 }
 
 type model struct {
-	runner         *interp.Runner
-	list           list.Model
-	submenuList    list.Model
-	selectionList  list.Model
-	state          state
-	items          []settingItem
-	textInput      textinput.Model
-	activeSetting  *settingItem
-	activeSubmenu  *menuItem
-	quitting       bool
-	width          int
-	height         int
-	errorMsg       string // Temporary error message to display
-	savedMsg       string // Temporary saved confirmation message
+	runner        *interp.Runner
+	list          list.Model
+	submenuList   list.Model
+	selectionList list.Model
+	state         state
+	items         []settingItem
+	textInput     textinput.Model
+	activeSetting *settingItem
+	activeSubmenu *menuItem
+	quitting      bool
+	width         int
+	height        int
+	errorMsg      string // Temporary error message to display
+	savedMsg      string // Temporary saved confirmation message
 }
 
 type state int
@@ -645,24 +645,111 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 	// Sync to environment so changes take effect immediately
 	environment.SyncVariableToEnv(runner, key)
 
-	// Persist to file for future sessions
+	// Persist to file for future sessions (deduplicating entries)
 	configPath := filepath.Join(homeDir(), ".bish_config_ui")
-	f, err := os.OpenFile(configPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	configDir := filepath.Dir(configPath)
+
+	// Acquire exclusive lock on a lock file to prevent concurrent writes
+	lockPath := configPath + ".lock"
+	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to open lock file: %w", err)
+	}
+	defer func() {
+		_ = flockUnlock(lockFile.Fd())
+		_ = lockFile.Close()
+	}()
+
+	if err := flockExclusive(lockFile.Fd()); err != nil {
+		return "", fmt.Errorf("failed to acquire lock: %w", err)
 	}
 
-	// Write export command
-	safeValue := strings.ReplaceAll(value, "'", "'\\''")
-	line := fmt.Sprintf("export %s='%s'\n", key, safeValue)
+	// Read existing config entries while holding lock
+	configEntries := make(map[string]string)
+	var orderedKeys []string
 
-	if _, err := f.WriteString(line); err != nil {
-		_ = f.Close()
-		return "", err
+	if content, err := os.ReadFile(configPath); err == nil {
+		for _, line := range strings.Split(string(content), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			// Parse "export KEY='value'" or "export KEY=value"
+			if strings.HasPrefix(line, "export ") {
+				rest := strings.TrimPrefix(line, "export ")
+				if idx := strings.Index(rest, "="); idx > 0 {
+					k := rest[:idx]
+					if _, exists := configEntries[k]; !exists {
+						orderedKeys = append(orderedKeys, k)
+					}
+					// Extract value (handle quoted values)
+					v := rest[idx+1:]
+					v = strings.Trim(v, "'\"")
+					configEntries[k] = v
+				}
+			}
+		}
 	}
-	if err := f.Close(); err != nil {
-		return "", err
+
+	// Update or add the new key
+	if _, exists := configEntries[key]; !exists {
+		orderedKeys = append(orderedKeys, key)
 	}
+	configEntries[key] = value
+
+	// Build new config content
+	var buf strings.Builder
+	for _, k := range orderedKeys {
+		v := configEntries[k]
+		safeValue := strings.ReplaceAll(v, "'", "'\\''")
+		buf.WriteString(fmt.Sprintf("export %s='%s'\n", k, safeValue))
+	}
+
+	// Atomic write: write to temp file, fsync, rename over original
+	tmpFile, err := os.CreateTemp(configDir, ".bish_config_ui.*.tmp")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+
+	// Clean up temp file on any error
+	success := false
+	defer func() {
+		if !success {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	if _, err := tmpFile.WriteString(buf.String()); err != nil {
+		_ = tmpFile.Close()
+		return "", fmt.Errorf("failed to write temp file: %w", err)
+	}
+
+	if err := tmpFile.Sync(); err != nil {
+		_ = tmpFile.Close()
+		return "", fmt.Errorf("failed to fsync temp file: %w", err)
+	}
+
+	if err := tmpFile.Chmod(0644); err != nil {
+		_ = tmpFile.Close()
+		return "", fmt.Errorf("failed to set permissions on temp file: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		return "", fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	if err := os.Rename(tmpPath, configPath); err != nil {
+		return "", fmt.Errorf("failed to rename temp file: %w", err)
+	}
+
+	// Fsync the directory to ensure rename is persisted
+	if dir, err := os.Open(configDir); err == nil {
+		_ = dir.Sync()
+		_ = dir.Close()
+	}
+
+	success = true
 
 	// Ensure sourced in .bishrc
 	gshrcPath := filepath.Join(homeDir(), ".bishrc")
