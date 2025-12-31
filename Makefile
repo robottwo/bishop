@@ -53,7 +53,7 @@ test:
 .PHONY: lint
 lint:
 	@echo "Running golangci-lint..."
-	@golangci-lint run
+	@golangci-lint run --timeout=5m
 
 .PHONY: vulncheck
 vulncheck:
