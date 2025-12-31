@@ -24,7 +24,7 @@ Related docs:
 
 ## Generative Command Suggestion
 
-gsh automatically suggests the next command you are likely to run based on your history and context.
+bishop automatically suggests the next command you are likely to run based on your history and context.
 
 ![Generative Suggestion](../assets/prediction.gif)
 
@@ -37,7 +37,7 @@ Key points:
 
 ## Command Explanation
 
-gsh can explain the command you are about to run so you can validate effects and options quickly.
+bishop can explain the command you are about to run so you can validate effects and options quickly.
 
 ![Command Explanation](../assets/explanation.gif)
 
