@@ -1294,18 +1294,6 @@ func (s *StaticCompleter) registerWithDesc(command string, subcommands []subCmd)
 	s.completions[command] = candidates
 }
 
-// register registers a command with simple subcommand strings (no descriptions)
-func (s *StaticCompleter) register(command string, subcommands []string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var candidates []shellinput.CompletionCandidate
-	for _, sub := range subcommands {
-		candidates = append(candidates, shellinput.CompletionCandidate{Value: sub})
-	}
-	s.completions[command] = candidates
-}
-
 // RegisterUserCommand allows users to register custom command completions at runtime
 func (s *StaticCompleter) RegisterUserCommand(command string, subcommands []UserCompletion) {
 	s.mu.Lock()
