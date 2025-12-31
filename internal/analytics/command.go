@@ -30,14 +30,13 @@ func NewAnalyticsCommandHandler(analyticsManager *AnalyticsManager) func(next in
 				case "-d", "--delete":
 					// Delete a specific entry
 					if len(args) < 3 {
-						return fmt.Errorf("analytics -d requires an entry number")
+						return fmt.Errorf("analytics -d requires an entry ID")
 					}
-					offset, err := strconv.Atoi(args[2])
+					id, err := strconv.Atoi(args[2])
 					if err != nil {
-						return fmt.Errorf("invalid analytics entry number: %s", args[2])
+						return fmt.Errorf("invalid analytics entry ID: %s", args[2])
 					}
-					id := uint(offset)
-					if err := analyticsManager.DeleteEntry(id); err != nil {
+					if err := analyticsManager.DeleteEntry(uint(id)); err != nil {
 						return fmt.Errorf("failed to delete analytics entry %d: %v", id, err)
 					}
 					return nil
@@ -94,7 +93,7 @@ func printAnalyticsHelp() {
 		"",
 		"Options:",
 		"  -c, --clear    clear all analytics data",
-		"  -d, --delete   delete analytics entry at offset",
+		"  -d, --delete   delete analytics entry by ID",
 		"  -h, --help     display this help message",
 		"  -n, --count    display total number of entries",
 		"",
