@@ -1,20 +1,17 @@
 //go:build darwin && !cgo
 
+// This file provides a pure-Go fallback for Darwin when CGO is disabled
+// (e.g., during cross-compilation). Unlike the CGO implementation which
+// computes delta-based CPU usage between samples, this version returns
+// instantaneous CPU readings from the `top` command.
+
 package system
 
 import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
-)
-
-var (
-	lastCPUSampleTime time.Time
-	lastTotalTicks    uint64
-	lastIdleTicks     uint64
-	cpuMutex          sync.Mutex
 )
 
 func getResources() *Resources {
