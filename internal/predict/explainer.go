@@ -41,7 +41,7 @@ func (p *LLMExplainer) UpdateContext(context *map[string]string) {
 	p.contextText = utils.ComposeContextText(context, contextTypes, p.logger)
 }
 
-func (e *LLMExplainer) Explain(input string) (string, error) {
+func (e *LLMExplainer) Explain(ctx context.Context, input string) (string, error) {
 	if input == "" {
 		return "", nil
 	}
@@ -99,7 +99,7 @@ You will be given a bash command entered by me, enclosed in <command> tags.
 		request.Temperature = float32(*e.temperature)
 	}
 
-	chatCompletion, err := e.llmClient.CreateChatCompletion(context.TODO(), request)
+	chatCompletion, err := e.llmClient.CreateChatCompletion(ctx, request)
 
 	if err != nil {
 		return "", err
