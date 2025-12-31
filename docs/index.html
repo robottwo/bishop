@@ -543,6 +543,53 @@
             font-size: 0.9rem;
         }
 
+        /* Hamburger button */
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+            width: 40px;
+            height: 40px;
+            padding: 8px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .nav-toggle:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .nav-toggle:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .hamburger-line {
+            display: block;
+            width: 100%;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+
+        /* Hamburger animation when open */
+        .nav-open .nav-toggle .hamburger-line:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+
+        .nav-open .nav-toggle .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .nav-open .nav-toggle .hamburger-line:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .hero h1 {
@@ -557,8 +604,45 @@
                 direction: ltr;
             }
 
+            .nav-toggle {
+                display: flex;
+            }
+
             .nav-links {
                 display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                flex-direction: column;
+                background: var(--bg-secondary);
+                border-bottom: 1px solid var(--border);
+                padding: 16px 24px;
+                gap: 0;
+                max-height: calc(100vh - 70px);
+                overflow-y: auto;
+            }
+
+            .nav-open .nav-links {
+                display: flex;
+            }
+
+            .nav-links li {
+                border-bottom: 1px solid var(--border);
+            }
+
+            .nav-links li:last-child {
+                border-bottom: none;
+            }
+
+            .nav-links a {
+                display: block;
+                padding: 16px 0;
+            }
+
+            .nav-links .nav-cta {
+                display: inline-block;
+                margin: 16px 0;
             }
 
             .features-grid {
@@ -606,7 +690,12 @@
                 <span class="logo-icon">♗</span>
                 Bishop
             </a>
-            <ul class="nav-links">
+            <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            <ul class="nav-links" id="nav-links">
                 <li><a href="#features">Features</a></li>
                 <li><a href="#demos">Demos</a></li>
                 <li><a href="#install">Install</a></li>
@@ -962,6 +1051,62 @@ make build
     </footer>
 
     <script>
+        // Mobile navigation toggle
+        (function() {
+            const nav = document.querySelector('nav');
+            const toggle = document.getElementById('nav-toggle');
+            const navLinks = document.getElementById('nav-links');
+
+            function openNav() {
+                nav.classList.add('nav-open');
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+
+            function closeNav() {
+                nav.classList.remove('nav-open');
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+
+            function toggleNav() {
+                if (nav.classList.contains('nav-open')) {
+                    closeNav();
+                } else {
+                    openNav();
+                }
+            }
+
+            // Click toggle
+            toggle.addEventListener('click', toggleNav);
+
+            // Keyboard support
+            toggle.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleNav();
+                }
+            });
+
+            // Close on Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && nav.classList.contains('nav-open')) {
+                    closeNav();
+                    toggle.focus();
+                }
+            });
+
+            // Close when clicking a nav link
+            navLinks.querySelectorAll('a').forEach(function(link) {
+                link.addEventListener('click', closeNav);
+            });
+
+            // Close when clicking outside
+            document.addEventListener('click', function(e) {
+                if (nav.classList.contains('nav-open') && !nav.contains(e.target)) {
+                    closeNav();
+                }
+            });
+        })();
+
         // Fetch latest version from GitHub
         (async function() {
             const versionEl = document.getElementById('version-number');
