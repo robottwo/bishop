@@ -67,7 +67,7 @@ ci: lint vulncheck test build
 tools:
 	@echo "Installing tools..."
 	@go install golang.org/x/vuln/cmd/govulncheck@latest
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
 	@echo ""
 	@echo "Checking for vhs (GIF recorder)..."
 ifeq ($(OS),Windows_NT)
