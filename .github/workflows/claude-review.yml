@@ -1,8 +1,14 @@
 name: Claude Code Review
 
+# Run after CI workflows complete successfully to avoid wasting tokens on failing PRs
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  # Trigger after other workflows complete
+  workflow_run:
+    workflows: ["CI", "Lint", "Vulnerability Check"]
+    types:
+      - completed
+
+  # Also support interactive reviews via @claude mentions
   issue_comment:
     types: [created]
 
@@ -14,14 +20,23 @@ permissions:
 
 jobs:
   claude-review:
+    # Only run if:
+    # 1. All triggering workflows succeeded (for workflow_run)
+    # 2. Or it's an @claude mention in a comment (for issue_comment)
     if: |
-      (github.event_name == 'pull_request') ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'pull_request') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@claude'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          # For workflow_run, checkout the PR head
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
 
       - name: Run Claude Code Review
