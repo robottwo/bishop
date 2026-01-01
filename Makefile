@@ -93,11 +93,19 @@ ifeq ($(OS),Windows_NT)
 else
 	@command -v gh >/dev/null 2>&1 && \
 		echo "✓ gh is already installed" || \
-		(echo "⚠ gh (GitHub CLI) is not installed." && \
-		echo "  Install it from: https://cli.github.com/" && \
-		echo "  - macOS: brew install gh" && \
-		echo "  - Linux: See https://github.com/cli/cli/blob/trunk/docs/install_linux.md")
+		(echo "Installing GitHub CLI (gh)..." && \
+		$(MAKE) install-gh)
 endif
+
+.PHONY: install-gh
+install-gh:
+	@GH_VERSION=$$(curl -s https://api.github.com/repos/cli/cli/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/') && \
+	echo "Downloading gh v$$GH_VERSION..." && \
+	curl -sLO "https://github.com/cli/cli/releases/download/v$${GH_VERSION}/gh_$${GH_VERSION}_linux_amd64.tar.gz" && \
+	tar -xzf "gh_$${GH_VERSION}_linux_amd64.tar.gz" && \
+	sudo mv "gh_$${GH_VERSION}_linux_amd64/bin/gh" /usr/local/bin/ && \
+	rm -rf "gh_$${GH_VERSION}_linux_amd64" "gh_$${GH_VERSION}_linux_amd64.tar.gz" && \
+	echo "✓ gh v$$GH_VERSION installed successfully"
 
 .PHONY: install-hooks
 install-hooks:
