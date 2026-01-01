@@ -9,7 +9,7 @@ Fork repository: https://github.com/robottwo/bishop
 
 The shell loads configuration in this order:
 
-1. If launched as a login shell `gsh -l`, sources:
+1. If launched as a login shell `bish -l`, sources:
    - `/etc/profile`
    - `~/.bish_profile`
 2. Always loads:
@@ -62,7 +62,7 @@ export OLLAMA_HOST="http://127.0.0.1:11434"
 
 ## Interactive Configuration Menu
 
-gsh provides an interactive configuration menu accessible via the `#!config` command:
+bishop provides an interactive configuration menu accessible via the `#!config` command:
 
 ```bash
 bish> #!config
@@ -150,24 +150,24 @@ eval "$(starship init bash)"  # or zsh if you prefer
 ```
 
 Notes:
-- The example includes prompt sections for exit code, duration, and gsh build version in dev mode.
+- The example includes prompt sections for exit code, duration, and bish build version in dev mode.
 - Adjust symbols, colors, and modules per your preference.
 
 ## Login Shell Setup
 
-To make gsh your login shell (not recommended yet; experimental):
+To make bish your login shell (not recommended yet; experimental):
 
 ```bash
-which gsh
-echo "/path/to/gsh" | sudo tee -a /etc/shells
-chsh -s "/path/to/gsh"
+which bish
+echo "/path/to/bish" | sudo tee -a /etc/shells
+chsh -s "/path/to/bish"
 ```
 
-If you choose to run as a login shell, `gsh -l` will source `/etc/profile` and `~/.bish_profile` before `~/.bishrc`.
+If you choose to run as a login shell, `bish -l` will source `/etc/profile` and `~/.bish_profile` before `~/.bishrc`.
 
 ## Authorized Commands Store
 
-When you approve commands during agent operations, gsh stores regex patterns in:
+When you approve commands during agent operations, bishop stores regex patterns in:
 
 - `~/.config/gsh/authorized_commands`
 
@@ -185,6 +185,111 @@ rm ~/.config/gsh/authorized_commands
 ```
 
 These patterns complement any defaults you provide via environment variables.
+
+## Custom Command Completions
+
+bishop provides intelligent tab completion for 30+ popular CLI tools out of the box, including:
+
+- **Container tools**: docker, docker-compose, podman, kubectl, helm
+- **Package managers**: npm, yarn, pnpm, pip, cargo, apt, brew
+- **Cloud CLIs**: aws, gcloud, az (Azure)
+- **Database clients**: psql, mysql, redis-cli, mongosh
+- **Dev tools**: go, cargo, gh (GitHub CLI), terraform
+- **System tools**: systemctl, tmux, curl, jq
+- **Editors**: vim, nvim, code (VS Code)
+
+### User-Defined Completions
+
+You can define custom completions for your own commands or tools not included by default. Create a configuration file in one of these locations (checked in order):
+
+1. `$XDG_CONFIG_HOME/bish/completions.yaml`
+2. `~/.config/bish/completions.yaml`
+3. `~/.bish_completions.yaml`
+
+JSON format is also supported (use `.json` extension).
+
+### Configuration Format
+
+**YAML example** (`~/.config/bish/completions.yaml`):
+
+```yaml
+commands:
+  # Custom CLI tool
+  myapp:
+    - value: start
+      description: Start the application
+    - value: stop
+      description: Stop the application
+    - value: status
+      description: Check application status
+    - value: logs
+      description: View application logs
+
+  # Internal deployment tool
+  deploy:
+    - value: staging
+      description: Deploy to staging environment
+    - value: production
+      description: Deploy to production environment
+    - value: rollback
+      description: Rollback to previous version
+
+  # Project-specific commands
+  proj:
+    - value: build
+    - value: test
+    - value: lint
+    - value: format
+```
+
+**JSON example** (`~/.config/bish/completions.json`):
+
+```json
+{
+  "commands": {
+    "myapp": [
+      {"value": "start", "description": "Start the application"},
+      {"value": "stop", "description": "Stop the application"},
+      {"value": "status", "description": "Check application status"}
+    ],
+    "deploy": [
+      {"value": "staging", "description": "Deploy to staging"},
+      {"value": "production", "description": "Deploy to production"}
+    ]
+  }
+}
+```
+
+### Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `value` | Yes | The completion text that will be inserted |
+| `description` | No | Optional description shown in completion menu |
+
+### Usage
+
+After creating your configuration file, completions are loaded automatically when bishop starts. Type your command followed by a space and press Tab:
+
+```bash
+bish> myapp <Tab>
+start   - Start the application
+stop    - Stop the application
+status  - Check application status
+logs    - View application logs
+
+bish> myapp st<Tab>
+start   - Start the application
+status  - Check application status
+stop    - Stop the application
+```
+
+### Notes
+
+- User-defined completions can override built-in completions for the same command
+- Completions are loaded once at shell startup
+- The `description` field is optional but recommended for discoverability
+- Both YAML and JSON formats are supported
 
 ## Troubleshooting
 

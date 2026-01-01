@@ -3,9 +3,10 @@ package utils
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestComposeContextText(t *testing.T) {
@@ -32,4 +33,70 @@ func TestComposeContextText(t *testing.T) {
 	// Test with nil context
 	result = ComposeContextText(nil, []string{"type1"}, logger)
 	assert.Equal(t, "", result, "Should return empty string for nil context")
+}
+
+func TestGenerateJsonSchema(t *testing.T) {
+	type TestStruct struct {
+		Name  string `json:"name"`
+		Value int    `json:"value"`
+	}
+
+	schema := GenerateJsonSchema(TestStruct{})
+	require.NotNil(t, schema)
+
+	// Verify schema can be marshaled
+	jsonBytes, err := schema.MarshalJSON()
+	require.NoError(t, err)
+	assert.NotEmpty(t, jsonBytes)
+}
+
+func TestGenerateJsonSchema_EmptyStruct(t *testing.T) {
+	type EmptyStruct struct{}
+
+	schema := GenerateJsonSchema(EmptyStruct{})
+	require.NotNil(t, schema)
+}
+
+func TestGenerateJsonSchema_NestedStruct(t *testing.T) {
+	type Inner struct {
+		ID int `json:"id"`
+	}
+	type Outer struct {
+		Inner Inner  `json:"inner"`
+		Name  string `json:"name"`
+	}
+
+	schema := GenerateJsonSchema(Outer{})
+	require.NotNil(t, schema)
+}
+
+func TestLLMModelType_Constants(t *testing.T) {
+	assert.Equal(t, LLMModelType("FAST"), FastModel)
+	assert.Equal(t, LLMModelType("SLOW"), SlowModel)
+}
+
+func TestLLMModelConfig_Struct(t *testing.T) {
+	temp := 0.7
+	parallel := true
+	config := LLMModelConfig{
+		ModelId:           "gpt-4",
+		Temperature:       &temp,
+		ParallelToolCalls: &parallel,
+	}
+
+	assert.Equal(t, "gpt-4", config.ModelId)
+	require.NotNil(t, config.Temperature)
+	assert.Equal(t, 0.7, *config.Temperature)
+	require.NotNil(t, config.ParallelToolCalls)
+	assert.True(t, *config.ParallelToolCalls)
+}
+
+func TestLLMModelConfig_NilOptionals(t *testing.T) {
+	config := LLMModelConfig{
+		ModelId: "claude-3",
+	}
+
+	assert.Equal(t, "claude-3", config.ModelId)
+	assert.Nil(t, config.Temperature)
+	assert.Nil(t, config.ParallelToolCalls)
 }

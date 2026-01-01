@@ -17,7 +17,14 @@ tapes: tapes-setup
 	# @$(MAKE) -j$(words $(GIF_FILES)) $(GIF_FILES) || ($(MAKE) tapes-cleanup && exit 1)
 	@$(MAKE) $(GIF_FILES) || ($(MAKE) tapes-cleanup && exit 1)
 	@$(MAKE) tapes-cleanup
+	@$(MAKE) publish-docs
 	@echo "All tapes compiled"
+
+.PHONY: publish-docs
+publish-docs:
+	@echo "Publishing GIFs to docs/..."
+	@cp assets/*.gif docs/
+	@echo "✓ GIFs published to docs/"
 
 .PHONY: tapes-setup
 tapes-setup:
@@ -46,7 +53,7 @@ test:
 .PHONY: lint
 lint:
 	@echo "Running golangci-lint..."
-	@golangci-lint run
+	@golangci-lint run --timeout=5m
 
 .PHONY: vulncheck
 vulncheck:
@@ -60,7 +67,7 @@ ci: lint vulncheck test build
 tools:
 	@echo "Installing tools..."
 	@go install golang.org/x/vuln/cmd/govulncheck@latest
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
 	@echo ""
 	@echo "Checking for vhs (GIF recorder)..."
 ifeq ($(OS),Windows_NT)

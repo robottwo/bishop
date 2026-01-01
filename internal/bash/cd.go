@@ -88,6 +88,9 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		}
 	}
 
+	// Track if we should print the path (for cd -)
+	printPath := false
+
 	// Expand any path variables and handle special cases
 	switch targetDir {
 	case "~":
@@ -105,6 +108,7 @@ func handleCdCommand(ctx context.Context, args []string) error {
 			return fmt.Errorf("no previous directory")
 		}
 		targetDir = prevDir.String()
+		printPath = true
 	}
 
 	// Determine if path is absolute - be extra careful on Windows
@@ -197,6 +201,11 @@ func handleCdCommand(ctx context.Context, args []string) error {
 	if cdRunner != nil && cdRunner.Vars != nil {
 		cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
 		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: targetDir, Exported: true}
+	}
+
+	// Print the new directory path for cd - (matches bash behavior)
+	if printPath {
+		_, _ = fmt.Fprintln(hc.Stdout, targetDir)
 	}
 
 	return nil

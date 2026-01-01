@@ -3,10 +3,16 @@ package analytics
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	"mvdan.cc/sh/v3/interp"
+)
+
+const (
+	defaultMaxWidth = 40 // Default max width for truncated columns
 )
 
 func NewAnalyticsCommandHandler(analyticsManager *AnalyticsManager) func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
@@ -71,15 +77,13 @@ func NewAnalyticsCommandHandler(analyticsManager *AnalyticsManager) func(next in
 				return err
 			}
 
-			// Print entries
-			for _, entry := range entries {
-				fmt.Printf("%d [%s] Input: %s, Prediction: %s, Actual: %s\n",
-					entry.ID,
-					entry.CreatedAt.Format("2006-01-02 15:04:05"),
-					entry.Input,
-					entry.Prediction,
-					entry.Actual)
+			if len(entries) == 0 {
+				fmt.Println("No analytics entries found.")
+				return nil
 			}
+
+			// Print entries in table format
+			printEntriesTable(entries)
 
 			return nil
 		}
@@ -98,7 +102,45 @@ func printAnalyticsHelp() {
 		"  -n, --count    display total number of entries",
 		"",
 		"If n is given, display only the last n entries.",
-		"If no options are given, display the analytics list with line numbers.",
+		"If no options are given, display the analytics list in table format.",
 	}
 	fmt.Println(strings.Join(help, "\n"))
+}
+
+// printEntriesTable prints analytics entries in a formatted table
+func printEntriesTable(entries []AnalyticsEntry) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+
+	// Print header
+	fmt.Fprintln(w, "ID\tTIME\tINPUT\tPREDICTION\tACTUAL")
+	fmt.Fprintln(w, "──\t────\t─────\t──────────\t──────")
+
+	// Print each entry
+	for _, entry := range entries {
+		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\n",
+			entry.ID,
+			entry.CreatedAt.Format("01/02 15:04"),
+			truncate(entry.Input, defaultMaxWidth),
+			truncate(entry.Prediction, defaultMaxWidth),
+			truncate(entry.Actual, defaultMaxWidth),
+		)
+	}
+
+	w.Flush()
+}
+
+// truncate shortens a string to maxLen characters, adding ellipsis if truncated
+func truncate(s string, maxLen int) string {
+	// Replace newlines with spaces for single-line display
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.TrimSpace(s)
+
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
 }
