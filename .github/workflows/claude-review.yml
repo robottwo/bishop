@@ -1,14 +1,8 @@
 name: Claude Code Review
 
-# Run after CI workflows complete successfully to avoid wasting tokens on failing PRs
 on:
-  # Trigger after other workflows complete
-  workflow_run:
-    workflows: ["CI", "Lint", "Vulnerability Check"]
-    types:
-      - completed
-
-  # Also support interactive reviews via @claude mentions
+  pull_request:
+    types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
 
@@ -16,17 +10,13 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  actions: read
   id-token: write
 
 jobs:
   claude-review:
-    # Only run if:
-    # 1. All triggering workflows succeeded (for workflow_run)
-    # 2. Or it's an @claude mention in a comment (for issue_comment)
     if: |
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'pull_request') ||
+      (github.event_name == 'pull_request') ||
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
        contains(github.event.comment.body, '@claude'))
@@ -35,9 +25,86 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # For workflow_run, checkout the PR head
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
+
+      - name: Wait for CI workflows to complete
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const head_sha = context.payload.pull_request.head.sha;
+
+            // Map workflow file names to display names
+            const requiredWorkflows = [
+              { file: 'ci.yml', name: 'CI' },
+              { file: 'lint.yml', name: 'Lint' },
+              { file: 'govulncheck.yml', name: 'Vulnerability Check' }
+            ];
+
+            const maxAttempts = 60;  // 30 minutes max wait (60 * 30s)
+            const pollInterval = 30000;  // 30 seconds
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              console.log(`Attempt ${attempt}/${maxAttempts}: Checking workflow status...`);
+
+              // Get all workflow runs for this commit
+              const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                head_sha,
+                per_page: 100,
+              });
+
+              // Find the status of required workflows
+              const workflowStatus = {};
+              for (const workflow of requiredWorkflows) {
+                // Find runs matching this workflow file
+                const matchingRuns = workflowRuns.workflow_runs.filter(run =>
+                  run.path === `.github/workflows/${workflow.file}`
+                );
+
+                if (matchingRuns.length === 0) {
+                  workflowStatus[workflow.name] = 'pending';
+                } else {
+                  // Get the most recent run for this workflow
+                  const latestRun = matchingRuns.sort((a, b) =>
+                    new Date(b.created_at) - new Date(a.created_at)
+                  )[0];
+
+                  if (latestRun.status !== 'completed') {
+                    workflowStatus[workflow.name] = 'in_progress';
+                  } else if (latestRun.conclusion === 'success') {
+                    workflowStatus[workflow.name] = 'success';
+                  } else {
+                    workflowStatus[workflow.name] = 'failure';
+                  }
+                }
+              }
+
+              console.log('Workflow status:', JSON.stringify(workflowStatus, null, 2));
+
+              // Check if any workflow failed
+              const failed = Object.entries(workflowStatus).filter(([_, status]) => status === 'failure');
+              if (failed.length > 0) {
+                core.setFailed(`CI workflows failed: ${failed.map(([name]) => name).join(', ')}. Skipping Claude review to save tokens.`);
+                return;
+              }
+
+              // Check if all workflows succeeded
+              const allSucceeded = Object.values(workflowStatus).every(status => status === 'success');
+              if (allSucceeded) {
+                console.log('All CI workflows passed! Proceeding with Claude review.');
+                return;
+              }
+
+              // Still waiting
+              console.log(`Waiting ${pollInterval/1000}s before next check...`);
+              await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+
+            core.setFailed('Timeout waiting for CI workflows to complete');
 
       - name: Run Claude Code Review
         uses: anthropics/claude-code-action@v1
