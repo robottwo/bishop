@@ -61,7 +61,7 @@ func TestDefaultFileSystem_Create(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, file)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Verify file exists
 	_, err = os.Stat(tmpFile)
@@ -80,7 +80,7 @@ func TestDefaultFileSystem_Open(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, file)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 }
 
 func TestDefaultFileSystem_Open_NonExistent(t *testing.T) {
@@ -99,7 +99,7 @@ func TestDefaultFileSystem_OpenFile(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, file)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Write some data
 	_, err = file.WriteString("test data")
