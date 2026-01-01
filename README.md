@@ -122,7 +122,7 @@ Highlights:
 - Preview of code edits and diffs before applying changes
 - Chat macros for common tasks
 
-Full guide: [docs/AGENT.md](docs/AGENT.md)
+Full guide: [docs/AGENTS.md](docs/AGENTS.md)
 
 ---
 
@@ -149,7 +149,7 @@ Details and screenshots:
 - Getting started: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
 - Configuration: [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
 - Features: [docs/FEATURES.md](docs/FEATURES.md)
-- Agent: [docs/AGENT.md](docs/AGENT.md)
+- Agent: [docs/AGENTS.md](docs/AGENTS.md)
 - Subagents: [docs/SUBAGENTS.md](docs/SUBAGENTS.md)
 - Roadmap: [ROADMAP.md](ROADMAP.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)

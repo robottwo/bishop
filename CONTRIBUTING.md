@@ -133,7 +133,7 @@ We keep README.md concise and link to focused docs:
 - docs/GETTING_STARTED.md
 - docs/CONFIGURATION.md
 - docs/FEATURES.md
-- docs/AGENT.md
+- docs/AGENTS.md
 - SUBAGENTS.md
 
 Guidelines:
