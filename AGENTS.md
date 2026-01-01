@@ -1,147 +1,210 @@
-# Agent Instructions
+# Agent
 
-## Setup Requirements
+bishop can act as an agent that invokes commands on your behalf. Commands starting with "#" are sent to the agent as a chat message.
 
-Before starting any work, ensure the development environment is properly configured.
+![Agent](../assets/agent.gif)
 
-### Using Devcontainer (Recommended)
+bishop can even code for you!
 
-If using VS Code, GitHub Codespaces, or Claude Code, the devcontainer automatically:
-- Installs Go 1.24
-- Installs GitHub CLI (`gh`)
-- Runs `make tools` to install linters
-- Runs `make install-hooks` to set up git hooks
+![Agent Coding](../assets/agent_coding.gif)
 
-Just open the project in a devcontainer-compatible environment and you're ready to go.
+## Chat Macros
 
-### Manual Setup
+You can use chat macros to quickly send frequently used messages to the agent.
 
-If not using a devcontainer, follow these steps:
-
-#### Install Git Hooks
-
-**Always run this first** to set up the pre-commit hook that runs linters, tests, and vulnerability checks:
+A chat macro starts with "#/" followed by the macro name. The default configuration comes with a few chat macros:
 
 ```bash
-make install-hooks
+# Summarize git changes
+bish> #/gitdiff
+
+# Commit and push changes
+bish> #/gitpush
+
+# Review changes and get suggestions
+bish> #/gitreview
 ```
 
-This installs a pre-commit hook that runs `make ci`, which executes:
-1. `golangci-lint` - Code linting
-2. `govulncheck` - Security vulnerability checks
-3. `go test -coverprofile=coverage.txt ./...` - Unit tests with coverage
-4. `go build` - Build the binary
+You can customize your own macros by modifying the `BISH_AGENT_MACROS` configuration in your `.bishrc` file.
+The value should be a JSON object mapping macro names to their corresponding chat messages.
+See [Configuration](../README.md#configuration) for more details.
 
-If you don't have the required tools installed, run:
+## Permission System
 
-```bash
-make tools
+When the agent wants to execute commands on your behalf, bishop provides a flexible permission system to ensure you maintain control over what gets executed.
+
+### Response Options
+
+When prompted for permission to run a command, you have several response options:
+
+- `y` or `yes`: Allow this command to run once
+- `n` or `no`: Deny this command
+- `m` or `manage`: Open an interactive menu to manage permissions for command prefixes
+- Any other text: Provide custom feedback to the agent (treated as denial)
+
+### "Manage" Functionality
+
+The `m` (manage) response option opens an **interactive real-time permissions menu**:
+
+1. When you respond with `m` or `manage`, bishop displays a clean menu with all command prefixes
+2. Navigate and control the menu using **immediate keyboard input** (no Enter required):
+   - **j/k** to move between options instantly
+   - **SPACE** to toggle permissions for individual prefixes (shows ✓ when enabled)
+   - **1-9** to jump directly to a specific option number
+   - **ENTER** to apply your selections and save them to `~/.config/gsh/authorized_commands`
+   - **ESC** to cancel without making changes
+   - **y/n** for direct yes/no responses
+
+For example, with the command `ls --foo bar`, you can individually manage permissions for:
+- `ls` (allows any ls command)
+- `ls --foo` (allows ls with --foo flag and any additional arguments)
+- `ls --foo bar` (allows this exact command)
+
+The menu provides **clear visual feedback** with clean formatting that matches the tab-completion display style.
+
+**Example menu display:**
+```
+Managing permissions for: ls --foo bar
+
+Permission Management - Toggle permissions for command prefixes:
+
+> 1. [✓] ls
+  2. [ ] ls --foo
+  3. [ ] ls --foo bar
+
+j/k=navigate  SPACE=toggle  ENTER=apply  ESC=cancel
+(Keys respond immediately - no Enter needed)
+
+Current selection: ls
+Enabled permissions: ls
 ```
 
-This installs:
-- `govulncheck` - Security vulnerability scanner
-- `golangci-lint` - Go linter
-- Checks for `gh` (GitHub CLI) - needed for PR and issue operations
+The system combines clean, reliable display with immediate keyboard responsiveness, providing an intuitive interface for managing granular command permissions.
 
-**Note:** `gh` is pre-installed in CI (GitHub-hosted runners) but must be installed locally:
-- macOS: `brew install gh`
-- Linux: See [GitHub CLI installation guide](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
-- Windows: `winget install GitHub.cli`
-
-### Verify Your Changes
-
-Before committing, you can manually run the full CI suite:
-
-```bash
-make ci
-```
-
-This runs: `lint` → `vulncheck` → `test` → `build`
-
-### Important
-
-- **Never skip the pre-commit hook** (`--no-verify`) unless absolutely necessary
-- If the hook fails, fix the issues before committing
-- Run `make ci` to verify everything passes before pushing
-
-## Git Conventions
-
-Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) types for **branch names**, **commit messages**, and **PR titles**.
-
-### Format
-
-#### Branch Names
-Use forward slashes (`/`):
-- **Basic:** `<type>/<description>`
-- **With scope:** `<type>(<scope>)/<description>`
-
-#### Commit Messages & PR Titles
-Use colons (`:`) followed by a space:
-- **Basic:** `<type>: <description>`
-- **With scope:** `<type>(<scope>): <description>`
-- **Breaking change:** `<type>!: <description>`
-
-### Rules
-
-- **kebab-case** descriptions (50 chars max)
-- Present tense ("add", not "added")
-- Be concise but clear
-
-### Types
-
-- `feat`: New feature
-- `fix`: Bug fix  
-- `docs`: Documentation
-- `style`: Formatting only
-- `refactor`: Code improvement
-- `perf`: Performance boost
-- `test`: Tests
-- `build`: Build system
-- `ci`: CI configuration
-- `chore`: Other changes
-- `revert`: Previous commit
-
-### Scopes (Optional)
-
-**Common scopes:**
-- `auth` - Authentication
-- `ui` - User interface
-- `api` - API endpoints
-- `config` - Configuration
-- `deps` - Dependencies
-- `test` - Testing
+**Note**: In non-interactive environments (like automated scripts), the system automatically falls back to line-based input for compatibility.
 
 ### Examples
 
-**Basic:**
-- `feat/user-login`
-- `fix/memory-leak`
-- `docs/update-readme`
+```bash
+# First time running a git status command
+bish> # check git status
+Agent wants to run: git status
+Do I have your permission to run the following command? (y/N/manage/freeform) m
 
-**Scoped:**
-- `feat(auth)/oauth-support`
-- `fix(ui)/mobile-layout`
-- `docs(api)/endpoints`
+# The permission menu opens, and you can approve "^git status.*" which is saved to ~/.config/gsh/authorized_commands
+# Future git status commands will be auto-approved:
 
-**Breaking:**
-- `feat!: remove-deprecated-api`
+bish> # show git status with short format
+Agent wants to run: git status -s
+# This runs automatically without prompting because it matches the saved pattern
+```
 
-### Workflow
+### Pattern Generation
 
-1. Create branch per logical work unit
-2. Make focused commits
-3. Follow commit conventions
-4. Push and PR
-5. Delete after merge
+bishop intelligently generates regex patterns based on the command structure:
 
-### Mistakes to Avoid
+- **Regular commands**: `ls -la` → `^ls.*` (matches any `ls` command)
+- **Commands with subcommands**: `git commit -m "message"` → `^git commit.*` (matches any `git commit` command)
+- **Special commands**: Commands like `git`, `npm`, `yarn`, `docker`, and `kubectl` include their subcommands in the pattern
+- **Compound commands**: `ls && pwd` → `["^ls.*", "^pwd.*"]` (generates patterns for all individual commands)
 
-❌ `feat/UserLogin` (caps)  
-❌ `fix/memory_leak` (underscores)  
-❌ `feature/login` (wrong type)  
-❌ `feat/very-long-description-exceeding-limit`  
-❌ `fix/` (no description)  
+### Managing Authorized Commands
 
-✅ `feat/user-login`  
-✅ `fix/memory-leak`  
-✅ `feat(auth)/oauth`
+The authorized commands are stored in `~/.config/gsh/authorized_commands` as regex patterns, one per line. You can:
+
+- **View patterns**: `cat ~/.config/gsh/authorized_commands`
+- **Edit patterns**: Manually edit the file to modify or remove patterns
+- **Clear all patterns**: `rm ~/.config/gsh/authorized_commands`
+
+This system works alongside the existing `BISH_AGENT_APPROVED_BASH_COMMAND_REGEX` configuration, providing both pre-configured and dynamically-generated command approval.
+
+## Compound Command Security
+
+bishop provides robust security for compound commands (commands using `;`, `&&`, `||`, `|`, or subshells) by analyzing each individual command separately:
+
+### Security Model
+
+- **Individual Validation**: Each command in a compound statement must be individually approved
+- **No Bypass**: Malicious commands cannot hide behind approved commands
+- **Comprehensive Parsing**: Handles all shell operators including pipes, subshells, and command substitution
+
+### Examples
+
+```bash
+# ✅ SECURE: All commands approved
+bish: Do I have your permission to run the following command?
+Command: ls && pwd && echo done
+# If ls, pwd, and echo are all approved → auto-approved
+
+# ❌ BLOCKED: Contains unapproved command
+bish: Do I have your permission to run the following command?
+Command: ls; rm -rf /
+# Even though ls is approved, rm is not → requires confirmation
+
+# ❌ BLOCKED: Injection in subshell
+bish: Do I have your permission to run the following command?
+Command: (ls && rm -rf /)
+# rm command in subshell is not approved → requires confirmation
+
+# ❌ BLOCKED: Injection in pipe
+bish: Do I have your permission to run the following command?
+Command: ls | rm -rf /
+# rm command in pipe is not approved → requires confirmation
+```
+
+### Supported Compound Operators
+
+- **Sequential**: `cmd1; cmd2` - Commands run in sequence
+- **Conditional AND**: `cmd1 && cmd2` - cmd2 runs only if cmd1 succeeds
+- **Conditional OR**: `cmd1 || cmd2` - cmd2 runs only if cmd1 fails
+- **Pipes**: `cmd1 | cmd2` - Output of cmd1 becomes input of cmd2
+- **Subshells**: `(cmd1 && cmd2)` - Commands run in isolated environment
+- **Command Substitution**: `echo $(cmd1)` - Output of cmd1 used as argument
+
+## Agent Controls
+
+Agent controls are built-in commands that help you manage your interaction with the agent.
+An agent control starts with "#!" followed by the control name.
+
+Currently supported controls:
+
+```bash
+# Open the interactive configuration menu
+bish> #!config
+
+# Reset the current chat session and start fresh
+bish> #!new
+
+# Show token usage statistics for the current chat session
+bish> #!tokens
+```
+
+## Magic Fix
+
+When a command fails, you can use `#?` to ask the agent to analyze the error and suggest a fix.
+
+```bash
+bish> ls nonexistent_file
+ls: nonexistent_file: No such file or directory
+
+bish> #?
+bish: The command failed because...
+
+Command: ls "nonexistent_file"
+Run this fix? [y/N]
+```
+
+The agent will:
+1. Analyze the last failed command and its error output
+2. Explain why it failed
+3. Suggest a fixed command
+
+If a fix is found, you can run it immediately with a single keypress (`y` to confirm, any other key to cancel).
+
+## Default Confirmation Behavior
+
+By default, confirmation prompts (including Magic Fix, command permissions, and app updates) default to "no" when Enter is pressed, displaying `[y/N]`.
+
+You can change this behavior by setting `BISH_DEFAULT_TO_YES=1` in your `.bishrc` file. When enabled:
+- Prompts will display `[Y/n]` instead of `[y/N]`
+- Pressing Enter will confirm instead of cancel
