@@ -113,12 +113,12 @@ func printEntriesTable(entries []AnalyticsEntry) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	// Print header
-	fmt.Fprintln(w, "ID\tTIME\tINPUT\tPREDICTION\tACTUAL")
-	fmt.Fprintln(w, "──\t────\t─────\t──────────\t──────")
+	_, _ = fmt.Fprintln(w, "ID\tTIME\tINPUT\tPREDICTION\tACTUAL")
+	_, _ = fmt.Fprintln(w, "──\t────\t─────\t──────────\t──────")
 
 	// Print each entry
 	for _, entry := range entries {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\n",
+		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\n",
 			entry.ID,
 			entry.CreatedAt.Format("01/02 15:04"),
 			truncate(entry.Input, defaultMaxWidth),
@@ -127,7 +127,7 @@ func printEntriesTable(entries []AnalyticsEntry) {
 		)
 	}
 
-	w.Flush()
+	_ = w.Flush()
 }
 
 // truncate shortens a string to maxLen characters, adding ellipsis if truncated

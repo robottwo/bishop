@@ -302,5 +302,5 @@ stop    - Stop the application
 
 - Quick start: [GETTING_STARTED.md](GETTING_STARTED.md)
 - Features: [FEATURES.md](FEATURES.md)
-- Agent: [AGENT.md](AGENT.md)
+- Agent: [AGENTS.md](../AGENTS.md)
 - Subagents overview: [SUBAGENTS.md](SUBAGENTS.md)
