@@ -7,13 +7,13 @@ import (
 	"github.com/robottwo/bishop/pkg/shellinput"
 )
 
-type jsonCandidate struct {
+type JsonCandidate struct {
 	Value       string `json:"Value"`
 	Display     string `json:"Display"`
 	Description string `json:"Description"`
 }
 
-func parseExternalCompletionOutput(output string) ([]shellinput.CompletionCandidate, error) {
+func ParseExternalCompletionOutput(output string) ([]shellinput.CompletionCandidate, error) {
 	trimmedOutput := strings.TrimSpace(output)
 	if trimmedOutput == "" {
 		return []shellinput.CompletionCandidate{}, nil
@@ -33,7 +33,7 @@ func parseExternalCompletionOutput(output string) ([]shellinput.CompletionCandid
 		}
 
 		// Try parsing as list of objects with Value/Display/Description
-		var objList []jsonCandidate
+		var objList []JsonCandidate
 		if err := json.Unmarshal([]byte(trimmedOutput), &objList); err == nil {
 			for _, o := range objList {
 				candidates = append(candidates, shellinput.CompletionCandidate{
@@ -60,7 +60,7 @@ func parseExternalCompletionOutput(output string) ([]shellinput.CompletionCandid
 		// Try to parse as JSON (single object or array)
 		if strings.HasPrefix(l, "{") {
 			// Only try parsing as a single JSON object
-			var obj jsonCandidate
+			var obj JsonCandidate
 			if err := json.Unmarshal([]byte(l), &obj); err == nil && obj.Value != "" {
 				candidate.Value = obj.Value
 				candidate.Display = obj.Display
@@ -71,7 +71,7 @@ func parseExternalCompletionOutput(output string) ([]shellinput.CompletionCandid
 		} else if strings.HasPrefix(l, "[") {
 			// Only try parsing as arrays
 			// Try parsing as an array of JSON objects
-			var objList []jsonCandidate
+			var objList []JsonCandidate
 			if err := json.Unmarshal([]byte(l), &objList); err == nil && len(objList) > 0 {
 				for _, o := range objList {
 					completions = append(completions, shellinput.CompletionCandidate{
