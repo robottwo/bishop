@@ -17,7 +17,7 @@ Fork repository: https://github.com/robottwo/bishop
 Related docs:
 - Getting started: [GETTING_STARTED.md](GETTING_STARTED.md)
 - Configuration: [CONFIGURATION.md](CONFIGURATION.md)
-- Agent guide: [AGENTS.md](AGENTS.md)
+- Agent guide: [AGENTS.md](../AGENTS.md)
 - Subagents: [../SUBAGENTS.md](../SUBAGENTS.md)
 
 ---
@@ -60,7 +60,7 @@ Highlights:
 - Preview of code edits and diffs before applying changes
 - Chat macros for common tasks
 
-Full guide: [AGENTS.md](AGENTS.md)
+Full guide: [AGENTS.md](../AGENTS.md)
 
 ---
 
@@ -156,7 +156,7 @@ cat ~/.config/gsh/authorized_commands
 rm ~/.config/gsh/authorized_commands
 ```
 
-More in: [AGENTS.md](AGENTS.md)
+More in: [AGENTS.md](../AGENTS.md)
 
 ---
 
