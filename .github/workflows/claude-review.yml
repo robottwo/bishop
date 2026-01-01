@@ -35,7 +35,13 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const head_sha = context.payload.pull_request.head.sha;
-            const requiredWorkflows = ['CI', 'Lint', 'Vulnerability Check'];
+
+            // Map workflow file names to display names
+            const requiredWorkflows = [
+              { file: 'ci.yml', name: 'CI' },
+              { file: 'lint.yml', name: 'Lint' },
+              { file: 'govulncheck.yml', name: 'Vulnerability Check' }
+            ];
 
             const maxAttempts = 60;  // 30 minutes max wait (60 * 30s)
             const pollInterval = 30000;  // 30 seconds
@@ -43,34 +49,36 @@ jobs:
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
               console.log(`Attempt ${attempt}/${maxAttempts}: Checking workflow status...`);
 
-              // Get all check runs for this commit
-              const { data: checkRuns } = await github.rest.checks.listForRef({
+              // Get all workflow runs for this commit
+              const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({
                 owner,
                 repo,
-                ref: head_sha,
+                head_sha,
+                per_page: 100,
               });
 
               // Find the status of required workflows
               const workflowStatus = {};
               for (const workflow of requiredWorkflows) {
-                const matchingRuns = checkRuns.check_runs.filter(run =>
-                  run.name.includes(workflow) ||
-                  checkRuns.check_runs.some(r => r.app?.name === 'GitHub Actions' && r.name.includes(workflow))
+                // Find runs matching this workflow file
+                const matchingRuns = workflowRuns.workflow_runs.filter(run =>
+                  run.path === `.github/workflows/${workflow.file}`
                 );
 
                 if (matchingRuns.length === 0) {
-                  workflowStatus[workflow] = 'pending';
+                  workflowStatus[workflow.name] = 'pending';
                 } else {
-                  // Check if all matching runs are complete and successful
-                  const allComplete = matchingRuns.every(run => run.status === 'completed');
-                  const allSuccess = matchingRuns.every(run => run.conclusion === 'success');
+                  // Get the most recent run for this workflow
+                  const latestRun = matchingRuns.sort((a, b) =>
+                    new Date(b.created_at) - new Date(a.created_at)
+                  )[0];
 
-                  if (!allComplete) {
-                    workflowStatus[workflow] = 'in_progress';
-                  } else if (allSuccess) {
-                    workflowStatus[workflow] = 'success';
+                  if (latestRun.status !== 'completed') {
+                    workflowStatus[workflow.name] = 'in_progress';
+                  } else if (latestRun.conclusion === 'success') {
+                    workflowStatus[workflow.name] = 'success';
                   } else {
-                    workflowStatus[workflow] = 'failure';
+                    workflowStatus[workflow.name] = 'failure';
                   }
                 }
               }
