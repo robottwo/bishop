@@ -20,8 +20,7 @@ func ParseExternalCompletionOutput(output string) ([]shellinput.CompletionCandid
 	}
 
 	// Try to parse as JSON first (Carapace style)
-	// Check if it starts with [ or {
-	if strings.HasPrefix(trimmedOutput, "[") || strings.HasPrefix(trimmedOutput, "{") {
+	if strings.HasPrefix(trimmedOutput, "[") {
 		var candidates []shellinput.CompletionCandidate
 		// Try parsing as simple list of strings
 		var stringList []string
@@ -44,10 +43,20 @@ func ParseExternalCompletionOutput(output string) ([]shellinput.CompletionCandid
 			}
 			return candidates, nil
 		}
+	} else if strings.HasPrefix(trimmedOutput, "{") {
+		// Try parsing as a single object with Value/Display/Description
+		var obj JsonCandidate
+		if err := json.Unmarshal([]byte(trimmedOutput), &obj); err == nil {
+			return []shellinput.CompletionCandidate{{
+				Value:       obj.Value,
+				Display:     obj.Display,
+				Description: obj.Description,
+			}}, nil
+		}
 	}
 
 	// Parse line-by-line (Bash/Zsh style)
-	lines := strings.Split(output, "\n")
+	lines := strings.Split(trimmedOutput, "\n")
 	completions := make([]shellinput.CompletionCandidate, 0, len(lines))
 	for _, l := range lines {
 		l = strings.TrimSpace(l)
@@ -101,12 +110,15 @@ func ParseExternalCompletionOutput(output string) ([]shellinput.CompletionCandid
 			}
 		} else if strings.Contains(l, ":") {
 			// Check for colon delimiter (Value:Description) - Zsh style
-			// Be careful not to split if colon is part of the value (heuristics might be needed)
-			// For now, we assume simple Zsh style "value:description"
-			parts := strings.SplitN(l, ":", 2)
-			candidate.Value = parts[0]
-			if len(parts) > 1 {
-				candidate.Description = parts[1]
+			// Skip splitting if it looks like a URL, Windows path, or IPv6 literal.
+			if looksLikeColonValue(l) {
+				candidate.Value = l
+			} else {
+				parts := strings.SplitN(l, ":", 2)
+				candidate.Value = parts[0]
+				if len(parts) > 1 {
+					candidate.Description = parts[1]
+				}
 			}
 		} else {
 			// Plain value
@@ -117,4 +129,25 @@ func ParseExternalCompletionOutput(output string) ([]shellinput.CompletionCandid
 	}
 
 	return completions, nil
+}
+
+func looksLikeColonValue(value string) bool {
+	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") || strings.HasPrefix(value, "ssh://") {
+		return true
+	}
+
+	if len(value) >= 3 && isAlpha(value[0]) && value[1] == ':' && (value[2] == '\\' || value[2] == '/') {
+		return true
+	}
+
+	token := value
+	if idx := strings.IndexAny(value, " \t"); idx != -1 {
+		token = value[:idx]
+	}
+
+	return strings.Count(token, ":") > 1
+}
+
+func isAlpha(char byte) bool {
+	return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z')
 }
