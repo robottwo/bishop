@@ -144,6 +144,17 @@ func (historyManager *HistoryManager) GetRecentEntriesByPrefix(prefix string, li
 	return entries, nil
 }
 
+// GetNewerEntries returns all history entries with ID greater than the given ID
+// ordered by creation time (newest first)
+func (historyManager *HistoryManager) GetNewerEntries(lastID uint) ([]HistoryEntry, error) {
+	var entries []HistoryEntry
+	result := historyManager.db.Where("id > ?", lastID).Order("created_at desc").Find(&entries)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return entries, nil
+}
+
 // GetEntriesSince returns all history entries created after the given time, ordered by creation time (oldest first)
 func (historyManager *HistoryManager) GetEntriesSince(since time.Time) ([]HistoryEntry, error) {
 	var entries []HistoryEntry

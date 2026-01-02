@@ -88,6 +88,30 @@ func RunInteractiveShell(
 		}
 	}()
 
+	// Cache history entries for rich search (Ctrl+R)
+	var richHistory []shellinput.HistoryItem
+	var latestHistoryID uint = 0
+
+	// Initial fetch of all history
+	allHistoryEntries, err := historyManager.GetAllEntries()
+	if err != nil {
+		logger.Warn("error getting all history entries", zap.Error(err))
+		allHistoryEntries = []history.HistoryEntry{}
+	}
+
+	richHistory = make([]shellinput.HistoryItem, len(allHistoryEntries))
+	for i, entry := range allHistoryEntries {
+		richHistory[i] = shellinput.HistoryItem{
+			Command:   entry.Command,
+			Directory: entry.Directory,
+			Timestamp: entry.CreatedAt,
+			SessionID: entry.SessionID,
+		}
+		if entry.ID > latestHistoryID {
+			latestHistoryID = entry.ID
+		}
+	}
+
 	for {
 		prompt := environment.GetPrompt(runner, logger)
 		logger.Debug("prompt updated", zap.String("prompt", prompt))
@@ -113,21 +137,25 @@ func RunInteractiveShell(
 			historyCommands[len(historyEntries)-1-i] = historyEntries[i].Command
 		}
 
-		// Fetch all entries for rich search (Ctrl+R)
-		allHistoryEntries, err := historyManager.GetAllEntries()
+		// Fetch only new entries for rich search (Ctrl+R) since last check
+		newEntries, err := historyManager.GetNewerEntries(latestHistoryID)
 		if err != nil {
-			logger.Warn("error getting all history entries", zap.Error(err))
-			allHistoryEntries = []history.HistoryEntry{}
-		}
-
-		richHistory := make([]shellinput.HistoryItem, len(allHistoryEntries))
-		for i, entry := range allHistoryEntries {
-			richHistory[i] = shellinput.HistoryItem{
-				Command:   entry.Command,
-				Directory: entry.Directory,
-				Timestamp: entry.CreatedAt,
-				SessionID: entry.SessionID,
+			logger.Warn("error getting newer history entries", zap.Error(err))
+		} else if len(newEntries) > 0 {
+			newRichHistory := make([]shellinput.HistoryItem, len(newEntries))
+			for i, entry := range newEntries {
+				newRichHistory[i] = shellinput.HistoryItem{
+					Command:   entry.Command,
+					Directory: entry.Directory,
+					Timestamp: entry.CreatedAt,
+					SessionID: entry.SessionID,
+				}
+				if entry.ID > latestHistoryID {
+					latestHistoryID = entry.ID
+				}
 			}
+			// Prepend new entries (they are returned newest first)
+			richHistory = append(newRichHistory, richHistory...)
 		}
 
 		// Read input
