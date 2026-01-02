@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.32.0](https://github.com/robottwo/bishop/compare/v0.31.0...v0.32.0) (2026-01-01)
+
+
+### Features
+
+* add marketing landing page for GitHub Pages ([0db2966](https://github.com/robottwo/bishop/commit/0db296645eefb261c91d28d46e79ad31f8037152))
+* add marketing landing page for GitHub Pages ([#29](https://github.com/robottwo/bishop/issues/29)) ([dd7298a](https://github.com/robottwo/bishop/commit/dd7298a1b4e3c50d6987657c1ab8a56e95bd8f4f))
+* add mobile hamburger navigation with accessibility ([854ae83](https://github.com/robottwo/bishop/commit/854ae83f6423390faf86b499af6df5ddfc64ead5))
+* Add timeouts and cancellation for LLM calls ([#46](https://github.com/robottwo/bishop/issues/46)) ([9ad5c49](https://github.com/robottwo/bishop/commit/9ad5c49c6e85187039df3f3634ded8d0c50e55d4))
+* add timeouts and context cancellation for LLM prediction/explanation calls ([22d31a3](https://github.com/robottwo/bishop/commit/22d31a31f44df08b8e3c7d1020aae9411baff695))
+* **analytics:** improve output formatting with table columns ([1206355](https://github.com/robottwo/bishop/commit/120635569050d4bcc6eeffd68b081c90dd30fd26))
+* **completion:** expand command completions and add user-defined support ([0217399](https://github.com/robottwo/bishop/commit/0217399b6a1fc713c2ee0bdb5664a3facabf1fd4))
+* **completion:** improve complete command error feedback ([44dc9de](https://github.com/robottwo/bishop/commit/44dc9de086fab386f467350c52ead68096bbeb9d))
+* **completion:** include remote branches in git completion ([9460c2f](https://github.com/robottwo/bishop/commit/9460c2f30c6b6ade9116cd4a07cbf8586e86234a))
+* **config:** show "Saved" confirmation after saving config values ([f829d27](https://github.com/robottwo/bishop/commit/f829d272842f599b191d2382edd646ed6cc1ac75))
+* Expand command completions for common tools ([#45](https://github.com/robottwo/bishop/issues/45)) ([d44590e](https://github.com/robottwo/bishop/commit/d44590e1db75a226a4f6c4f3ee51837c3b09d2f3))
+* Improve analytics output readability with formatting ([#51](https://github.com/robottwo/bishop/issues/51)) ([fa1f5c1](https://github.com/robottwo/bishop/commit/fa1f5c1ae82ab42d9958ae20db4ca66c92f82a35))
+* Improve command completion error feedback ([#49](https://github.com/robottwo/bishop/issues/49)) ([63ebf99](https://github.com/robottwo/bishop/commit/63ebf9906cc08a7efddacface955a329daef8d51))
+* improve permissions menu UX ([9d225b3](https://github.com/robottwo/bishop/commit/9d225b3bb3291c86ad507c3af9bc0ae0c162c155))
+* move landing page and GIFs to docs/ for GitHub Pages ([2f593a6](https://github.com/robottwo/bishop/commit/2f593a6de23396662181dff38eaf4995937516b1))
+* move landing page and GIFs to docs/ for GitHub Pages ([#44](https://github.com/robottwo/bishop/issues/44)) ([f408e43](https://github.com/robottwo/bishop/commit/f408e43aac76932f54c604d37a2ffee72eab9426))
+
+
+### Bug Fixes
+
+* Add remote branches to git completion ([#41](https://github.com/robottwo/bishop/issues/41)) ([19190d9](https://github.com/robottwo/bishop/commit/19190d9254ad8832cab3eb610ae7e55d1e9974e6))
+* Add saved confirmation to config UI ([#37](https://github.com/robottwo/bishop/issues/37)) ([f069964](https://github.com/robottwo/bishop/commit/f069964e46910a477b91dbd95547de4c21df9db9))
+* **bash:** print directory path when using cd - ([ab993a0](https://github.com/robottwo/bishop/commit/ab993a0be74f99cfd81707b86efaea26172b8361))
+* **bash:** print directory path when using cd - ([#34](https://github.com/robottwo/bishop/issues/34)) ([31df80a](https://github.com/robottwo/bishop/commit/31df80a20d9c68f024345bc1cbc5800263554c42))
+* clarify Safety Checks toggle is session-only in UI ([8f6afef](https://github.com/robottwo/bishop/commit/8f6afefb8d487789758e91f7e566106d8307c6b2))
+* clarify Safety Checks toggle is session-only in UI ([#33](https://github.com/robottwo/bishop/issues/33)) ([762794e](https://github.com/robottwo/bishop/commit/762794ec580ba04166f84175e6a72c91cc36ce5b))
+* **completion:** remove unused register function ([8dfa2c7](https://github.com/robottwo/bishop/commit/8dfa2c71c666205a9d244c8739e9fe2983b06c2c))
+* **config:** show actual save path in confirmation message ([052d043](https://github.com/robottwo/bishop/commit/052d043f4cc6b9ca350d7341a31c036d30a172ad))
+* copy demo GIFs to docs/ for GitHub Pages ([0707f73](https://github.com/robottwo/bishop/commit/0707f736669a1b7587148d933f8bf6a63a866543))
+* correct Fish shell job control support in comparison table ([16fd935](https://github.com/robottwo/bishop/commit/16fd935b528ff205d4dec553b25f0ba7f8b103ef))
+* deduplicate config entries with atomic write and file locking ([e6c72c7](https://github.com/robottwo/bishop/commit/e6c72c7fc5f111622c97cef0f99c0985768b30d5))
+* duplicate entries in config file ([#39](https://github.com/robottwo/bishop/issues/39)) ([34855d9](https://github.com/robottwo/bishop/commit/34855d97f849126abfa502e175d2357c5bdfe264))
+* fetch version dynamically from GitHub API ([ebf8ca3](https://github.com/robottwo/bishop/commit/ebf8ca379da303bcf06311cf0b57a174a7dbf336))
+* relative directory issue for GitHub Pages ([#42](https://github.com/robottwo/bishop/issues/42)) ([77b59ee](https://github.com/robottwo/bishop/commit/77b59ee14bedb3355cfb7ad52f5e3150f4708500))
+* remove unused variables in Darwin non-CGO implementation ([962d33d](https://github.com/robottwo/bishop/commit/962d33de0f0facdd331f48735bf2f151ca896b41))
+* resolve errcheck lint error and pin golangci-lint version ([b437748](https://github.com/robottwo/bishop/commit/b437748c299232ee1dcad04bbd378ff7bd85827d))
+* resolve errcheck lint error and pin golangci-lint version ([#50](https://github.com/robottwo/bishop/issues/50)) ([ae4001c](https://github.com/robottwo/bishop/commit/ae4001c7ddc24cd55e6ad17e488f50da144950a5))
+* split Darwin resources.go into CGO and non-CGO versions ([e6c3c78](https://github.com/robottwo/bishop/commit/e6c3c78d16d8e1f9afbf3c0297f943cdfc66e7fa))
+* split Darwin resources.go into CGO and non-CGO versions ([#40](https://github.com/robottwo/bishop/issues/40)) ([c928918](https://github.com/robottwo/bishop/commit/c9289184665e83731510bd7480de5a3c5594e39a))
+* Update Go version requirement in documentation ([#38](https://github.com/robottwo/bishop/issues/38)) ([772f391](https://github.com/robottwo/bishop/commit/772f391da0fd56b50290fe39a15042990245c03b))
+* update mock implementations to match new interface signatures ([2438711](https://github.com/robottwo/bishop/commit/2438711210be10814608c95d7a226139941b7251))
+
 ## [0.31.0](https://github.com/robottwo/bishop/compare/v0.30.0...v0.31.0) (2025-12-30)
 
 

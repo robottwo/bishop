@@ -48,7 +48,7 @@ func (p *LLMPrefixPredictor) UpdateContext(context *map[string]string) {
 	p.numHistoryContext = environment.GetContextNumHistoryConcise(p.runner, p.logger)
 }
 
-func (p *LLMPrefixPredictor) Predict(input string) (string, string, error) {
+func (p *LLMPrefixPredictor) Predict(ctx context.Context, input string) (string, string, error) {
 	if strings.HasPrefix(input, "#") {
 		// Don't do prediction for agent chat messages
 		p.logger.Debug("skipping prediction for agent chat message")
@@ -125,7 +125,7 @@ You are asked to predict what the complete bash command is.
 		request.Temperature = float32(*p.temperature)
 	}
 
-	chatCompletion, err := p.llmClient.CreateChatCompletion(context.TODO(), request)
+	chatCompletion, err := p.llmClient.CreateChatCompletion(ctx, request)
 
 	if err != nil {
 		p.logger.Error("LLM API call failed", zap.Error(err))

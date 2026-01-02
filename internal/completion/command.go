@@ -11,6 +11,39 @@ import (
 // For testing purposes
 var printf = fmt.Printf
 
+// completeUsage provides the usage summary for the complete command
+const completeUsage = `Usage: complete [-pr] [-W wordlist] [-F function] [-C command] name
+       complete -p [name]
+       complete -r [name]
+
+Options:
+  -p          Print existing completion specifications
+  -r          Remove completion specification for name
+  -W wordlist Use wordlist (space-separated words) for completion
+  -F function Call function for generating completions
+  -C command  Execute command for generating completions
+  -h, --help  Show this help message
+
+Examples:
+  complete -W "start stop restart" service
+  complete -F _git_completion git
+  complete -p git
+  complete -r git`
+
+// usageError wraps an error with a usage hint
+type usageError struct {
+	msg string
+}
+
+func (e *usageError) Error() string {
+	return fmt.Sprintf("%s\n\nRun 'complete -h' for usage information.", e.msg)
+}
+
+// newUsageError creates a new error that hints at -h/--help
+func newUsageError(format string, args ...any) error {
+	return &usageError{msg: fmt.Sprintf(format, args...)}
+}
+
 // NewCompleteCommandHandler creates a new ExecHandler for the complete command
 func NewCompleteCommandHandler(completionManager *CompletionManager) func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
@@ -44,25 +77,28 @@ func handleCompleteCommand(manager *CompletionManager, args []string) error {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch arg {
+		case "-h", "--help":
+			_, _ = printf("%s\n", completeUsage)
+			return nil
 		case "-p":
 			printMode = true
 		case "-r":
 			removeMode = true
 		case "-W":
 			if i+1 >= len(args) {
-				return fmt.Errorf("option -W requires a word list")
+				return newUsageError("option -W requires a word list")
 			}
 			i++
 			wordList = args[i]
 		case "-F":
 			if i+1 >= len(args) {
-				return fmt.Errorf("option -F requires a function name")
+				return newUsageError("option -F requires a function name")
 			}
 			i++
 			function = args[i]
 		case "-C":
 			if i+1 >= len(args) {
-				return fmt.Errorf("option -C requires a command")
+				return newUsageError("option -C requires a command")
 			}
 			i++
 			commandCmd = args[i]
@@ -71,12 +107,12 @@ func handleCompleteCommand(manager *CompletionManager, args []string) error {
 				command = arg
 				break
 			}
-			return fmt.Errorf("unknown option: %s", arg)
+			return newUsageError("unknown option: %s", arg)
 		}
 	}
 
 	if command == "" && !printMode {
-		return fmt.Errorf("no command specified")
+		return newUsageError("no command specified")
 	}
 
 	// Handle different modes
@@ -116,7 +152,7 @@ func handleCompleteCommand(manager *CompletionManager, args []string) error {
 		return nil
 	}
 
-	return fmt.Errorf("invalid complete command usage")
+	return newUsageError("missing completion action: use -W, -F, or -C")
 }
 
 func printCompletionSpecs(manager *CompletionManager, command string) error {

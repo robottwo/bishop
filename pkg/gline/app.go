@@ -1012,6 +1012,9 @@ func (m appModel) setPrediction(stateId int, prediction string, inputContext str
 	})
 }
 
+// LLM call timeout for predictions
+const predictionTimeout = 10 * time.Second
+
 func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cmd) {
 	if m.predictor == nil {
 		return m, nil
@@ -1026,7 +1029,10 @@ func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cm
 	}
 
 	return m, tea.Cmd(func() tea.Msg {
-		prediction, inputContext, err := m.predictor.Predict(m.textInput.Value())
+		ctx, cancel := context.WithTimeout(context.Background(), predictionTimeout)
+		defer cancel()
+
+		prediction, inputContext, err := m.predictor.Predict(ctx, m.textInput.Value())
 		if err != nil {
 			m.logger.Error("gline prediction failed", zap.Error(err))
 			return errorMsg{stateId: msg.stateId, err: err}
@@ -1042,6 +1048,9 @@ func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cm
 	})
 }
 
+// LLM call timeout for explanations
+const explanationTimeout = 10 * time.Second
+
 func (m appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.Cmd) {
 	if m.explainer == nil {
 		return m, nil
@@ -1051,7 +1060,10 @@ func (m appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.
 	}
 
 	return m, tea.Cmd(func() tea.Msg {
-		explanation, err := m.explainer.Explain(msg.prediction)
+		ctx, cancel := context.WithTimeout(context.Background(), explanationTimeout)
+		defer cancel()
+
+		explanation, err := m.explainer.Explain(ctx, msg.prediction)
 		if err != nil {
 			m.logger.Error("gline explanation failed", zap.Error(err))
 			return errorMsg{stateId: msg.stateId, err: err}

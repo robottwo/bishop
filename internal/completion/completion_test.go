@@ -323,4 +323,84 @@ func TestCompleteCommandHandler(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, nextCalled)
 	})
+
+	t.Run("help flag", func(t *testing.T) {
+		manager := NewCompletionManager()
+		handler := NewCompleteCommandHandler(manager)
+		nextHandler := func(ctx context.Context, args []string) error {
+			return nil
+		}
+		wrappedHandler := handler(nextHandler)
+
+		var captured []string
+		oldPrintf := printf
+		printf = func(format string, a ...any) (int, error) {
+			captured = append(captured, fmt.Sprintf(format, a...))
+			return len(format), nil
+		}
+		defer func() { printf = oldPrintf }()
+
+		// Test -h flag
+		err := wrappedHandler(context.Background(), []string{"complete", "-h"})
+		assert.NoError(t, err)
+		assert.Len(t, captured, 1)
+		assert.Contains(t, captured[0], "Usage: complete")
+		assert.Contains(t, captured[0], "-W wordlist")
+		assert.Contains(t, captured[0], "-F function")
+		assert.Contains(t, captured[0], "Examples:")
+
+		// Test --help flag
+		captured = []string{}
+		err = wrappedHandler(context.Background(), []string{"complete", "--help"})
+		assert.NoError(t, err)
+		assert.Len(t, captured, 1)
+		assert.Contains(t, captured[0], "Usage: complete")
+	})
+
+	t.Run("error messages include usage hint", func(t *testing.T) {
+		manager := NewCompletionManager()
+		handler := NewCompleteCommandHandler(manager)
+		nextHandler := func(ctx context.Context, args []string) error {
+			return nil
+		}
+		wrappedHandler := handler(nextHandler)
+
+		testCases := []struct {
+			name string
+			args []string
+		}{
+			{
+				name: "missing word list",
+				args: []string{"complete", "-W"},
+			},
+			{
+				name: "unknown option",
+				args: []string{"complete", "-x", "mycmd"},
+			},
+			{
+				name: "no command specified",
+				args: []string{"complete", "-W", "foo bar"},
+			},
+			{
+				name: "missing completion action",
+				args: []string{"complete", "mycmd"},
+			},
+			{
+				name: "missing function name",
+				args: []string{"complete", "-F"},
+			},
+			{
+				name: "missing command",
+				args: []string{"complete", "-C"},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				err := wrappedHandler(context.Background(), tc.args)
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "Run 'complete -h' for usage information")
+			})
+		}
+	})
 }

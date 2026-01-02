@@ -1,6 +1,7 @@
 package gline
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -42,7 +43,7 @@ func newMockPredictor() *mockPredictor {
 	}
 }
 
-func (m *mockPredictor) Predict(input string) (prediction, inputContext string, err error) {
+func (m *mockPredictor) Predict(ctx context.Context, input string) (prediction, inputContext string, err error) {
 	if m.delay > 0 {
 		time.Sleep(m.delay)
 	}
@@ -81,7 +82,7 @@ func newMockExplainer() *mockExplainer {
 	}
 }
 
-func (m *mockExplainer) Explain(prediction string) (string, error) {
+func (m *mockExplainer) Explain(ctx context.Context, prediction string) (string, error) {
 	if m.delay > 0 {
 		time.Sleep(m.delay)
 	}

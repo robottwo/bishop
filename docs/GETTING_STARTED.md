@@ -109,7 +109,7 @@ Press Ctrl+R to open an interactive history search with fuzzy matching. While in
 
 - Configure bishop: see ./CONFIGURATION.md
 - Explore features and workflows: see ./FEATURES.md
-- Learn about the Agent: see ./AGENT.md
+- Learn about the Agent: see ../AGENTS.md
 - Use specialized Subagents: see ./SUBAGENTS.md
 
 If you run into issues, open an issue at https://github.com/robottwo/bishop/issues.

@@ -205,7 +205,7 @@ func handleCdCommand(ctx context.Context, args []string) error {
 
 	// Print the new directory path for cd - (matches bash behavior)
 	if printPath {
-		fmt.Fprintln(hc.Stdout, targetDir)
+		_, _ = fmt.Fprintln(hc.Stdout, targetDir)
 	}
 
 	return nil
