@@ -186,6 +186,111 @@ rm ~/.config/gsh/authorized_commands
 
 These patterns complement any defaults you provide via environment variables.
 
+## Custom Command Completions
+
+bishop provides intelligent tab completion for 30+ popular CLI tools out of the box, including:
+
+- **Container tools**: docker, docker-compose, podman, kubectl, helm
+- **Package managers**: npm, yarn, pnpm, pip, cargo, apt, brew
+- **Cloud CLIs**: aws, gcloud, az (Azure)
+- **Database clients**: psql, mysql, redis-cli, mongosh
+- **Dev tools**: go, cargo, gh (GitHub CLI), terraform
+- **System tools**: systemctl, tmux, curl, jq
+- **Editors**: vim, nvim, code (VS Code)
+
+### User-Defined Completions
+
+You can define custom completions for your own commands or tools not included by default. Create a configuration file in one of these locations (checked in order):
+
+1. `$XDG_CONFIG_HOME/bish/completions.yaml`
+2. `~/.config/bish/completions.yaml`
+3. `~/.bish_completions.yaml`
+
+JSON format is also supported (use `.json` extension).
+
+### Configuration Format
+
+**YAML example** (`~/.config/bish/completions.yaml`):
+
+```yaml
+commands:
+  # Custom CLI tool
+  myapp:
+    - value: start
+      description: Start the application
+    - value: stop
+      description: Stop the application
+    - value: status
+      description: Check application status
+    - value: logs
+      description: View application logs
+
+  # Internal deployment tool
+  deploy:
+    - value: staging
+      description: Deploy to staging environment
+    - value: production
+      description: Deploy to production environment
+    - value: rollback
+      description: Rollback to previous version
+
+  # Project-specific commands
+  proj:
+    - value: build
+    - value: test
+    - value: lint
+    - value: format
+```
+
+**JSON example** (`~/.config/bish/completions.json`):
+
+```json
+{
+  "commands": {
+    "myapp": [
+      {"value": "start", "description": "Start the application"},
+      {"value": "stop", "description": "Stop the application"},
+      {"value": "status", "description": "Check application status"}
+    ],
+    "deploy": [
+      {"value": "staging", "description": "Deploy to staging"},
+      {"value": "production", "description": "Deploy to production"}
+    ]
+  }
+}
+```
+
+### Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `value` | Yes | The completion text that will be inserted |
+| `description` | No | Optional description shown in completion menu |
+
+### Usage
+
+After creating your configuration file, completions are loaded automatically when bishop starts. Type your command followed by a space and press Tab:
+
+```bash
+bish> myapp <Tab>
+start   - Start the application
+stop    - Stop the application
+status  - Check application status
+logs    - View application logs
+
+bish> myapp st<Tab>
+start   - Start the application
+status  - Check application status
+stop    - Stop the application
+```
+
+### Notes
+
+- User-defined completions can override built-in completions for the same command
+- Completions are loaded once at shell startup
+- The `description` field is optional but recommended for discoverability
+- Both YAML and JSON formats are supported
+
 ## Troubleshooting
 
 - Unexpected prompt size: verify `BISH_MINIMUM_HEIGHT`.
@@ -197,5 +302,5 @@ These patterns complement any defaults you provide via environment variables.
 
 - Quick start: [GETTING_STARTED.md](GETTING_STARTED.md)
 - Features: [FEATURES.md](FEATURES.md)
-- Agent: [AGENT.md](AGENT.md)
+- Agent: [AGENTS.md](../AGENTS.md)
 - Subagents overview: [SUBAGENTS.md](SUBAGENTS.md)

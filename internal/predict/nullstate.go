@@ -41,7 +41,7 @@ func (p *LLMNullStatePredictor) UpdateContext(context *map[string]string) {
 	p.contextText = utils.ComposeContextText(context, contextTypes, p.logger)
 }
 
-func (p *LLMNullStatePredictor) Predict(input string) (string, string, error) {
+func (p *LLMNullStatePredictor) Predict(ctx context.Context, input string) (string, string, error) {
 	if input != "" {
 		// this predictor is only for null state
 		p.logger.Debug("skipping null-state prediction for non-empty input")
@@ -97,7 +97,7 @@ Now predict what my next command should be.`,
 		request.Temperature = float32(*p.temperature)
 	}
 
-	chatCompletion, err := p.llmClient.CreateChatCompletion(context.TODO(), request)
+	chatCompletion, err := p.llmClient.CreateChatCompletion(ctx, request)
 
 	if err != nil {
 		p.logger.Error("LLM API call failed", zap.Error(err))

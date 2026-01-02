@@ -1,11 +1,13 @@
 package gline
 
+import "context"
+
 type Predictor interface {
-	Predict(input string) (string, string, error)
+	Predict(ctx context.Context, input string) (string, string, error)
 }
 
 type NoopPredictor struct{}
 
-func (p *NoopPredictor) Predict(input string) (string, string, error) {
+func (p *NoopPredictor) Predict(ctx context.Context, input string) (string, string, error) {
 	return "", "", nil
 }
