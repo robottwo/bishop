@@ -1,0 +1,277 @@
+name: Jules Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: read
+
+jobs:
+  jules-review:
+    if: |
+      (github.event_name == 'pull_request') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@jules'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for CI workflows to complete
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const head_sha = context.payload.pull_request.head.sha;
+
+            // Map workflow file names to display names
+            const requiredWorkflows = [
+              { file: 'ci.yml', name: 'CI' },
+              { file: 'lint.yml', name: 'Lint' },
+              { file: 'govulncheck.yml', name: 'Vulnerability Check' }
+            ];
+
+            const maxAttempts = 60;  // 30 minutes max wait (60 * 30s)
+            const pollInterval = 30000;  // 30 seconds
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              console.log(`Attempt ${attempt}/${maxAttempts}: Checking workflow status...`);
+
+              // Get all workflow runs for this commit
+              const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                head_sha,
+                per_page: 100,
+              });
+
+              // Find the status of required workflows
+              const workflowStatus = {};
+              for (const workflow of requiredWorkflows) {
+                // Find runs matching this workflow file
+                const matchingRuns = workflowRuns.workflow_runs.filter(run =>
+                  run.path === `.github/workflows/${workflow.file}`
+                );
+
+                if (matchingRuns.length === 0) {
+                  workflowStatus[workflow.name] = 'pending';
+                } else {
+                  // Get the most recent run for this workflow
+                  const latestRun = matchingRuns.sort((a, b) =>
+                    new Date(b.created_at) - new Date(a.created_at)
+                  )[0];
+
+                  if (latestRun.status !== 'completed') {
+                    workflowStatus[workflow.name] = 'in_progress';
+                  } else if (latestRun.conclusion === 'success') {
+                    workflowStatus[workflow.name] = 'success';
+                  } else {
+                    workflowStatus[workflow.name] = 'failure';
+                  }
+                }
+              }
+
+              console.log('Workflow status:', JSON.stringify(workflowStatus, null, 2));
+
+              // Check if any workflow failed
+              const failed = Object.entries(workflowStatus).filter(([_, status]) => status === 'failure');
+              if (failed.length > 0) {
+                core.setFailed(`CI workflows failed: ${failed.map(([name]) => name).join(', ')}. Skipping Jules review to save tokens.`);
+                return;
+              }
+
+              // Check if all workflows succeeded
+              const allSucceeded = Object.values(workflowStatus).every(status => status === 'success');
+              if (allSucceeded) {
+                console.log('All CI workflows passed! Proceeding with Jules review.');
+                return;
+              }
+
+              // Still waiting
+              console.log(`Waiting ${pollInterval/1000}s before next check...`);
+              await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+
+            core.setFailed('Timeout waiting for CI workflows to complete');
+
+      - name: Get PR details
+        id: pr-details
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let prNumber, prTitle, prBody, baseBranch, headBranch;
+
+            if (context.eventName === 'pull_request') {
+              prNumber = context.payload.pull_request.number;
+              prTitle = context.payload.pull_request.title;
+              prBody = context.payload.pull_request.body || '';
+              baseBranch = context.payload.pull_request.base.ref;
+              headBranch = context.payload.pull_request.head.ref;
+            } else {
+              // For issue_comment event, get PR details
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.issue.number
+              });
+              prNumber = pr.number;
+              prTitle = pr.title;
+              prBody = pr.body || '';
+              baseBranch = pr.base.ref;
+              headBranch = pr.head.ref;
+            }
+
+            core.setOutput('pr_number', prNumber);
+            core.setOutput('pr_title', prTitle);
+            core.setOutput('pr_body', prBody);
+            core.setOutput('base_branch', baseBranch);
+            core.setOutput('head_branch', headBranch);
+
+      - name: Get changed files and diff
+        id: diff
+        run: |
+          git fetch origin ${{ steps.pr-details.outputs.base_branch }}
+          DIFF=$(git diff origin/${{ steps.pr-details.outputs.base_branch }}...HEAD)
+
+          # Get list of changed files
+          FILES=$(git diff --name-only origin/${{ steps.pr-details.outputs.base_branch }}...HEAD)
+
+          # Save to files for later use
+          echo "$DIFF" > /tmp/pr_diff.txt
+          echo "$FILES" > /tmp/changed_files.txt
+
+          # Set outputs (truncate if too long for env var)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Run Jules Code Review
+        id: jules-review
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+        run: |
+          # Check if Jules API key is configured
+          if [ -z "$JULES_API_KEY" ]; then
+            echo "::warning::JULES_API_KEY secret is not configured. Please add it to your repository secrets."
+            echo "review_status=skipped" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Read the diff
+          DIFF_CONTENT=$(cat /tmp/pr_diff.txt)
+          CHANGED_FILES=$(cat /tmp/changed_files.txt)
+
+          # Prepare the review prompt
+          REVIEW_PROMPT="Please review this pull request and provide feedback on:
+          1. Code quality and best practices
+          2. Potential bugs or issues
+          3. Performance considerations
+          4. Security concerns
+          5. Suggestions for improvement
+
+          PR Title: ${{ steps.pr-details.outputs.pr_title }}
+          PR Description: ${{ steps.pr-details.outputs.pr_body }}
+
+          Changed files:
+          $CHANGED_FILES
+
+          Diff:
+          $DIFF_CONTENT"
+
+          # Create a Jules session for code review using the API
+          # Note: Jules API is in alpha - endpoint structure may change
+          RESPONSE=$(curl -s -X POST \
+            "https://jules.googleapis.com/v1alpha/sessions" \
+            -H "Authorization: Bearer $JULES_API_KEY" \
+            -H "Content-Type: application/json" \
+            -H "x-goog-user-project: $GOOGLE_CLOUD_PROJECT" \
+            -d @- <<EOF
+          {
+            "prompt": "$REVIEW_PROMPT",
+            "source": {
+              "github": {
+                "owner": "${{ github.repository_owner }}",
+                "repo": "${{ github.event.repository.name }}",
+                "ref": "${{ steps.pr-details.outputs.head_branch }}"
+              }
+            }
+          }
+          EOF
+          )
+
+          # Check if we got a valid response
+          if echo "$RESPONSE" | jq -e '.name' > /dev/null 2>&1; then
+            SESSION_ID=$(echo "$RESPONSE" | jq -r '.name')
+            echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
+            echo "review_status=started" >> $GITHUB_OUTPUT
+
+            # Wait for the session to complete and get activities
+            sleep 30
+
+            ACTIVITIES=$(curl -s -X GET \
+              "https://jules.googleapis.com/v1alpha/$SESSION_ID/activities" \
+              -H "Authorization: Bearer $JULES_API_KEY" \
+              -H "x-goog-user-project: $GOOGLE_CLOUD_PROJECT")
+
+            # Extract review content
+            REVIEW_CONTENT=$(echo "$ACTIVITIES" | jq -r '.activities[] | select(.type == "CODE_REVIEW") | .description // empty' | head -1)
+
+            if [ -n "$REVIEW_CONTENT" ]; then
+              echo "review_content<<EOF" >> $GITHUB_OUTPUT
+              echo "$REVIEW_CONTENT" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+              echo "review_status=completed" >> $GITHUB_OUTPUT
+            else
+              echo "review_status=pending" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "::warning::Failed to create Jules session. Response: $RESPONSE"
+            echo "review_status=failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post review comment
+        if: steps.jules-review.outputs.review_status == 'completed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reviewContent = `${{ steps.jules-review.outputs.review_content }}`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.pr-details.outputs.pr_number }},
+              body: `## Jules Code Review\n\n${reviewContent}\n\n---\n*Powered by [Jules](https://jules.google/) - Google's AI Coding Agent*`
+            });
+
+      - name: Post status comment on skip/failure
+        if: steps.jules-review.outputs.review_status == 'skipped' || steps.jules-review.outputs.review_status == 'failed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.jules-review.outputs.review_status }}';
+            let message;
+
+            if (status === 'skipped') {
+              message = `## Jules Code Review\n\n:warning: **Review skipped**: JULES_API_KEY is not configured.\n\nTo enable Jules code reviews, please add the following secrets to your repository:\n- \`JULES_API_KEY\`: Your Jules API key\n- \`GOOGLE_CLOUD_PROJECT\`: Your Google Cloud project ID\n\nGet your API key from [Jules](https://jules.google/)`;
+            } else {
+              message = `## Jules Code Review\n\n:x: **Review failed**: Unable to create Jules session. Please check the workflow logs for details.`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.pr-details.outputs.pr_number }},
+              body: message
+            });
