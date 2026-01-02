@@ -11,10 +11,10 @@ permissions:
   pull-requests: write
   issues: write
   actions: read
-  id-token: write  # Required for Google Cloud Workload Identity Federation
 
 jobs:
   jules-review:
+    # Trigger on PR events or when @jules is mentioned in a PR comment
     if: |
       (github.event_name == 'pull_request') ||
       (github.event_name == 'issue_comment' &&
@@ -139,206 +139,42 @@ jobs:
             core.setOutput('base_branch', baseBranch);
             core.setOutput('head_branch', headBranch);
 
-      - name: Get changed files and diff
-        id: diff
+      - name: Get changed files
+        id: changed-files
         run: |
           git fetch origin ${{ steps.pr-details.outputs.base_branch }}
-          DIFF=$(git diff origin/${{ steps.pr-details.outputs.base_branch }}...HEAD)
-
-          # Get list of changed files
           FILES=$(git diff --name-only origin/${{ steps.pr-details.outputs.base_branch }}...HEAD)
-
-          # Save to files for later use
-          echo "$DIFF" > /tmp/pr_diff.txt
-          echo "$FILES" > /tmp/changed_files.txt
-
-          # Set outputs (truncate if too long for env var)
           echo "files<<EOF" >> $GITHUB_OUTPUT
           echo "$FILES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-        continue-on-error: true
-
+      # Use official Jules GitHub Action for code review
+      # Documentation: https://github.com/google-labs-code/jules-action
       - name: Run Jules Code Review
-        id: jules-review
-        env:
-          GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
-        run: |
-          # Check if Google Cloud authentication succeeded
-          if [ -z "$GCP_ACCESS_TOKEN" ]; then
-            echo "::warning::Google Cloud authentication failed. Please configure Workload Identity Federation."
-            echo "review_status=skipped" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Read the diff
-          DIFF_CONTENT=$(cat /tmp/pr_diff.txt)
-          CHANGED_FILES=$(cat /tmp/changed_files.txt)
-
-          # Escape special characters for JSON
-          DIFF_ESCAPED=$(echo "$DIFF_CONTENT" | jq -Rs .)
-          FILES_ESCAPED=$(echo "$CHANGED_FILES" | jq -Rs .)
-          TITLE_ESCAPED=$(echo "${{ steps.pr-details.outputs.pr_title }}" | jq -Rs .)
-          BODY_ESCAPED=$(echo "${{ steps.pr-details.outputs.pr_body }}" | jq -Rs .)
-
-          # Prepare the review prompt
-          REVIEW_PROMPT=$(cat <<PROMPT
-Please review this pull request and provide feedback on:
-1. Code quality and best practices
-2. Potential bugs or issues
-3. Performance considerations
-4. Security concerns
-5. Suggestions for improvement
-
-PR Title: ${{ steps.pr-details.outputs.pr_title }}
-PR Description: ${{ steps.pr-details.outputs.pr_body }}
-
-Changed files:
-$CHANGED_FILES
-
-Diff:
-$DIFF_CONTENT
-PROMPT
-)
-
-          PROMPT_ESCAPED=$(echo "$REVIEW_PROMPT" | jq -Rs .)
-
-          # Create a Jules session for code review using the API
-          # Note: Jules API is in alpha - endpoint structure may change
-          RESPONSE=$(curl -s -X POST \
-            "https://jules.googleapis.com/v1alpha/sessions" \
-            -H "Authorization: Bearer $GCP_ACCESS_TOKEN" \
-            -H "Content-Type: application/json" \
-            -H "x-goog-user-project: $GOOGLE_CLOUD_PROJECT" \
-            -d "{
-              \"prompt\": $PROMPT_ESCAPED,
-              \"source\": {
-                \"github\": {
-                  \"owner\": \"${{ github.repository_owner }}\",
-                  \"repo\": \"${{ github.event.repository.name }}\",
-                  \"ref\": \"${{ steps.pr-details.outputs.head_branch }}\"
-                }
-              }
-            }")
-
-          echo "API Response: $RESPONSE"
-
-          # Check if we got a valid response
-          if echo "$RESPONSE" | jq -e '.name' > /dev/null 2>&1; then
-            SESSION_ID=$(echo "$RESPONSE" | jq -r '.name')
-            echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
-            echo "review_status=started" >> $GITHUB_OUTPUT
-
-            # Poll for session completion (max 5 minutes)
-            MAX_POLLS=30
-            POLL_INTERVAL=10
-            for i in $(seq 1 $MAX_POLLS); do
-              echo "Polling for session completion (attempt $i/$MAX_POLLS)..."
-              sleep $POLL_INTERVAL
-
-              SESSION_STATUS=$(curl -s -X GET \
-                "https://jules.googleapis.com/v1alpha/$SESSION_ID" \
-                -H "Authorization: Bearer $GCP_ACCESS_TOKEN" \
-                -H "x-goog-user-project: $GOOGLE_CLOUD_PROJECT")
-
-              STATE=$(echo "$SESSION_STATUS" | jq -r '.state // empty')
-              echo "Session state: $STATE"
-
-              if [ "$STATE" = "COMPLETED" ] || [ "$STATE" = "FAILED" ]; then
-                break
-              fi
-            done
-
-            # Get activities
-            ACTIVITIES=$(curl -s -X GET \
-              "https://jules.googleapis.com/v1alpha/$SESSION_ID/activities" \
-              -H "Authorization: Bearer $GCP_ACCESS_TOKEN" \
-              -H "x-goog-user-project: $GOOGLE_CLOUD_PROJECT")
-
-            echo "Activities: $ACTIVITIES"
-
-            # Extract review content from activities
-            REVIEW_CONTENT=$(echo "$ACTIVITIES" | jq -r '
-              .activities[]? |
-              select(.type == "CODE_REVIEW" or .type == "ANALYSIS" or .type == "RESPONSE") |
-              .description // .content // empty
-            ' | head -50)
-
-            if [ -n "$REVIEW_CONTENT" ]; then
-              # Save to file to handle multiline content
-              echo "$REVIEW_CONTENT" > /tmp/review_content.txt
-              echo "review_status=completed" >> $GITHUB_OUTPUT
-            else
-              echo "review_status=pending" >> $GITHUB_OUTPUT
-            fi
-          else
-            ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error.message // "Unknown error"')
-            echo "::warning::Failed to create Jules session: $ERROR_MSG"
-            echo "review_status=failed" >> $GITHUB_OUTPUT
-            echo "$ERROR_MSG" > /tmp/error_msg.txt
-          fi
-
-      - name: Post review comment
-        if: steps.jules-review.outputs.review_status == 'completed'
-        uses: actions/github-script@v7
+        uses: google-labs-code/jules-invoke@v1
         with:
-          script: |
-            const fs = require('fs');
-            const reviewContent = fs.readFileSync('/tmp/review_content.txt', 'utf8');
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          prompt: |
+            Please review this pull request and provide detailed feedback.
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ steps.pr-details.outputs.pr_number }},
-              body: `## Jules Code Review\n\n${reviewContent}\n\n---\n*Powered by [Jules](https://jules.google/) - Google's AI Coding Agent*`
-            });
+            ## PR Information
+            - **Title**: ${{ steps.pr-details.outputs.pr_title }}
+            - **Branch**: ${{ steps.pr-details.outputs.head_branch }} → ${{ steps.pr-details.outputs.base_branch }}
+            - **Description**: ${{ steps.pr-details.outputs.pr_body }}
 
-      - name: Post status comment on skip/failure
-        if: steps.jules-review.outputs.review_status == 'skipped' || steps.jules-review.outputs.review_status == 'failed'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const status = '${{ steps.jules-review.outputs.review_status }}';
-            let message;
+            ## Changed Files
+            ${{ steps.changed-files.outputs.files }}
 
-            if (status === 'skipped') {
-              message = `## Jules Code Review
+            ## Review Guidelines
+            Please analyze the changes and provide feedback on:
 
-:warning: **Review skipped**: Google Cloud authentication is not configured.
+            1. **Code Quality**: Are there any code smells, anti-patterns, or violations of best practices?
+            2. **Bugs & Logic Errors**: Are there any potential bugs, edge cases, or logic errors?
+            3. **Security**: Are there any security vulnerabilities (injection, XSS, hardcoded secrets, etc.)?
+            4. **Performance**: Are there any performance concerns or optimization opportunities?
+            5. **Maintainability**: Is the code readable, well-documented, and easy to maintain?
+            6. **Testing**: Are there adequate tests? Are there any untested edge cases?
 
-To enable Jules code reviews, please configure Workload Identity Federation:
+            Please be constructive and specific in your feedback. If everything looks good, say so!
 
-1. Create a Workload Identity Pool and Provider in Google Cloud
-2. Grant the service account access to Jules API
-3. Add these secrets to your repository:
-   - \`GCP_WORKLOAD_IDENTITY_PROVIDER\`: Your workload identity provider
-   - \`GCP_SERVICE_ACCOUNT\`: Your service account email
-   - \`GOOGLE_CLOUD_PROJECT\`: Your Google Cloud project ID
-
-See [Google Cloud Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines) for setup instructions.`;
-            } else {
-              let errorDetail = '';
-              try {
-                errorDetail = fs.readFileSync('/tmp/error_msg.txt', 'utf8');
-              } catch (e) {}
-              message = `## Jules Code Review
-
-:x: **Review failed**: Unable to create Jules session.
-
-${errorDetail ? `Error: ${errorDetail}` : 'Please check the workflow logs for details.'}`;
-            }
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ steps.pr-details.outputs.pr_number }},
-              body: message
-            });
+            After your review, please post a summary comment on the pull request.
