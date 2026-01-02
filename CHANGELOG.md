@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.33.0](https://github.com/robottwo/bishop/compare/v0.32.0...v0.33.0) (2026-01-02)
+
+
+### Features
+
+* Add Claude code review to GitHub CI/CD ([#55](https://github.com/robottwo/bishop/issues/55)) ([405b847](https://github.com/robottwo/bishop/commit/405b8477cd558c347c388899e9f283ab8c0d2162))
+* added some reference images and icons. ([#58](https://github.com/robottwo/bishop/issues/58)) ([d6525d9](https://github.com/robottwo/bishop/commit/d6525d9cba0d1ee01411823337564c3431c6fc82))
+
+
+### Bug Fixes
+
+* fix Claude Code review in the CI/CD ([#57](https://github.com/robottwo/bishop/issues/57)) ([a4b32e7](https://github.com/robottwo/bishop/commit/a4b32e7380af75d3fae74d43d319a2c0c94a5673))
+
 ## [0.32.0](https://github.com/robottwo/bishop/compare/v0.31.0...v0.32.0) (2026-01-01)
 
 
