@@ -1,0 +1,305 @@
+name: GLM-4.7 Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: read
+
+jobs:
+  glm-review:
+    # Trigger on PR events or when @glm is mentioned in a PR comment
+    if: |
+      (github.event_name == 'pull_request') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@glm'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for CI workflows to complete
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const head_sha = context.payload.pull_request.head.sha;
+
+            // Map workflow file names to display names
+            const requiredWorkflows = [
+              { file: 'ci.yml', name: 'CI' },
+              { file: 'lint.yml', name: 'Lint' },
+              { file: 'govulncheck.yml', name: 'Vulnerability Check' }
+            ];
+
+            const maxAttempts = 60;  // 30 minutes max wait (60 * 30s)
+            const pollInterval = 30000;  // 30 seconds
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              console.log(`Attempt ${attempt}/${maxAttempts}: Checking workflow status...`);
+
+              // Get all workflow runs for this commit
+              const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                head_sha,
+                per_page: 100,
+              });
+
+              // Find the status of required workflows
+              const workflowStatus = {};
+              for (const workflow of requiredWorkflows) {
+                // Find runs matching this workflow file
+                const matchingRuns = workflowRuns.workflow_runs.filter(run =>
+                  run.path === `.github/workflows/${workflow.file}`
+                );
+
+                if (matchingRuns.length === 0) {
+                  workflowStatus[workflow.name] = 'pending';
+                } else {
+                  // Get the most recent run for this workflow
+                  const latestRun = matchingRuns.sort((a, b) =>
+                    new Date(b.created_at) - new Date(a.created_at)
+                  )[0];
+
+                  if (latestRun.status !== 'completed') {
+                    workflowStatus[workflow.name] = 'in_progress';
+                  } else if (latestRun.conclusion === 'success') {
+                    workflowStatus[workflow.name] = 'success';
+                  } else {
+                    workflowStatus[workflow.name] = 'failure';
+                  }
+                }
+              }
+
+              console.log('Workflow status:', JSON.stringify(workflowStatus, null, 2));
+
+              // Check if any workflow failed
+              const failed = Object.entries(workflowStatus).filter(([_, status]) => status === 'failure');
+              if (failed.length > 0) {
+                core.setFailed(`CI workflows failed: ${failed.map(([name]) => name).join(', ')}. Skipping GLM review to save tokens.`);
+                return;
+              }
+
+              // Check if all workflows succeeded
+              const allSucceeded = Object.values(workflowStatus).every(status => status === 'success');
+              if (allSucceeded) {
+                console.log('All CI workflows passed! Proceeding with GLM review.');
+                return;
+              }
+
+              // Still waiting
+              console.log(`Waiting ${pollInterval/1000}s before next check...`);
+              await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+
+            core.setFailed('Timeout waiting for CI workflows to complete');
+
+      - name: Get PR details
+        id: pr-details
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let prNumber, prTitle, prBody, baseBranch, headBranch;
+
+            if (context.eventName === 'pull_request') {
+              prNumber = context.payload.pull_request.number;
+              prTitle = context.payload.pull_request.title;
+              prBody = context.payload.pull_request.body || '';
+              baseBranch = context.payload.pull_request.base.ref;
+              headBranch = context.payload.pull_request.head.ref;
+            } else {
+              // For issue_comment event, get PR details
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.issue.number
+              });
+              prNumber = pr.number;
+              prTitle = pr.title;
+              prBody = pr.body || '';
+              baseBranch = pr.base.ref;
+              headBranch = pr.head.ref;
+            }
+
+            core.setOutput('pr_number', prNumber);
+            core.setOutput('pr_title', prTitle);
+            core.setOutput('pr_body', prBody);
+            core.setOutput('base_branch', baseBranch);
+            core.setOutput('head_branch', headBranch);
+
+      - name: Get changed files and diff
+        id: diff
+        run: |
+          git fetch origin ${{ steps.pr-details.outputs.base_branch }}
+
+          # Get list of changed files
+          FILES=$(git diff --name-only origin/${{ steps.pr-details.outputs.base_branch }}...HEAD)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Get the diff (truncate if too large for API)
+          DIFF=$(git diff origin/${{ steps.pr-details.outputs.base_branch }}...HEAD)
+          # Truncate to ~100KB to stay within token limits
+          DIFF_TRUNCATED=$(echo "$DIFF" | head -c 100000)
+          echo "$DIFF_TRUNCATED" > /tmp/pr_diff.txt
+
+      - name: Run GLM-4.7 Code Review
+        id: glm-review
+        env:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: |
+          # Check if API key is configured
+          if [ -z "$ZAI_API_KEY" ]; then
+            echo "::warning::ZAI_API_KEY secret is not configured. Please add it to your repository secrets."
+            echo "review_status=skipped" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Read the diff
+          DIFF_CONTENT=$(cat /tmp/pr_diff.txt)
+
+          # Prepare the review prompt
+          REVIEW_PROMPT=$(cat <<'PROMPT'
+          You are performing an automated, non-interactive code review. Do not ask any questions or request clarification. Make your best determination based on the available information and provide a complete review.
+
+          ## Task
+          Review the pull request and provide your findings in a well-formatted markdown response.
+
+          ## PR Information
+          - **Title**: ${{ steps.pr-details.outputs.pr_title }}
+          - **Branch**: ${{ steps.pr-details.outputs.head_branch }} → ${{ steps.pr-details.outputs.base_branch }}
+          - **Description**: ${{ steps.pr-details.outputs.pr_body }}
+
+          ## Changed Files
+          ${{ steps.diff.outputs.files }}
+
+          ## Review Criteria
+          Analyze the changes and report any issues found in these areas:
+          1. **Code Quality**: Code smells, anti-patterns, or best practice violations
+          2. **Bugs & Logic Errors**: Potential bugs, edge cases, or logic errors
+          3. **Security**: Vulnerabilities (injection, XSS, hardcoded secrets, etc.)
+          4. **Performance**: Performance concerns or optimization opportunities
+          5. **Maintainability**: Readability and maintainability issues
+          6. **Testing**: Missing tests or untested edge cases
+
+          ## Instructions
+          - This is a fully automated task. Do not ask questions or wait for input.
+          - If you are uncertain about something, state your assumption and proceed.
+          - Be specific and actionable in your feedback.
+          - If the code looks good with no issues, say so clearly.
+          - Format your response as a code review comment suitable for a pull request.
+          PROMPT
+          )
+
+          # Add the diff to the prompt
+          FULL_PROMPT="$REVIEW_PROMPT
+
+          ## Diff
+          \`\`\`diff
+          $DIFF_CONTENT
+          \`\`\`"
+
+          # Escape the prompt for JSON
+          ESCAPED_PROMPT=$(echo "$FULL_PROMPT" | jq -Rs .)
+
+          # Call the Z.ai API
+          RESPONSE=$(curl -s -X POST "https://api.z.ai/api/paas/v4/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $ZAI_API_KEY" \
+            -d "{
+              \"model\": \"glm-4.7\",
+              \"messages\": [
+                {\"role\": \"system\", \"content\": \"You are an expert code reviewer. Provide thorough, constructive feedback on pull requests.\"},
+                {\"role\": \"user\", \"content\": $ESCAPED_PROMPT}
+              ],
+              \"max_tokens\": 4096,
+              \"temperature\": 0.3
+            }")
+
+          echo "API Response received"
+
+          # Check for errors
+          if echo "$RESPONSE" | jq -e '.error' > /dev/null 2>&1; then
+            ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error.message // .error // "Unknown error"')
+            echo "::warning::GLM API error: $ERROR_MSG"
+            echo "review_status=failed" >> $GITHUB_OUTPUT
+            echo "$ERROR_MSG" > /tmp/error_msg.txt
+            exit 0
+          fi
+
+          # Extract the review content
+          REVIEW_CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+
+          if [ -n "$REVIEW_CONTENT" ]; then
+            echo "$REVIEW_CONTENT" > /tmp/review_content.txt
+            echo "review_status=completed" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::No review content in response"
+            echo "review_status=failed" >> $GITHUB_OUTPUT
+            echo "No content in API response" > /tmp/error_msg.txt
+          fi
+
+      - name: Post review comment
+        if: steps.glm-review.outputs.review_status == 'completed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reviewContent = fs.readFileSync('/tmp/review_content.txt', 'utf8');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.pr-details.outputs.pr_number }},
+              body: `## GLM-4.7 Code Review\n\n${reviewContent}\n\n---\n*Powered by [GLM-4.7](https://z.ai/blog/glm-4.7) - Z.ai's Advanced Coding Model*`
+            });
+
+      - name: Post status comment on skip/failure
+        if: steps.glm-review.outputs.review_status == 'skipped' || steps.glm-review.outputs.review_status == 'failed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const status = '${{ steps.glm-review.outputs.review_status }}';
+            let message;
+
+            if (status === 'skipped') {
+              message = `## GLM-4.7 Code Review
+
+            :warning: **Review skipped**: ZAI_API_KEY is not configured.
+
+            To enable GLM-4.7 code reviews, please add the following secret to your repository:
+            - \`ZAI_API_KEY\`: Your Z.ai API key
+
+            Get your API key from [Z.ai](https://z.ai)`;
+            } else {
+              let errorDetail = '';
+              try {
+                errorDetail = fs.readFileSync('/tmp/error_msg.txt', 'utf8');
+              } catch (e) {}
+              message = `## GLM-4.7 Code Review
+
+            :x: **Review failed**: Unable to complete the review.
+
+            ${errorDetail ? `Error: ${errorDetail}` : 'Please check the workflow logs for details.'}`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.pr-details.outputs.pr_number }},
+              body: message
+            });
