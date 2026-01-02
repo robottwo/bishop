@@ -151,7 +151,7 @@ jobs:
       # Use official Jules GitHub Action for code review
       # Documentation: https://github.com/google-labs-code/jules-action
       - name: Run Jules Code Review
-        uses: google-labs-code/jules-action@v1
+        uses: google-labs-code/jules-action@v1.0.0
         with:
           jules_api_key: ${{ secrets.JULES_API_KEY }}
           prompt: |
