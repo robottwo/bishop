@@ -125,8 +125,38 @@ func (m Model) HistorySearchBoxView(height, width int) string {
 	content.WriteString(header + "\n")
 
 	if matchCount == 0 {
-		content.WriteString(lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color("240")).Render("No history matches found"))
+		// UX Improvement: Contextual empty state
+		var emptyMsg string
+		if m.reverseSearchQuery != "" {
+			emptyMsg = fmt.Sprintf("No matches for \"%s\"", m.reverseSearchQuery)
+		} else {
+			emptyMsg = "No history entries found"
+		}
+
+		// Add tip based on filter
+		var tipMsg string
+		switch m.historySearchState.filterMode {
+		case HistoryFilterDirectory:
+			tipMsg = "Try changing filter (Ctrl+F) to search all directories."
+		case HistoryFilterSession:
+			tipMsg = "Try changing filter (Ctrl+F) to search all sessions."
+		default:
+			if m.reverseSearchQuery != "" {
+				tipMsg = "Check your spelling or try a shorter query."
+			} else {
+				tipMsg = "Run some commands to build up your history!"
+			}
+		}
+
+		// Render with style
+		msgStyle := lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color("240"))
+		tipStyle := lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color("241")).Italic(true)
+
+		content.WriteString(msgStyle.Render(emptyMsg))
 		content.WriteString("\n")
+		content.WriteString(tipStyle.Render(tipMsg))
+		content.WriteString("\n\n")
+
 		helpText := "Ctrl+F: Filter | Ctrl+O: Sort | Enter: Select | Esc: Cancel"
 		content.WriteString(helpStyle.Render(helpText))
 		return content.String()
