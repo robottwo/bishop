@@ -112,7 +112,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           trigger_phrase: "@claude"
           claude_args: |
-            --allowedTools "mcp__github__create_pending_pull_request_review,mcp__github__add_pull_request_review_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,mcp__github__get_pull_request_diff,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr view:*),Bash(gh pr diff:*)"
+            --allowedTools "mcp__github__get_pull_request,mcp__github__list_pull_requests,mcp__github__create_pending_pull_request_review,mcp__github__add_pull_request_review_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,mcp__github__get_pull_request_diff,mcp__github_inline_comment__create_inline_comment,Bash(gh pr:*),Bash(gh api:*)"
           prompt: |
             You are a senior code reviewer for bishop, a Go-based intelligent shell with AI agent capabilities.
 
