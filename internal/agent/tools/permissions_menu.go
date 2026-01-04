@@ -334,6 +334,12 @@ func (m *simplePermissionsModel) View() string {
 			indicator = "➜ "
 		}
 
+		// Number prefix (1-9) to show shortcut availability
+		numPrefix := "   "
+		if i < 9 {
+			numPrefix = fmt.Sprintf("%d. ", i+1)
+		}
+
 		// Checkbox
 		checkbox := "[ ]"
 		if atom.Enabled {
@@ -346,7 +352,7 @@ func (m *simplePermissionsModel) View() string {
 			command = command[:57] + "..."
 		}
 
-		line := fmt.Sprintf("   %s%s %s", indicator, checkbox, command)
+		line := fmt.Sprintf("   %s%s%s %s", indicator, numPrefix, checkbox, command)
 
 		// Highlight selected line
 		if isSelected {
@@ -362,7 +368,8 @@ func (m *simplePermissionsModel) View() string {
 	content.WriteString(styles.AGENT_MESSAGE(" Controls:") + "\n")
 	content.WriteString("  ↑/k   Navigate Up      Space  Toggle Permission\n")
 	content.WriteString("  ↓/j   Navigate Down    Enter  Confirm & Apply\n")
-	content.WriteString("  Esc   Cancel           y/n    Yes/No (Once)\n\n")
+	content.WriteString("  1-9   Jump to Item     y/n    Yes/No (Once)\n")
+	content.WriteString("  Esc   Cancel\n\n")
 
 	content.WriteString(styles.AGENT_MESSAGE(" Tip: ") + "Enabling a permission allows matching future commands to run without prompting.\n")
 
@@ -471,6 +478,13 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 			line.WriteString("> ")
 		} else {
 			line.WriteString("  ")
+		}
+
+		// Number prefix
+		if i < 9 {
+			line.WriteString(fmt.Sprintf("%d. ", i+1))
+		} else {
+			line.WriteString("   ")
 		}
 
 		// Checkbox
