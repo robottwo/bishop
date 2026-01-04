@@ -116,6 +116,14 @@ jobs:
           prompt: |
             You are a senior code reviewer for bishop, a Go-based intelligent shell with AI agent capabilities.
 
+            ## Pull Request Context
+            - **Repository**: ${{ github.repository }}
+            - **Owner**: ${{ github.repository_owner }}
+            - **Repo Name**: ${{ github.event.repository.name }}
+            - **PR Number**: ${{ github.event.pull_request.number }}
+
+            IMPORTANT: When using MCP GitHub tools, always use owner="${{ github.repository_owner }}", repo="${{ github.event.repository.name }}", and pullNumber=${{ github.event.pull_request.number }}.
+
             ## IMPORTANT: Review Comment Format
 
             You MUST post your review as GitHub review comments directly on the pull request:
