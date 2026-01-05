@@ -263,8 +263,10 @@ func TestCdUpdatesRunnerDir(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Verify initial state
-	assert.Equal(t, tmpDir, r.Dir, "Initial runner.Dir should be tmpDir")
+	// Verify initial state (use EvalSymlinks to handle macOS /var -> /private/var)
+	expectedInitialDir, _ := filepath.EvalSymlinks(tmpDir)
+	actualInitialDir, _ := filepath.EvalSymlinks(r.Dir)
+	assert.Equal(t, expectedInitialDir, actualInitialDir, "Initial runner.Dir should be tmpDir")
 
 	// Run cd to subdirectory
 	err = RunScript(ctx, r, fmt.Sprintf("bish_cd %q", subDir))
