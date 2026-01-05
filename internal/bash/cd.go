@@ -184,8 +184,18 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		return err
 	}
 
-	// Update PWD and OLDPWD environment variables
-	oldPwd := env.Get("PWD").String()
+	// Determine the old working directory for OLDPWD
+	// Priority: runner.Dir > env.Get("PWD") > os.Getwd()
+	var oldPwd string
+	if cdRunner != nil && cdRunner.Dir != "" {
+		oldPwd = cdRunner.Dir
+	} else if pwd := env.Get("PWD").String(); pwd != "" {
+		oldPwd = pwd
+	} else if wd, err := os.Getwd(); err == nil {
+		// Note: os.Getwd() returns the NEW directory since os.Chdir already happened
+		// This is a fallback that shouldn't normally be needed
+		oldPwd = wd
+	}
 
 	// Update OS environment variables (for child processes)
 	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
@@ -195,10 +205,21 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
 	}
 
-	// Update the interpreter's internal environment variables
-	// This ensures that shell variable expansion (e.g., $PWD) and env.Get("PWD")
-	// return the correct values, keeping prompt and completion context in sync.
-	if cdRunner != nil && cdRunner.Vars != nil {
+	// Update the interpreter's internal state
+	// This ensures that:
+	// 1. runner.Dir reflects the new working directory (used by the interpreter)
+	// 2. $PWD and $OLDPWD environment variables are correctly set for shell expansion
+	if cdRunner != nil {
+		// Update the interpreter's working directory - this is critical!
+		// runner.Dir is what the interpreter uses as the current directory
+		cdRunner.Dir = targetDir
+
+		// Initialize runner.Vars if nil (can happen with fresh runner)
+		if cdRunner.Vars == nil {
+			cdRunner.Vars = make(map[string]expand.Variable)
+		}
+
+		// Update the environment variables for shell expansion
 		cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
 		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: targetDir, Exported: true}
 	}

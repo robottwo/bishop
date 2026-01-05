@@ -194,7 +194,21 @@ func GetDefaultToYes(runner *interp.Runner) bool {
 }
 
 func GetPwd(runner *interp.Runner) string {
-	return runner.Vars["PWD"].String()
+	// Use runner.Dir as the authoritative source for current working directory
+	// This is what the mvdan.cc/sh interpreter uses internally.
+	// runner.Vars["PWD"] may not be reliably updated by the interpreter.
+	if runner.Dir != "" {
+		return runner.Dir
+	}
+	// Fallback to environment variable if Dir is not set
+	if pwd := runner.Vars["PWD"].String(); pwd != "" {
+		return pwd
+	}
+	// Last resort: get from OS
+	if wd, err := os.Getwd(); err == nil {
+		return wd
+	}
+	return ""
 }
 
 func GetUser(runner *interp.Runner) string {

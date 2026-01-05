@@ -2,6 +2,7 @@ package bash
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -221,6 +222,167 @@ func TestCdCommandHandler(t *testing.T) {
 func RunScript(ctx context.Context, r *interp.Runner, code string) error {
 	_, _, err := RunBashCommand(ctx, r, code)
 	return err
+}
+
+// TestCdUpdatesRunnerDir verifies that cd correctly updates runner.Dir
+// This is the critical fix - runner.Dir must be updated for the interpreter
+// to know the current working directory.
+func TestCdUpdatesRunnerDir(t *testing.T) {
+	// Setup temporary directory structure
+	tmpDir, err := os.MkdirTemp("", "bish-cd-runnerdir-test")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
+
+	// Create a subdirectory
+	subDir := filepath.Join(tmpDir, "subdir")
+	err = os.Mkdir(subDir, 0755)
+	require.NoError(t, err)
+
+	// Save original working directory
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalWd)
+	}()
+
+	// Start in tmpDir
+	require.NoError(t, os.Chdir(tmpDir))
+
+	// Setup environment
+	dynamicEnv := environment.NewDynamicEnviron()
+	dynamicEnv.UpdateSystemEnv()
+
+	r, err := interp.New(interp.Env(dynamicEnv), interp.ExecHandlers(NewCdCommandHandler()))
+	require.NoError(t, err)
+
+	// IMPORTANT: Set the global cdRunner so the handler can update runner.Dir
+	SetCdRunner(r)
+	defer SetCdRunner(nil) // Clean up
+
+	ctx := context.Background()
+
+	// Verify initial state
+	assert.Equal(t, tmpDir, r.Dir, "Initial runner.Dir should be tmpDir")
+
+	// Run cd to subdirectory
+	err = RunScript(ctx, r, fmt.Sprintf("bish_cd %q", subDir))
+	require.NoError(t, err)
+
+	// Verify runner.Dir is updated
+	expectedDir, _ := filepath.EvalSymlinks(subDir)
+	actualDir, _ := filepath.EvalSymlinks(r.Dir)
+	assert.Equal(t, expectedDir, actualDir, "runner.Dir should be updated to subDir after cd")
+
+	// Verify os.Getwd() also matches
+	osWd, _ := os.Getwd()
+	osWd, _ = filepath.EvalSymlinks(osWd)
+	assert.Equal(t, expectedDir, osWd, "os.Getwd() should match the new directory")
+}
+
+// TestCdUpdatesGetPwd verifies that GetPwd returns the correct directory after cd
+func TestCdUpdatesGetPwd(t *testing.T) {
+	// Setup temporary directory structure
+	tmpDir, err := os.MkdirTemp("", "bish-cd-getpwd-test")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
+
+	// Create a subdirectory
+	subDir := filepath.Join(tmpDir, "subdir")
+	err = os.Mkdir(subDir, 0755)
+	require.NoError(t, err)
+
+	// Save original working directory
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalWd)
+	}()
+
+	// Start in tmpDir
+	require.NoError(t, os.Chdir(tmpDir))
+
+	// Setup environment
+	dynamicEnv := environment.NewDynamicEnviron()
+	dynamicEnv.UpdateSystemEnv()
+
+	r, err := interp.New(interp.Env(dynamicEnv), interp.ExecHandlers(NewCdCommandHandler()))
+	require.NoError(t, err)
+
+	// Set the global cdRunner
+	SetCdRunner(r)
+	defer SetCdRunner(nil)
+
+	ctx := context.Background()
+
+	// Verify initial GetPwd
+	initialPwd := environment.GetPwd(r)
+	initialPwd, _ = filepath.EvalSymlinks(initialPwd)
+	expectedInitial, _ := filepath.EvalSymlinks(tmpDir)
+	assert.Equal(t, expectedInitial, initialPwd, "Initial GetPwd should return tmpDir")
+
+	// Run cd to subdirectory
+	err = RunScript(ctx, r, fmt.Sprintf("bish_cd %q", subDir))
+	require.NoError(t, err)
+
+	// Verify GetPwd returns the new directory
+	newPwd := environment.GetPwd(r)
+	newPwd, _ = filepath.EvalSymlinks(newPwd)
+	expectedNew, _ := filepath.EvalSymlinks(subDir)
+	assert.Equal(t, expectedNew, newPwd, "GetPwd should return subDir after cd")
+}
+
+// TestCdUpdatesOldPwd verifies that OLDPWD is set correctly after cd
+func TestCdUpdatesOldPwd(t *testing.T) {
+	// Setup temporary directory structure
+	tmpDir, err := os.MkdirTemp("", "bish-cd-oldpwd-test")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
+
+	// Create a subdirectory
+	subDir := filepath.Join(tmpDir, "subdir")
+	err = os.Mkdir(subDir, 0755)
+	require.NoError(t, err)
+
+	// Save original working directory
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalWd)
+	}()
+
+	// Start in tmpDir
+	require.NoError(t, os.Chdir(tmpDir))
+
+	// Setup environment
+	dynamicEnv := environment.NewDynamicEnviron()
+	dynamicEnv.UpdateSystemEnv()
+
+	r, err := interp.New(interp.Env(dynamicEnv), interp.ExecHandlers(NewCdCommandHandler()))
+	require.NoError(t, err)
+
+	// Set the global cdRunner
+	SetCdRunner(r)
+	defer SetCdRunner(nil)
+
+	ctx := context.Background()
+
+	// Run cd to subdirectory
+	err = RunScript(ctx, r, fmt.Sprintf("bish_cd %q", subDir))
+	require.NoError(t, err)
+
+	// Verify OLDPWD in OS environment
+	// Note: The OS environment is the reliable source for OLDPWD since the interpreter's
+	// internal Vars map may be managed/reset by the interpreter during command execution.
+	osOldPwd := os.Getenv("OLDPWD")
+	osOldPwd, _ = filepath.EvalSymlinks(osOldPwd)
+	expectedOld, _ := filepath.EvalSymlinks(tmpDir)
+	assert.Equal(t, expectedOld, osOldPwd, "OS OLDPWD should be set to the previous directory")
 }
 
 func TestCdMinusPrintsPath(t *testing.T) {
