@@ -17,7 +17,19 @@ func failedToolResponse(errorMessage string) string {
 }
 
 func printToolMessage(message string) {
+	// Suppress output during tests
+	if flag.Lookup("test.v") != nil {
+		return
+	}
 	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_QUESTION(message) + "\n")
+}
+
+func printToolPath(path string) {
+	// Suppress output during tests
+	if flag.Lookup("test.v") != nil {
+		return
+	}
+	fmt.Print(gline.RESET_CURSOR_COLUMN + path + "\n")
 }
 
 // defaultUserConfirmation is the default implementation that calls gline.Gline
