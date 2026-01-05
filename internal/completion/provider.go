@@ -303,15 +303,8 @@ func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []s
 		}
 
 		if len(completions) == 0 {
-			// No subagent matches found, fall back to path completion
-			pathPrefix := strings.TrimPrefix(currentWord, "#")
-			fileCompletions := getFileCompletions(pathPrefix, environment.GetPwd(p.Runner))
-
-			// Add completions with proper prefix and suffix
-			for i := range fileCompletions {
-				fileCompletions[i].Value = linePrefix + fileCompletions[i].Value + lineSuffix
-			}
-			return fileCompletions
+			// No subagent matches found, return empty (don't fall back to path completion)
+			return []shellinput.CompletionCandidate{}
 		}
 
 		// Add completions with proper prefix and suffix
