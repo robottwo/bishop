@@ -305,10 +305,11 @@ func (m *simplePermissionsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-			// Jump to specific item
+			// Toggle specific item
 			index := int(msg.String()[0] - '1')
 			if index >= 0 && index < len(m.state.atoms) {
 				m.state.selectedIndex = index
+				m.state.atoms[index].Enabled = !m.state.atoms[index].Enabled
 			}
 			return m, nil
 		}
@@ -334,6 +335,12 @@ func (m *simplePermissionsModel) View() string {
 			indicator = "➜ "
 		}
 
+		// Numeric shortcut (1-9)
+		shortcut := "   "
+		if i < 9 {
+			shortcut = fmt.Sprintf("%d. ", i+1)
+		}
+
 		// Checkbox
 		checkbox := "[ ]"
 		if atom.Enabled {
@@ -346,7 +353,7 @@ func (m *simplePermissionsModel) View() string {
 			command = command[:57] + "..."
 		}
 
-		line := fmt.Sprintf("   %s%s %s", indicator, checkbox, command)
+		line := fmt.Sprintf("   %s%s%s %s", indicator, shortcut, checkbox, command)
 
 		// Highlight selected line
 		if isSelected {
@@ -362,7 +369,8 @@ func (m *simplePermissionsModel) View() string {
 	content.WriteString(styles.AGENT_MESSAGE(" Controls:") + "\n")
 	content.WriteString("  ↑/k   Navigate Up      Space  Toggle Permission\n")
 	content.WriteString("  ↓/j   Navigate Down    Enter  Confirm & Apply\n")
-	content.WriteString("  Esc   Cancel           y/n    Yes/No (Once)\n\n")
+	content.WriteString("  1-9   Toggle Item      y/n    Yes/No (Once)\n")
+	content.WriteString("  Esc   Cancel\n\n")
 
 	content.WriteString(styles.AGENT_MESSAGE(" Tip: ") + "Enabling a permission allows matching future commands to run without prompting.\n")
 
@@ -473,6 +481,13 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 			line.WriteString("  ")
 		}
 
+		// Numeric shortcut
+		if i < 9 {
+			line.WriteString(fmt.Sprintf("%d. ", i+1))
+		} else {
+			line.WriteString("   ")
+		}
+
 		// Checkbox
 		if atom.Enabled {
 			line.WriteString("[✓] ")
@@ -554,11 +569,12 @@ func handleMenuInput(state *PermissionsMenuState, input string) string {
 		return ""
 
 	default:
-		// Check for numeric input to jump to specific item
+		// Check for numeric input to toggle specific item
 		if len(input) == 1 && input >= "1" && input <= "9" {
 			index := int(input[0] - '1')
 			if index >= 0 && index < len(state.atoms) {
 				state.selectedIndex = index
+				state.atoms[index].Enabled = !state.atoms[index].Enabled
 			}
 			return ""
 		}

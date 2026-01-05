@@ -449,12 +449,16 @@ func TestSimplePermissionsModelNavigation(t *testing.T) {
 	model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")})
 	assert.Equal(t, 0, state.selectedIndex)
 
-	// Test numeric jump
+	// Test numeric jump and toggle
+	assert.False(t, state.atoms[2].Enabled)
 	model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("3")})
 	assert.Equal(t, 2, state.selectedIndex) // 3 maps to index 2 (0-based)
+	assert.True(t, state.atoms[2].Enabled)  // Should be toggled
 
+	assert.False(t, state.atoms[0].Enabled)
 	model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("1")})
 	assert.Equal(t, 0, state.selectedIndex) // 1 maps to index 0
+	assert.True(t, state.atoms[0].Enabled)  // Should be toggled
 
 	// Test invalid numeric jump
 	model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("9")})
