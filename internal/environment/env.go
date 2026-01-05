@@ -611,18 +611,13 @@ func GetApprovedBashCommandRegex(runner *interp.Runner, logger *zap.Logger) []st
 
 	// Get patterns from environment variable
 	regexStr := runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"].String()
-	logger.Debug("BISH_AGENT_APPROVED_BASH_COMMAND_REGEX value", zap.String("value", regexStr))
 	var envPatterns []string
 	if regexStr != "" {
 		err := json.Unmarshal([]byte(regexStr), &envPatterns)
 		if err != nil {
-			logger.Debug("error parsing BISH_AGENT_APPROVED_BASH_COMMAND_REGEX", zap.Error(err))
 			envPatterns = []string{}
-		} else {
-			logger.Debug("successfully parsed environment patterns", zap.Any("patterns", envPatterns))
 		}
 	} else {
-		logger.Debug("BISH_AGENT_APPROVED_BASH_COMMAND_REGEX is empty")
 		envPatterns = []string{}
 	}
 

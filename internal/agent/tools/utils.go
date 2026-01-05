@@ -32,6 +32,22 @@ func printToolPath(path string) {
 	fmt.Print(gline.RESET_CURSOR_COLUMN + path + "\n")
 }
 
+func printDiff(diff string) {
+	// Suppress output during tests
+	if flag.Lookup("test.v") != nil {
+		return
+	}
+	fmt.Print(gline.RESET_CURSOR_COLUMN + diff + "\n" + gline.RESET_CURSOR_COLUMN)
+}
+
+func printCommandPrompt(prompt string) {
+	// Suppress output during tests
+	if flag.Lookup("test.v") != nil {
+		return
+	}
+	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(prompt) + "\n")
+}
+
 // defaultUserConfirmation is the default implementation that calls gline.Gline
 var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 	defaultToYes := false

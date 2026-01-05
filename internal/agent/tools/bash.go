@@ -12,9 +12,7 @@ import (
 
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/history"
-	"github.com/robottwo/bishop/internal/styles"
 	"github.com/robottwo/bishop/internal/utils"
-	"github.com/robottwo/bishop/pkg/gline"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
@@ -199,7 +197,7 @@ func BashTool(runner *interp.Runner, historyManager *history.HistoryManager, log
 	}
 
 	// Always display the command first for consistent behavior
-	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(environment.GetAgentPrompt(runner)+command) + "\n")
+	printCommandPrompt(environment.GetAgentPrompt(runner) + command)
 
 	// Check if the command matches any pre-approved patterns using secure compound command validation
 	approvedPatterns := environment.GetApprovedBashCommandRegex(runner, logger)

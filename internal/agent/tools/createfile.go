@@ -7,7 +7,6 @@ import (
 
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/utils"
-	"github.com/robottwo/bishop/pkg/gline"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
@@ -65,7 +64,7 @@ func CreateFileTool(runner *interp.Runner, logger *zap.Logger, params map[string
 		return failedToolResponse(fmt.Sprintf("Error generating diff: %s", err))
 	}
 
-	fmt.Print(gline.RESET_CURSOR_COLUMN + diff + "\n" + gline.RESET_CURSOR_COLUMN)
+	printDiff(diff)
 
 	agentName := environment.GetAgentName(runner)
 	confirmResponse := userConfirmation(
