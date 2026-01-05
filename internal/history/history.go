@@ -20,8 +20,8 @@ type HistoryEntry struct {
 	CreatedAt time.Time `gorm:"index"`
 	UpdatedAt time.Time `gorm:"index"`
 
-	Command   string
-	Directory string
+	Command   string `gorm:"index"`
+	Directory string `gorm:"index"`
 	SessionID string `gorm:"index"`
 	ExitCode  sql.NullInt32
 }
