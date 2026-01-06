@@ -75,7 +75,14 @@ func handleCdHook(args []string) error {
 	}
 
 	// Resolve symlinks to get canonical path (prevents TOCTOU attacks)
+	// Resolve symlinks to get canonical path
+	// Note: This doesn't fully prevent TOCTOU as the symlink could change between
+	// resolution and chdir, but it provides best-effort path normalization
 	resolvedDir, err := filepath.EvalSymlinks(newDir)
+	if err != nil {
+		// If symlink resolution fails, os.Chdir will validate the path
+		resolvedDir = newDir
+	}
 	if err != nil {
 		// Fall back to the original path if symlink resolution fails
 		// (e.g., path doesn't exist yet)
