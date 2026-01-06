@@ -69,6 +69,9 @@ func handleCdHook() error {
 		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
 	}
 
+	// Debug: check if cdRunner is set
+	fmt.Fprintf(os.Stderr, "[DEBUG bish_cd_hook] cdRunner=%v, currentDir=%q\n", cdRunner != nil, currentDir)
+
 	// Update the interpreter's external state
 	if cdRunner != nil {
 		cdRunner.Dir = currentDir
@@ -81,6 +84,8 @@ func handleCdHook() error {
 		if oldPwd != "" {
 			cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
 		}
+
+		fmt.Fprintf(os.Stderr, "[DEBUG bish_cd_hook] runner.Dir now=%q\n", cdRunner.Dir)
 	}
 
 	return nil
