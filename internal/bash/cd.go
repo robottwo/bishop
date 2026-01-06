@@ -222,10 +222,11 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		// This is necessary because pwd and other builtins read from the interpreter's
 		// internal state, not from runner.Dir or os.Getwd()
 		// We use "builtin cd" to bypass the cd function and call the actual builtin
+		// IMPORTANT: Use a fresh context to avoid corrupting the current handler's state
 		parser := syntax.NewParser()
 		prog, err := parser.Parse(strings.NewReader(fmt.Sprintf("builtin cd %q", targetDir)), "")
 		if err == nil {
-			_ = cdRunner.Run(ctx, prog)
+			_ = cdRunner.Run(context.Background(), prog)
 		}
 	}
 
