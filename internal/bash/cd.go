@@ -10,6 +10,7 @@ import (
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // Global runner reference for the cd command handler
@@ -40,18 +41,8 @@ func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerF
 				return next(ctx, args)
 			}
 
-			// Debug: verify handler is being called
-			fmt.Fprintf(os.Stderr, "[DEBUG cd] handling command: %v, cdRunner=%v\n", args, cdRunner != nil)
-
 			// Handle cd command
-			err := handleCdCommand(ctx, args)
-
-			// Debug: verify state after cd
-			if cdRunner != nil {
-				fmt.Fprintf(os.Stderr, "[DEBUG cd] after: runner.Dir=%q, os.Getwd=%q\n", cdRunner.Dir, func() string { d, _ := os.Getwd(); return d }())
-			}
-
-			return err
+			return handleCdCommand(ctx, args)
 		}
 	}
 }
@@ -212,6 +203,7 @@ func handleCdCommand(ctx context.Context, args []string) error {
 	// This ensures that:
 	// 1. runner.Dir reflects the new working directory (used by the interpreter)
 	// 2. $PWD and $OLDPWD environment variables are correctly set for shell expansion
+	// 3. The interpreter's internal directory tracking is updated via builtin cd
 	if cdRunner != nil {
 		// Update the interpreter's working directory - this is critical!
 		// runner.Dir is what the interpreter uses as the current directory
@@ -225,6 +217,16 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		// Update the environment variables for shell expansion
 		cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
 		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: targetDir, Exported: true}
+
+		// Run the builtin cd to update the interpreter's internal directory tracking
+		// This is necessary because pwd and other builtins read from the interpreter's
+		// internal state, not from runner.Dir or os.Getwd()
+		// We use "builtin cd" to bypass the cd function and call the actual builtin
+		parser := syntax.NewParser()
+		prog, err := parser.Parse(strings.NewReader(fmt.Sprintf("builtin cd %q", targetDir)), "")
+		if err == nil {
+			_ = cdRunner.Run(ctx, prog)
+		}
 	}
 
 	// Print the new directory path for cd - (matches bash behavior)
