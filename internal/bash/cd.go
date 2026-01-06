@@ -100,26 +100,16 @@ func handleCdHook(args []string) error {
 
 	// Update OS environment variables - rollback on failure
 	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
-		// Rollback: restore original directory
 		_ = os.Chdir(oldPwd)
 		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
 		return err
-	if err := os.Setenv("PWD", resolvedDir); err != nil {
-		// Rollback: restore original directory and OLDPWD
-		_ = os.Chdir(oldPwd)
-		// Note: We need to save originalOldPwd := os.Getenv("OLDPWD") before the first Setenv
-		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
-		return err
 	}
 	if err := os.Setenv("PWD", resolvedDir); err != nil {
-		// Rollback: restore original directory and OLDPWD
 		_ = os.Chdir(oldPwd)
-		_ = os.Setenv("OLDPWD", os.Getenv("OLDPWD")) // Restore previous OLDPWD
 		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
 		return err
 	}
 
-	// Update the interpreter's external state (thread-safe access)
 	// Update the interpreter's external state (thread-safe access)
 	cdRunnerMu.Lock()
 	runner := cdRunner
@@ -134,16 +124,6 @@ func handleCdHook(args []string) error {
 		runner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
 	}
 	cdRunnerMu.Unlock()
-	if runner != nil {
-		runner.Dir = resolvedDir
-
-		if runner.Vars == nil {
-			runner.Vars = make(map[string]expand.Variable)
-		}
-
-		runner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: resolvedDir, Exported: true}
-		runner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
-	}
 
 	return nil
 }
