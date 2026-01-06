@@ -9,7 +9,6 @@ import (
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/filesystem"
 	"github.com/robottwo/bishop/internal/utils"
-	"github.com/robottwo/bishop/pkg/gline"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
@@ -105,7 +104,7 @@ func previewAndConfirm(runner *interp.Runner, logger *zap.Logger, path string, n
 		return fmt.Sprintf("Error generating diff: %s", err)
 	}
 
-	fmt.Print(gline.RESET_CURSOR_COLUMN + diff + "\n" + gline.RESET_CURSOR_COLUMN)
+	printDiff(diff)
 
 	agentName := environment.GetAgentName(runner)
 	confirmResponse := userConfirmation(logger, runner, fmt.Sprintf("%s: Do I have your permission to make the edit proposed above?", agentName), "")
@@ -150,7 +149,7 @@ func EditFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 		return failedToolResponse(errMsg)
 	}
 
-	fmt.Print(gline.RESET_CURSOR_COLUMN + utils.HideHomeDirPath(runner, fileParams.path) + "\n")
+	printToolPath(utils.HideHomeDirPath(runner, fileParams.path))
 
 	if errMsg = writeFile(logger, fs, fileParams.path, newContent); errMsg != "" {
 		return failedToolResponse(errMsg)
