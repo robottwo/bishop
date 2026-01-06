@@ -17,10 +17,11 @@ func TestValidateAndExtractParams(t *testing.T) {
 	logger := zap.NewNop()
 	runner, _ := interp.New()
 
-	// Helper to normalize paths for the current OS
-	p := func(path string) string {
-		return filepath.FromSlash(path)
-	}
+	// Use an absolute path that works on all platforms
+	// On Windows, paths like \test\path are NOT absolute (need drive letter)
+	// So we use a temp directory to get a truly absolute path
+	tempDir := os.TempDir()
+	absPath := filepath.Join(tempDir, "test", "path")
 
 	tests := []struct {
 		name           string
@@ -31,12 +32,12 @@ func TestValidateAndExtractParams(t *testing.T) {
 		{
 			name: "valid parameters",
 			params: map[string]any{
-				"path":    p("/test/path"),
+				"path":    absPath,
 				"old_str": "old content",
 				"new_str": "new content",
 			},
 			expectedParams: &editFileParams{
-				path:   p("/test/path"),
+				path:   absPath,
 				oldStr: "old content",
 				newStr: "new content",
 			},
@@ -54,7 +55,7 @@ func TestValidateAndExtractParams(t *testing.T) {
 		{
 			name: "missing old_str",
 			params: map[string]any{
-				"path":    p("/test/path"),
+				"path":    absPath,
 				"new_str": "new content",
 			},
 			expectedParams: nil,
@@ -63,7 +64,7 @@ func TestValidateAndExtractParams(t *testing.T) {
 		{
 			name: "missing new_str",
 			params: map[string]any{
-				"path":    p("/test/path"),
+				"path":    absPath,
 				"old_str": "old content",
 			},
 			expectedParams: nil,
