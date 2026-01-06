@@ -104,6 +104,12 @@ func handleCdHook(args []string) error {
 		_ = os.Chdir(oldPwd)
 		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
 		return err
+	if err := os.Setenv("PWD", resolvedDir); err != nil {
+		// Rollback: restore original directory and OLDPWD
+		_ = os.Chdir(oldPwd)
+		// Note: We need to save originalOldPwd := os.Getenv("OLDPWD") before the first Setenv
+		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
+		return err
 	}
 	if err := os.Setenv("PWD", resolvedDir); err != nil {
 		// Rollback: restore original directory and OLDPWD
