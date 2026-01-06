@@ -37,7 +37,7 @@ func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerF
 
 			// Handle bish_cd_hook - called after builtin cd to sync external state
 			if commandName == "bish_cd_hook" {
-				return handleCdHook()
+				return handleCdHook(args)
 			}
 
 			// Handle 'cd' and 'bish_cd' commands on all platforms
@@ -53,39 +53,43 @@ func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerF
 }
 
 // handleCdHook syncs external state after the builtin cd has run
-// It updates runner.Dir and OS environment variables to match the new directory
-func handleCdHook() error {
-	// Get the current working directory (which was just set by builtin cd)
-	currentDir, err := os.Getwd()
-	if err != nil {
+// It takes the new directory as an argument (passed from the cd function as $PWD)
+// and calls os.Chdir() to actually change the process's working directory
+func handleCdHook(args []string) error {
+	// The new directory is passed as an argument from the cd function
+	// cd function: function cd() { builtin cd "$@" && bish_cd_hook "$PWD"; }
+	if len(args) < 2 {
+		return fmt.Errorf("bish_cd_hook: missing directory argument")
+	}
+	newDir := args[1]
+
+	// Get the old working directory BEFORE we change it
+	oldPwd, _ := os.Getwd()
+
+	// Actually change the process's working directory
+	if err := os.Chdir(newDir); err != nil {
+		fmt.Fprintf(os.Stderr, "cd: %s: %v\n", newDir, err)
 		return err
 	}
 
-	// Get the old working directory from environment (set by builtin cd)
-	oldPwd := os.Getenv("OLDPWD")
-
 	// Update OS environment variables
-	if err := os.Setenv("PWD", currentDir); err != nil {
+	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
+		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
+	}
+	if err := os.Setenv("PWD", newDir); err != nil {
 		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
 	}
 
-	// Debug: check if cdRunner is set
-	fmt.Fprintf(os.Stderr, "[DEBUG bish_cd_hook] cdRunner=%v, currentDir=%q\n", cdRunner != nil, currentDir)
-
 	// Update the interpreter's external state
 	if cdRunner != nil {
-		cdRunner.Dir = currentDir
+		cdRunner.Dir = newDir
 
 		if cdRunner.Vars == nil {
 			cdRunner.Vars = make(map[string]expand.Variable)
 		}
 
-		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: currentDir, Exported: true}
-		if oldPwd != "" {
-			cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
-		}
-
-		fmt.Fprintf(os.Stderr, "[DEBUG bish_cd_hook] runner.Dir now=%q\n", cdRunner.Dir)
+		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: newDir, Exported: true}
+		cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
 	}
 
 	return nil
