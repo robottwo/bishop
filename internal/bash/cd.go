@@ -40,8 +40,18 @@ func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerF
 				return next(ctx, args)
 			}
 
+			// Debug: verify handler is being called
+			fmt.Fprintf(os.Stderr, "[DEBUG cd] handling command: %v, cdRunner=%v\n", args, cdRunner != nil)
+
 			// Handle cd command
-			return handleCdCommand(ctx, args)
+			err := handleCdCommand(ctx, args)
+
+			// Debug: verify state after cd
+			if cdRunner != nil {
+				fmt.Fprintf(os.Stderr, "[DEBUG cd] after: runner.Dir=%q, os.Getwd=%q\n", cdRunner.Dir, func() string { d, _ := os.Getwd(); return d }())
+			}
+
+			return err
 		}
 	}
 }
