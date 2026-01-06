@@ -49,7 +49,19 @@ func (de *DynamicEnviron) Get(name string) expand.Variable {
 		}
 	}
 
-	// Fall back to system environment
+	// For PWD and OLDPWD, always read from the actual OS environment
+	// These can be changed by cd without updating the cached systemEnv
+	if name == "PWD" || name == "OLDPWD" {
+		if value := os.Getenv(name); value != "" {
+			return expand.Variable{
+				Exported: true,
+				Kind:     expand.String,
+				Str:      value,
+			}
+		}
+	}
+
+	// Fall back to cached system environment
 	return de.systemEnv.Get(name)
 }
 
