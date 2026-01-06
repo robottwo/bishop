@@ -33,18 +33,11 @@ func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerF
 				return next(ctx, args)
 			}
 
-			// Handle the 'bish_cd' command on all platforms
-			// Handle the native 'cd' command on Windows only
+			// Handle 'cd' and 'bish_cd' commands on all platforms
+			// This ensures runner.Dir and environment variables stay in sync
 			commandName := args[0]
-			if runtime.GOOS == "windows" {
-				if commandName != "bish_cd" && commandName != "cd" {
-					return next(ctx, args)
-				}
-			} else {
-				// On non-Windows platforms, only handle 'bish_cd'
-				if commandName != "bish_cd" {
-					return next(ctx, args)
-				}
+			if commandName != "bish_cd" && commandName != "cd" {
+				return next(ctx, args)
 			}
 
 			// Handle cd command
