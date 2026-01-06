@@ -94,7 +94,14 @@ func handleCdHook(args []string) error {
 
 	// Actually change the process's working directory
 	if err := os.Chdir(resolvedDir); err != nil {
-		fmt.Fprintf(os.Stderr, "cd: %s: %v\n", newDir, err)
+	// Update OS environment variables - rollback on failure
+	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
+		if oldPwd != "" {
+			_ = os.Chdir(oldPwd)
+		}
+		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
+		return err
+	}
 		return err
 	}
 
