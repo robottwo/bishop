@@ -120,7 +120,20 @@ func handleCdHook(args []string) error {
 	}
 
 	// Update the interpreter's external state (thread-safe access)
-	runner := getCdRunner()
+	// Update the interpreter's external state (thread-safe access)
+	cdRunnerMu.Lock()
+	runner := cdRunner
+	if runner != nil {
+		runner.Dir = resolvedDir
+
+		if runner.Vars == nil {
+			runner.Vars = make(map[string]expand.Variable)
+		}
+
+		runner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: resolvedDir, Exported: true}
+		runner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
+	}
+	cdRunnerMu.Unlock()
 	if runner != nil {
 		runner.Dir = resolvedDir
 
