@@ -342,7 +342,7 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 	// The builtin cd updates the interpreter's internal directory tracking
 	// The bish_cd_hook syncs os.Chdir(), runner.Dir, os.Setenv(PWD), etc.
 	// We use $(pwd) instead of $PWD for explicitness - pwd builtin reads the actual directory
-	if _, _, err := bash.RunBashCommand(context.Background(), runner, `function cd() { builtin cd "$@" && bish_cd_hook "$(pwd)"; }`); err != nil {
+	if _, _, err := bash.RunBashCommand(context.Background(), runner, `function cd() { builtin cd "$@" && bish_cd_hook "$PWD"; }`); err != nil {
 		panic(err)
 	}
 
