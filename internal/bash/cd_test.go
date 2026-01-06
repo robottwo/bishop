@@ -466,8 +466,10 @@ func TestCdUpdatesPwdBuiltin(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Change to subDir using bish_cd
-	_, _, err = RunBashCommand(ctx, r, fmt.Sprintf("bish_cd %q", subDir))
+	// Change to subDir using builtin cd followed by bish_cd_hook
+	// This mirrors how the cd function works in the real shell:
+	// function cd() { builtin cd "$@" && bish_cd_hook; }
+	_, _, err = RunBashCommand(ctx, r, fmt.Sprintf("builtin cd %q && bish_cd_hook", subDir))
 	require.NoError(t, err)
 
 	// Run pwd builtin and verify it returns the new directory

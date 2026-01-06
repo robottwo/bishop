@@ -10,7 +10,6 @@ import (
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
-	"mvdan.cc/sh/v3/syntax"
 )
 
 // Global runner reference for the cd command handler
@@ -34,17 +33,57 @@ func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerF
 				return next(ctx, args)
 			}
 
+			commandName := args[0]
+
+			// Handle bish_cd_hook - called after builtin cd to sync external state
+			if commandName == "bish_cd_hook" {
+				return handleCdHook()
+			}
+
 			// Handle 'cd' and 'bish_cd' commands on all platforms
 			// This ensures runner.Dir and environment variables stay in sync
-			commandName := args[0]
 			if commandName != "bish_cd" && commandName != "cd" {
 				return next(ctx, args)
 			}
 
-			// Handle cd command
+			// Handle cd command (legacy - for direct bish_cd calls)
 			return handleCdCommand(ctx, args)
 		}
 	}
+}
+
+// handleCdHook syncs external state after the builtin cd has run
+// It updates runner.Dir and OS environment variables to match the new directory
+func handleCdHook() error {
+	// Get the current working directory (which was just set by builtin cd)
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	// Get the old working directory from environment (set by builtin cd)
+	oldPwd := os.Getenv("OLDPWD")
+
+	// Update OS environment variables
+	if err := os.Setenv("PWD", currentDir); err != nil {
+		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
+	}
+
+	// Update the interpreter's external state
+	if cdRunner != nil {
+		cdRunner.Dir = currentDir
+
+		if cdRunner.Vars == nil {
+			cdRunner.Vars = make(map[string]expand.Variable)
+		}
+
+		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: currentDir, Exported: true}
+		if oldPwd != "" {
+			cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
+		}
+	}
+
+	return nil
 }
 
 func handleCdCommand(ctx context.Context, args []string) error {
@@ -218,16 +257,6 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
 		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: targetDir, Exported: true}
 
-		// Run the builtin cd to update the interpreter's internal directory tracking
-		// This is necessary because pwd and other builtins read from the interpreter's
-		// internal state, not from runner.Dir or os.Getwd()
-		// We use "builtin cd" to bypass the cd function and call the actual builtin
-		// IMPORTANT: Use a fresh context to avoid corrupting the current handler's state
-		parser := syntax.NewParser()
-		prog, err := parser.Parse(strings.NewReader(fmt.Sprintf("builtin cd %q", targetDir)), "")
-		if err == nil {
-			_ = cdRunner.Run(context.Background(), prog)
-		}
 	}
 
 	// Print the new directory path for cd - (matches bash behavior)
