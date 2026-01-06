@@ -305,12 +305,7 @@ func (m *simplePermissionsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-			// Toggle specific item
-			index := int(msg.String()[0] - '1')
-			if index >= 0 && index < len(m.state.atoms) {
-				m.state.selectedIndex = index
-				m.state.atoms[index].Enabled = !m.state.atoms[index].Enabled
-			}
+			handleNumericToggle(m.state, int(msg.String()[0]-'1'))
 			return m, nil
 		}
 	}
@@ -571,11 +566,7 @@ func handleMenuInput(state *PermissionsMenuState, input string) string {
 	default:
 		// Check for numeric input to toggle specific item
 		if len(input) == 1 && input >= "1" && input <= "9" {
-			index := int(input[0] - '1')
-			if index >= 0 && index < len(state.atoms) {
-				state.selectedIndex = index
-				state.atoms[index].Enabled = !state.atoms[index].Enabled
-			}
+			handleNumericToggle(state, int(input[0]-'1'))
 			return ""
 		}
 
@@ -618,4 +609,13 @@ func GetEnabledPermissions(state *PermissionsMenuState) []PermissionAtom {
 		}
 	}
 	return enabled
+}
+
+// handleNumericToggle toggles the permission state for a specific item index
+// It also updates the selected index to match
+func handleNumericToggle(state *PermissionsMenuState, index int) {
+	if index >= 0 && index < len(state.atoms) {
+		state.selectedIndex = index
+		state.atoms[index].Enabled = !state.atoms[index].Enabled
+	}
 }
