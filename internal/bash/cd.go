@@ -31,13 +31,6 @@ func SetCdRunner(runner *interp.Runner) {
 	cdRunner = runner
 }
 
-// getCdRunner safely retrieves the global runner reference.
-func getCdRunner() *interp.Runner {
-	cdRunnerMu.RLock()
-	defer cdRunnerMu.RUnlock()
-	return cdRunner
-}
-
 // NewCdCommandHandler creates a new ExecHandler middleware for the cd command
 func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
