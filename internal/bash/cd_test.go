@@ -468,8 +468,8 @@ func TestCdUpdatesPwdBuiltin(t *testing.T) {
 
 	// Change to subDir using builtin cd followed by bish_cd_hook
 	// This mirrors how the cd function works in the real shell:
-	// function cd() { builtin cd "$@" && bish_cd_hook "$PWD"; }
-	_, _, err = RunBashCommand(ctx, r, fmt.Sprintf(`builtin cd %q && bish_cd_hook "$PWD"`, subDir))
+	// function cd() { builtin cd "$@" && bish_cd_hook "$(pwd)"; }
+	_, _, err = RunBashCommand(ctx, r, fmt.Sprintf(`builtin cd %q && bish_cd_hook "$(pwd)"`, subDir))
 	require.NoError(t, err)
 
 	// Run pwd builtin and verify it returns the new directory
