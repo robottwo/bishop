@@ -249,7 +249,24 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		return fmt.Errorf("directory not found") // Use consistent error message for cross-platform compatibility
 	}
 
-	// Check for read and execute permissions
+	// Get the runner (thread-safe)
+	runner := getCdRunner()
+
+	// Determine the old working directory for OLDPWD BEFORE changing directory
+	// Priority: runner.Dir > env.Get("PWD") > os.Getwd()
+	var oldPwd string
+	if runner != nil && runner.Dir != "" {
+		oldPwd = runner.Dir
+	} else if pwd := env.Get("PWD").String(); pwd != "" {
+		oldPwd = pwd
+	} else if cwd, err := os.Getwd(); err == nil {
+		oldPwd = cwd
+	} else {
+		fmt.Fprintf(os.Stderr, "cd: warning: unable to determine previous directory for OLDPWD\n")
+		oldPwd = ""
+	}
+
+	// Check for read and execute permissions by attempting to change directory
 	if err := os.Chdir(targetDir); err != nil {
 		if os.IsPermission(err) {
 			fmt.Fprintf(os.Stderr, "cd: permission denied: %s\n", targetDir)
@@ -259,29 +276,14 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		return err
 	}
 
-	// Get the runner (thread-safe)
-	runner := getCdRunner()
-
-	// Determine the old working directory for OLDPWD
-	// Priority: runner.Dir > env.Get("PWD")
-	// Note: os.Getwd() cannot be used here because os.Chdir already happened
-	var oldPwd string
-	if runner != nil && runner.Dir != "" {
-		oldPwd = runner.Dir
-	} else if pwd := env.Get("PWD").String(); pwd != "" {
-		oldPwd = pwd
-	} else {
-		// This should not happen if SetCdRunner was called properly
-		fmt.Fprintf(os.Stderr, "cd: warning: unable to determine previous directory for OLDPWD\n")
-		oldPwd = ""
-	}
-
 	// Update OS environment variables (for child processes) - rollback on failure
 	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
+		_ = os.Chdir(oldPwd) // Rollback directory change
 		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
 		return err
 	}
 	if err := os.Setenv("PWD", targetDir); err != nil {
+		_ = os.Chdir(oldPwd) // Rollback directory change
 		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
 		return err
 	}
