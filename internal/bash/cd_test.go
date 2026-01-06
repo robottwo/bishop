@@ -429,3 +429,53 @@ func TestCdMinusPrintsPath(t *testing.T) {
 	actualPath, _ := filepath.EvalSymlinks(strings.TrimSpace(stdout))
 	assert.Equal(t, expectedPath, actualPath, "cd - should print the new directory path")
 }
+
+// TestCdUpdatesPwdBuiltin verifies that the pwd builtin returns the correct
+// directory after cd. This catches the issue where the interpreter's internal
+// directory tracking wasn't being updated, causing pwd to return stale values.
+func TestCdUpdatesPwdBuiltin(t *testing.T) {
+	// Create temp directories
+	tmpDir, err := os.MkdirTemp("", "bish-cd-pwd-test")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	subDir := filepath.Join(tmpDir, "subdir")
+	err = os.Mkdir(subDir, 0755)
+	require.NoError(t, err)
+
+	// Save and restore original working directory
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalWd)
+	}()
+
+	// Start in tmpDir
+	require.NoError(t, os.Chdir(tmpDir))
+
+	// Create runner with cd handler
+	dynamicEnv := environment.NewDynamicEnviron()
+	dynamicEnv.UpdateSystemEnv()
+
+	r, err := interp.New(interp.Env(dynamicEnv), interp.ExecHandlers(NewCdCommandHandler()))
+	require.NoError(t, err)
+
+	// Set the global cdRunner so the handler can update interpreter state
+	SetCdRunner(r)
+	defer SetCdRunner(nil)
+
+	ctx := context.Background()
+
+	// Change to subDir using bish_cd
+	_, _, err = RunBashCommand(ctx, r, fmt.Sprintf("bish_cd %q", subDir))
+	require.NoError(t, err)
+
+	// Run pwd builtin and verify it returns the new directory
+	stdout, _, err := RunBashCommand(ctx, r, "pwd")
+	require.NoError(t, err)
+
+	// Resolve symlinks for comparison (especially for macOS /var -> /private/var)
+	expectedPath, _ := filepath.EvalSymlinks(subDir)
+	actualPath, _ := filepath.EvalSymlinks(strings.TrimSpace(stdout))
+	assert.Equal(t, expectedPath, actualPath, "pwd builtin should return the directory we cd'd to")
+}
