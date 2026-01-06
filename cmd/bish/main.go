@@ -19,6 +19,7 @@ import (
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/evaluate"
 	"github.com/robottwo/bishop/internal/history"
+	"github.com/robottwo/bishop/internal/styles"
 	"go.uber.org/zap"
 	"golang.org/x/term"
 	"mvdan.cc/sh/v3/expand"
@@ -77,8 +78,7 @@ func main() {
 	}
 
 	if helpFlag {
-		fmt.Println("Usage of bish:")
-		flag.PrintDefaults()
+		printUsage()
 		return
 	}
 
@@ -177,6 +177,69 @@ func run(
 	}
 
 	return nil
+}
+
+func printUsage() {
+	// Header
+	fmt.Println(styles.AGENT_QUESTION("Usage:") + " bish [flags] [script]")
+	fmt.Println("\nA modern, POSIX-compatible, Generative Shell.")
+	fmt.Println()
+
+	// Flags
+	fmt.Println(styles.AGENT_QUESTION("Options:"))
+
+	// We want to group aliases like -h and -help together
+	// Map to track which flags we've already printed
+	printed := make(map[string]bool)
+
+	flag.VisitAll(func(f *flag.Flag) {
+		if printed[f.Name] {
+			return
+		}
+
+		// Identify aliases based on shared usage strings.
+		aliases := []string{f.Name}
+		flag.VisitAll(func(p *flag.Flag) {
+			if p.Name == f.Name {
+				return
+			}
+			if p.Usage == f.Usage {
+				aliases = append(aliases, p.Name)
+				printed[p.Name] = true
+			}
+		})
+		printed[f.Name] = true
+
+		// Separate short and long flags
+		var shortFlags, longFlags []string
+		for _, name := range aliases {
+			if len(name) == 1 {
+				shortFlags = append(shortFlags, "-"+name)
+			} else {
+				longFlags = append(longFlags, "-"+name)
+			}
+		}
+
+		// Construct the flag string: short flags first, then long flags
+		flagStr := ""
+		if len(shortFlags) > 0 {
+			flagStr = strings.Join(shortFlags, ", ")
+		}
+		if len(longFlags) > 0 {
+			if flagStr != "" {
+				flagStr += ", "
+			}
+			flagStr += strings.Join(longFlags, ", ")
+		}
+
+		// Check if the flag takes an argument
+		argName, usage := flag.UnquoteUsage(f)
+		if argName != "" {
+			flagStr += " <" + argName + ">"
+		}
+
+		fmt.Printf("  %-28s %s\n", flagStr, usage)
+	})
 }
 
 func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {
