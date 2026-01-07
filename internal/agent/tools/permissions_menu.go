@@ -346,7 +346,10 @@ func (m *simplePermissionsModel) View() string {
 			command = command[:57] + "..."
 		}
 
-		line := fmt.Sprintf("   %s%s %s", indicator, checkbox, command)
+		// Add index number (1-based)
+		index := fmt.Sprintf("%2d.", i+1)
+
+		line := fmt.Sprintf("   %s%s %s %s", indicator, index, checkbox, command)
 
 		// Highlight selected line
 		if isSelected {
@@ -362,7 +365,8 @@ func (m *simplePermissionsModel) View() string {
 	content.WriteString(styles.AGENT_MESSAGE(" Controls:") + "\n")
 	content.WriteString("  ↑/k   Navigate Up      Space  Toggle Permission\n")
 	content.WriteString("  ↓/j   Navigate Down    Enter  Confirm & Apply\n")
-	content.WriteString("  Esc   Cancel           y/n    Yes/No (Once)\n\n")
+	content.WriteString("  1-9   Jump to Item     y/n    Yes/No (Once)\n")
+	content.WriteString("  Esc   Cancel\n\n")
 
 	content.WriteString(styles.AGENT_MESSAGE(" Tip: ") + "Enabling a permission allows matching future commands to run without prompting.\n")
 
@@ -473,6 +477,9 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 			line.WriteString("  ")
 		}
 
+		// Index
+		line.WriteString(fmt.Sprintf("%2d. ", i+1))
+
 		// Checkbox
 		if atom.Enabled {
 			line.WriteString("[✓] ")
@@ -499,7 +506,7 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 	}
 
 	content.WriteString("├──────────────────────────────────────────────────────────────┤\n")
-	content.WriteString("│ ↑/↓: Navigate  SPACE: Toggle  ENTER: Apply  ESC: Cancel     │\n")
+	content.WriteString("│ ↑/↓: Navigate  SPACE: Toggle  1-9: Jump     ENTER: Apply    │\n")
 	content.WriteString("└──────────────────────────────────────────────────────────────┘")
 
 	return content.String()
