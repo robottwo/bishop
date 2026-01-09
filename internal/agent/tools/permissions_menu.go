@@ -342,11 +342,23 @@ func (m *simplePermissionsModel) View() string {
 
 		// Command (truncate if needed)
 		command := atom.Command
-		if len(command) > 60 {
-			command = command[:57] + "..."
+		// Reduced width to account for numeric hint (4 chars)
+		maxCommandWidth := 56
+		if len(command) > maxCommandWidth {
+			// Use rune slice for safe truncation
+			runes := []rune(command)
+			if len(runes) > maxCommandWidth {
+				command = string(runes[:maxCommandWidth-3]) + "..."
+			}
 		}
 
-		line := fmt.Sprintf("   %s%s %s", indicator, checkbox, command)
+		// Add numeric shortcut hint (1-9)
+		indexHint := "   "
+		if i < 9 {
+			indexHint = fmt.Sprintf("%2d.", i+1)
+		}
+
+		line := fmt.Sprintf(" %s %s%s %s", indexHint, indicator, checkbox, command)
 
 		// Highlight selected line
 		if isSelected {
@@ -466,6 +478,14 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 		var line strings.Builder
 		line.WriteString("│ ")
 
+		// Numeric shortcut hint
+		if i < 9 {
+			line.WriteString(fmt.Sprintf("%2d.", i+1))
+		} else {
+			line.WriteString("   ")
+		}
+		line.WriteString(" ")
+
 		// Selection indicator
 		if i == state.selectedIndex {
 			line.WriteString("> ")
@@ -482,9 +502,12 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 
 		// Command (truncate if too long)
 		command := atom.Command
-		maxCommandWidth := 50
-		if len(command) > maxCommandWidth {
-			command = command[:maxCommandWidth-3] + "..."
+		// Reduced width to account for numeric hint (4 chars)
+		maxCommandWidth := 46
+		// Use rune slice for safe truncation
+		runes := []rune(command)
+		if len(runes) > maxCommandWidth {
+			command = string(runes[:maxCommandWidth-3]) + "..."
 		}
 		line.WriteString(command)
 
