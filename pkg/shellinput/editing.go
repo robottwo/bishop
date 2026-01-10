@@ -10,7 +10,18 @@ import (
 // wordBackward moves the cursor one word to the left. If input is masked, move
 // input to the start so as not to reveal word breaks in the masked input.
 func (m *Model) wordBackward() {
-	if m.pos == 0 || len(m.values[m.selectedValueIndex]) == 0 {
+func (e *Editor) insertText(text string) {
+	if e == nil {
+		return
+	}
+	if e.buffer == nil {
+		e.buffer = []rune{}
+	}
+	
+	runes := []rune(text)
+	e.buffer = append(e.buffer[:e.cursorPos], append(runes, e.buffer[e.cursorPos:]...)...)
+	e.cursorPos += len(runes)
+}
 		return
 	}
 
