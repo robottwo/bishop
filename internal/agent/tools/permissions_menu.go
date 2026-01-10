@@ -342,11 +342,6 @@ func (m *simplePermissionsModel) View() string {
 
 		// Command (truncate if needed)
 		command := atom.Command
-		// Reduced width to account for numeric hint (4 chars)
-		maxCommandWidth := 56
-		runes := []rune(command)
-		if len(runes) > maxCommandWidth {
-			command = string(runes[:maxCommandWidth-3]) + "..."
 		// Command (truncate if needed)
 		command := atom.Command
 		// Reduced width to account for numeric hint (4 chars)
