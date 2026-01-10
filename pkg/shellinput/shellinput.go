@@ -129,18 +129,6 @@ var DefaultKeyMap = KeyMap{
 	InsertLastArg:           key.NewBinding(key.WithKeys("alt+.")),
 }
 
-const (
-	killRingMax = 30
-)
-
-type killDirection int
-
-const (
-	killDirectionUnknown killDirection = iota
-	killDirectionForward
-	killDirectionBackward
-)
-
 // Model is the Bubble Tea model for this text input element.
 type Model struct {
 	Err error
@@ -189,18 +177,8 @@ type Model struct {
 	// Cursor position.
 	pos int
 
-	// killRing stores recently killed text for yank operations. The head is
-	// the most recent kill.
-	killRing [][]rune
-	// killRingIndex is used when cycling through the ring with yank-pop.
-	killRingIndex int
-	// lastKillDirection tracks the direction of the previous kill to
-	// support Bash/zsh-style kill ring appending semantics.
-	lastKillDirection  killDirection
-	lastCommandWasKill bool
-	lastYankActive     bool
-	lastYankStart      int
-	lastYankEnd        int
+	// killRing manages Emacs-style kill/yank operations
+	killRing KillRing
 
 	// State for Alt+. (Insert Last Argument)
 	lastArgInsertionIndex   int
@@ -277,8 +255,8 @@ func (m *Model) SetValue(s string) {
 
 func (m *Model) setValueInternal(runes []rune, err error) {
 	m.Err = err
-	m.lastCommandWasKill = false
-	m.lastYankActive = false
+	m.killRing.lastWasKill = false
+	m.killRing.yankActive = false
 
 	empty := len(m.values[m.selectedValueIndex]) == 0
 
@@ -363,32 +341,6 @@ func (m *Model) clearSuggestions() {
 	m.currentSuggestionIndex = 0
 }
 
-// getKillRing returns a KillRing constructed from the Model's kill ring fields.
-// This is a temporary helper until the kill ring fields are moved to a KillRing field.
-func (m *Model) getKillRing() *KillRing {
-	return &KillRing{
-		ring:          m.killRing,
-		index:         m.killRingIndex,
-		lastDirection: m.lastKillDirection,
-		lastWasKill:   m.lastCommandWasKill,
-		yankActive:    m.lastYankActive,
-		yankStart:     m.lastYankStart,
-		yankEnd:       m.lastYankEnd,
-	}
-}
-
-// updateFromKillRing updates the Model's kill ring fields from a KillRing.
-// This is a temporary helper until the kill ring fields are moved to a KillRing field.
-func (m *Model) updateFromKillRing(kr *KillRing) {
-	m.killRing = kr.ring
-	m.killRingIndex = kr.index
-	m.lastKillDirection = kr.lastDirection
-	m.lastCommandWasKill = kr.lastWasKill
-	m.lastYankActive = kr.yankActive
-	m.lastYankStart = kr.yankStart
-	m.lastYankEnd = kr.yankEnd
-}
-
 // CursorStart moves the cursor to the start of the input field.
 func (m *Model) CursorStart() {
 	m.SetCursor(0)
@@ -463,8 +415,8 @@ func (m *Model) san() runeutil.Sanitizer {
 
 func (m *Model) insertRunesFromUserInput(v []rune) {
 	m.suppressSuggestionsUntilInput = false
-	m.lastCommandWasKill = false
-	m.lastYankActive = false
+	m.killRing.lastWasKill = false
+	m.killRing.yankActive = false
 	// Only reset lastCommandWasInsertArg if it wasn't set by insertLastArg just before calling this
 	// But insertLastArg calls this, so it will be reset.
 	// So insertLastArg must re-set it to true.
@@ -534,24 +486,18 @@ func (m *Model) deleteAfterCursor() {
 // recordKill captures killed text for yank operations and temporarily suppresses
 // autocomplete hints until the user provides new input.
 func (m *Model) recordKill(killed []rune, direction killDirection) {
-	kr := m.getKillRing()
-	kr.RecordKill(m, killed, direction)
-	m.updateFromKillRing(kr)
+	m.killRing.RecordKill(m, killed, direction)
 }
 
 // yankKillBuffer pastes the most recently killed text at the cursor position.
 func (m *Model) yankKillBuffer() {
-	kr := m.getKillRing()
-	kr.YankKillBuffer(m)
-	m.updateFromKillRing(kr)
+	m.killRing.YankKillBuffer(m)
 }
 
 // yankPop cycles through the kill ring after a yank, replacing the previously
 // yanked text with the next entry.
 func (m *Model) yankPop() {
-	kr := m.getKillRing()
-	kr.YankPop(m)
-	m.updateFromKillRing(kr)
+	m.killRing.YankPop(m)
 }
 
 // deleteWordBackward deletes the word left to the cursor.
@@ -1133,11 +1079,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 		if !killCommand && !yankCommand {
-			m.lastCommandWasKill = false
+			m.killRing.lastWasKill = false
 		}
 
 		if !yankCommand {
-			m.lastYankActive = false
+			m.killRing.yankActive = false
 		}
 
 		// Check again if can be completed

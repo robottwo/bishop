@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "004-split-shellinput-go-god-class-into-focused-modules",
+  "state": "building",
+  "subtasks": {
+    "completed": 2,
+    "total": 18,
+    "in_progress": 1,
+    "failed": 0
+  },
+  "phase": {
+    "current": "Extract Kill Ring Module",
+    "id": null,
+    "total": 4
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 4,
+    "started_at": "2026-01-09T20:34:30.282147"
+  },
+  "last_update": "2026-01-09T20:44:24.237812"
+}
