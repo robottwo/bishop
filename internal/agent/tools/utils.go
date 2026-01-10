@@ -3,7 +3,6 @@ package tools
 import (
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/robottwo/bishop/internal/environment"
