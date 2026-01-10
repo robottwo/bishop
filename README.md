@@ -8,6 +8,10 @@
 A modern, POSIX-compatible, Generative Shell.
 </p>
 
+<p align="center">
+<strong>📚 <a href="https://robottwo.github.io/bishop/">View Full Documentation</a></strong>
+</p>
+
 ## Quick start
 
 For installation, building from source, and first run, see:

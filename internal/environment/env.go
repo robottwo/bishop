@@ -194,7 +194,21 @@ func GetDefaultToYes(runner *interp.Runner) bool {
 }
 
 func GetPwd(runner *interp.Runner) string {
-	return runner.Vars["PWD"].String()
+	// Use runner.Dir as the authoritative source for current working directory
+	// This is what the mvdan.cc/sh interpreter uses internally.
+	// runner.Vars["PWD"] may not be reliably updated by the interpreter.
+	if runner.Dir != "" {
+		return runner.Dir
+	}
+	// Fallback to environment variable if Dir is not set
+	if pwd := runner.Vars["PWD"].String(); pwd != "" {
+		return pwd
+	}
+	// Last resort: get from OS
+	if wd, err := os.Getwd(); err == nil {
+		return wd
+	}
+	return ""
 }
 
 func GetUser(runner *interp.Runner) string {
@@ -597,18 +611,13 @@ func GetApprovedBashCommandRegex(runner *interp.Runner, logger *zap.Logger) []st
 
 	// Get patterns from environment variable
 	regexStr := runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"].String()
-	logger.Debug("BISH_AGENT_APPROVED_BASH_COMMAND_REGEX value", zap.String("value", regexStr))
 	var envPatterns []string
 	if regexStr != "" {
 		err := json.Unmarshal([]byte(regexStr), &envPatterns)
 		if err != nil {
-			logger.Debug("error parsing BISH_AGENT_APPROVED_BASH_COMMAND_REGEX", zap.Error(err))
 			envPatterns = []string{}
-		} else {
-			logger.Debug("successfully parsed environment patterns", zap.Any("patterns", envPatterns))
 		}
 	} else {
-		logger.Debug("BISH_AGENT_APPROVED_BASH_COMMAND_REGEX is empty")
 		envPatterns = []string{}
 	}
 

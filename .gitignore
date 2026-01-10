@@ -29,3 +29,6 @@ go.work.sum
 .env
 
 dist/
+
+# Auto Claude data directory
+.auto-claude/

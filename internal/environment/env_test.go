@@ -851,6 +851,56 @@ func TestSyncVariablesToEnvRemovesUnsetVariables(t *testing.T) {
 	assert.False(t, exists, "BISH_PROMPT should be removed from dynamic environment")
 }
 
+func TestDynamicEnvironGetReadsPWDFromOsGetenv(t *testing.T) {
+	// This test verifies that DynamicEnviron.Get() reads PWD and OLDPWD
+	// directly from os.Getenv() instead of a cached systemEnv.
+	// This is critical for the cd command to work correctly - when cd
+	// calls os.Setenv("PWD", newDir), child processes (like starship
+	// for prompt generation) must see the updated value.
+
+	originalPwd := os.Getenv("PWD")
+	originalOldPwd := os.Getenv("OLDPWD")
+	defer func() {
+		// Restore original values
+		if originalPwd != "" {
+			_ = os.Setenv("PWD", originalPwd)
+		}
+		if originalOldPwd != "" {
+			_ = os.Setenv("OLDPWD", originalOldPwd)
+		}
+	}()
+
+	// Create a DynamicEnviron - this caches the current system environment
+	dynamicEnv := NewDynamicEnviron()
+
+	// Set PWD to an initial value
+	initialDir := "/initial/directory"
+	_ = os.Setenv("PWD", initialDir)
+
+	// Update the dynamic environ's cache to have the initial value
+	dynamicEnv.UpdateSystemEnv()
+
+	// Verify initial state
+	pwdVar := dynamicEnv.Get("PWD")
+	assert.Equal(t, initialDir, pwdVar.String(), "PWD should initially be the cached value")
+
+	// Now change PWD via os.Setenv (simulating what cd does)
+	// WITHOUT updating the DynamicEnviron's cache
+	newDir := "/new/directory/after/cd"
+	_ = os.Setenv("PWD", newDir)
+
+	// DynamicEnviron.Get("PWD") should return the NEW value, not the cached one
+	pwdVar = dynamicEnv.Get("PWD")
+	assert.Equal(t, newDir, pwdVar.String(), "Get(PWD) should read from os.Getenv, not cached systemEnv")
+
+	// Same test for OLDPWD
+	oldPwdValue := "/previous/directory"
+	_ = os.Setenv("OLDPWD", oldPwdValue)
+
+	oldPwdVar := dynamicEnv.Get("OLDPWD")
+	assert.Equal(t, oldPwdValue, oldPwdVar.String(), "Get(OLDPWD) should read from os.Getenv, not cached systemEnv")
+}
+
 func TestValidateAssistantHeight(t *testing.T) {
 	tests := []struct {
 		name        string
