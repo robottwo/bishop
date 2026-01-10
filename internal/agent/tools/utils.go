@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/muesli/termenv"
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/styles"
 	"github.com/robottwo/bishop/pkg/gline"
@@ -57,31 +56,28 @@ var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, qu
 		defaultToYes = environment.GetDefaultToYes(runner)
 	}
 
-	// Create termenv output for styling
-	out := termenv.NewOutput(os.Stdout)
-
-	// Build the prompt with styled components
+	// Build the prompt with styled components using style functions
 	// Format: (y)es  [N]o - default  (m)anage menu  [or type feedback]: (with manage)
 	// Format: (y)es  [N]o - default  [or type feedback]: (without manage)
 	var promptSuffix string
 	if defaultToYes {
 		// When default is yes: [Y]es - default  (n)o  (m)anage menu  [or type feedback]:
-		yesOption := out.String("[Y]es - default").Foreground(out.Color("11")).Bold().String()
-		noOption := out.String("(n)o").Foreground(out.Color("11")).String()
-		hint := out.String("[or type feedback]").Foreground(out.Color("244")).String()
+		yesOption := styles.PROMPT_DEFAULT("[Y]es - default")
+		noOption := styles.PROMPT_OPTION("(n)o")
+		hint := styles.PROMPT_HINT("[or type feedback]")
 		if showManage {
-			manageOption := out.String("(m)anage menu").Foreground(out.Color("11")).String()
+			manageOption := styles.PROMPT_OPTION("(m)anage menu")
 			promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
 		} else {
 			promptSuffix = " " + yesOption + "  " + noOption + "  " + hint + ": "
 		}
 	} else {
 		// When default is no: (y)es  [N]o - default  (m)anage menu  [or type feedback]:
-		yesOption := out.String("(y)es").Foreground(out.Color("11")).String()
-		noOption := out.String("[N]o - default").Foreground(out.Color("11")).Bold().String()
-		hint := out.String("[or type feedback]").Foreground(out.Color("244")).String()
+		yesOption := styles.PROMPT_OPTION("(y)es")
+		noOption := styles.PROMPT_DEFAULT("[N]o - default")
+		hint := styles.PROMPT_HINT("[or type feedback]")
 		if showManage {
-			manageOption := out.String("(m)anage menu").Foreground(out.Color("11")).String()
+			manageOption := styles.PROMPT_OPTION("(m)anage menu")
 			promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
 		} else {
 			promptSuffix = " " + yesOption + "  " + noOption + "  " + hint + ": "
