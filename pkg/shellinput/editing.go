@@ -257,7 +257,23 @@ func (m *Model) swapWords() {
 
 	// Construct new value
 	// ... w1 ... w2 ...
-	// ... w1Start ... w1End ... w2Start ... w2End ...
+func (m *Model) swapCharacters() {
+	if m.pos == 0 || len(m.values[m.selectedValueIndex]) < 2 {
+		return
+	}
+
+	// If at end of line, swap the two characters before the cursor
+	idx := m.pos
+	if idx == len(m.values[m.selectedValueIndex]) {
+		if idx < 2 {
+			return // Can't swap if there aren't 2 characters before cursor
+		}
+		// Swap idx-1 and idx-2
+		m.values[m.selectedValueIndex][idx-1], m.values[m.selectedValueIndex][idx-2] = m.values[m.selectedValueIndex][idx-2], m.values[m.selectedValueIndex][idx-1]
+		m.values[0] = m.values[m.selectedValueIndex]
+		// Cursor stays at end
+		return
+	}
 
 	// We need to preserve text between words (usually spaces)
 	// part1: 0 to w1Start
