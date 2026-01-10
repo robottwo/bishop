@@ -20,23 +20,15 @@ func (m *Model) wordBackward() {
 	}
 
 	i := m.pos - 1
-	for i >= 0 {
-		if unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
-			m.SetCursor(m.pos - 1)
-			i--
-		} else {
-			break
-		}
+	// Skip trailing spaces
+	for i >= 0 && unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
+		i--
 	}
-
-	for i >= 0 {
-		if !unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
-			m.SetCursor(m.pos - 1)
-			i--
-		} else {
-			break
-		}
+	// Skip word characters
+	for i >= 0 && !unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
+		i--
 	}
+	m.SetCursor(i + 1)
 }
 
 // wordForward moves the cursor one word to the right. If the input is masked,
@@ -52,23 +44,15 @@ func (m *Model) wordForward() {
 	}
 
 	i := m.pos
-	for i < len(m.values[m.selectedValueIndex]) {
-		if unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
-			m.SetCursor(m.pos + 1)
-			i++
-		} else {
-			break
-		}
+	// Skip trailing spaces
+	for i < len(m.values[m.selectedValueIndex]) && unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
+		i++
 	}
-
-	for i < len(m.values[m.selectedValueIndex]) {
-		if !unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
-			m.SetCursor(m.pos + 1)
-			i++
-		} else {
-			break
-		}
+	// Skip word characters
+	for i < len(m.values[m.selectedValueIndex]) && !unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
+		i++
 	}
+	m.SetCursor(i)
 }
 
 // deleteWordBackward deletes the word left to the cursor. If the input is masked
@@ -89,39 +73,32 @@ func (m *Model) deleteWordBackward() {
 	// call into the corresponding if clause does not apply here.
 	oldPos := m.pos //nolint:ifshort
 
-	m.SetCursor(m.pos - 1)
-	for unicode.IsSpace(m.values[m.selectedValueIndex][m.pos]) {
-		if m.pos <= 0 {
-			break
-		}
-		// ignore series of whitespace before cursor
-		m.SetCursor(m.pos - 1)
+	// Calculate new position
+	i := m.pos - 1
+	// Skip trailing spaces
+	for i >= 0 && unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
+		i--
 	}
-
-	for m.pos > 0 {
-		if !unicode.IsSpace(m.values[m.selectedValueIndex][m.pos]) {
-			m.SetCursor(m.pos - 1)
-		} else {
-			if m.pos > 0 {
-				// keep the previous space
-				m.SetCursor(m.pos + 1)
-			}
-			break
-		}
+	// Skip word characters
+	for i >= 0 && !unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
+		i--
 	}
+	// The new cursor position should be i + 1
+	newPos := i + 1
 
 	var newValue []rune
 	if oldPos > len(m.values[m.selectedValueIndex]) {
-		newValue = cloneRunes(m.values[m.selectedValueIndex][:m.pos])
+		newValue = cloneRunes(m.values[m.selectedValueIndex][:newPos])
 	} else {
-		newValue = cloneConcatRunes(m.values[m.selectedValueIndex][:m.pos], m.values[m.selectedValueIndex][oldPos:])
+		newValue = cloneConcatRunes(m.values[m.selectedValueIndex][:newPos], m.values[m.selectedValueIndex][oldPos:])
 	}
 
-	m.recordKill(m.values[m.selectedValueIndex][m.pos:oldPos], killDirectionBackward)
+	m.recordKill(m.values[m.selectedValueIndex][newPos:oldPos], killDirectionBackward)
 
 	m.Err = m.validate(newValue)
 	m.values[0] = newValue
 	m.selectedValueIndex = 0
+	m.SetCursor(newPos)
 }
 
 // deleteWordForward deletes the word right to the cursor. If input is masked
@@ -138,32 +115,27 @@ func (m *Model) deleteWordForward() {
 	}
 
 	oldPos := m.pos
-	m.SetCursor(m.pos + 1)
-	for unicode.IsSpace(m.values[m.selectedValueIndex][m.pos]) {
-		// ignore series of whitespace after cursor
-		m.SetCursor(m.pos + 1)
 
-		if m.pos >= len(m.values[m.selectedValueIndex]) {
-			break
-		}
+	// Calculate new position
+	i := m.pos
+	// Skip trailing spaces
+	for i < len(m.values[m.selectedValueIndex]) && unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
+		i++
 	}
-
-	for m.pos < len(m.values[m.selectedValueIndex]) {
-		if !unicode.IsSpace(m.values[m.selectedValueIndex][m.pos]) {
-			m.SetCursor(m.pos + 1)
-		} else {
-			break
-		}
+	// Skip word characters
+	for i < len(m.values[m.selectedValueIndex]) && !unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
+		i++
 	}
+	newPos := i
 
 	var newValue []rune
-	if m.pos > len(m.values[m.selectedValueIndex]) {
+	if newPos > len(m.values[m.selectedValueIndex]) {
 		newValue = cloneRunes(m.values[m.selectedValueIndex][:oldPos])
 	} else {
-		newValue = cloneConcatRunes(m.values[m.selectedValueIndex][:oldPos], m.values[m.selectedValueIndex][m.pos:])
+		newValue = cloneConcatRunes(m.values[m.selectedValueIndex][:oldPos], m.values[m.selectedValueIndex][newPos:])
 	}
 
-	killEnd := min(m.pos, len(m.values[m.selectedValueIndex]))
+	killEnd := min(newPos, len(m.values[m.selectedValueIndex]))
 	m.recordKill(m.values[m.selectedValueIndex][oldPos:killEnd], killDirectionForward)
 	m.Err = m.validate(newValue)
 	m.values[0] = newValue
