@@ -17,11 +17,11 @@ type HistoryManager struct {
 
 type HistoryEntry struct {
 	ID        uint      `gorm:"primarykey"`
-	CreatedAt time.Time `gorm:"index"`
+	CreatedAt time.Time `gorm:"index;index:idx_dir_created,priority:2"`
 	UpdatedAt time.Time `gorm:"index"`
 
-	Command   string
-	Directory string
+	Command   string `gorm:"index"`
+	Directory string `gorm:"index:idx_dir_created,priority:1"`
 	SessionID string `gorm:"index"`
 	ExitCode  sql.NullInt32
 }
