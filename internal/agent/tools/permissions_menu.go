@@ -365,7 +365,7 @@ func (m *simplePermissionsModel) View() string {
 			indexHint = fmt.Sprintf("%2d.", i+1)
 		}
 
-		line := fmt.Sprintf(" %s %s%s %s", indexHint, indicator, checkbox, command)
+		line := fmt.Sprintf(" %s%s%s %s", indexHint, indicator, checkbox, command)
 
 		// Highlight selected line
 		if isSelected {
