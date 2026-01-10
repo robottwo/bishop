@@ -1,0 +1,338 @@
+commands:
+  redis-cli:
+    - value: -a
+      description: Password to use when connecting
+    - value: -c
+      description: Enable cluster mode
+    - value: -h
+      description: Server hostname
+    - value: -n
+      description: Database number
+    - value: -p
+      description: Server port
+    - value: -r
+      description: Repeat command N times
+    - value: -u
+      description: Server URI
+    - value: -x
+      description: Read last argument from stdin
+    - value: --askpass
+      description: Force prompt for password
+    - value: --bigkeys
+      description: Sample keys looking for big ones
+    - value: --cacert
+      description: CA certificate file
+    - value: --cert
+      description: Client certificate file
+    - value: --cluster
+      description: Cluster manager command and arguments
+    - value: --csv
+      description: Output in CSV format
+    - value: --dbnum
+      description: Database number
+    - value: --eval
+      description: Eval command
+    - value: --help
+      description: Display help
+    - value: --hotkeys
+      description: Sample keys looking for hot ones
+    - value: --intrinsic-latency
+      description: Test intrinsic latency
+    - value: --key
+      description: Private key file
+    - value: --latency
+      description: Enter latency mode
+    - value: --latency-dist
+      description: Show latency as spectrum
+    - value: --latency-history
+      description: Show latency over time
+    - value: --ldb
+      description: Enable Lua debugger
+    - value: --ldb-sync-mode
+      description: Lua debugger sync mode
+    - value: --lru-test
+      description: Simulate LRU cache
+    - value: --memkeys
+      description: Sample keys looking for big ones
+    - value: --no-auth-warning
+      description: Don't show warning when using password
+    - value: --no-raw
+      description: Force formatted output
+    - value: --pipe
+      description: Transfer raw Redis protocol from stdin
+    - value: --pipe-timeout
+      description: Timeout for pipe mode
+    - value: --raw
+      description: Force raw output
+    - value: --rdb
+      description: Dump database to RDB file
+    - value: --replica
+      description: Enter replica mode
+    - value: --scan
+      description: List all keys using SCAN
+    - value: --slave
+      description: Enter slave mode (deprecated)
+    - value: --stat
+      description: Show continual stats
+    - value: --tls
+      description: Enable TLS
+    - value: --user
+      description: ACL username
+    - value: --verbose
+      description: Enable verbose mode
+    - value: --version
+      description: Show version
+
+  psql:
+    - value: "\\c"
+      description: Connect to a database
+    - value: "\\l"
+      description: List databases
+    - value: "\\dt"
+      description: List tables
+    - value: -c
+      description: Execute a single command
+    - value: -d
+      description: Database name to connect to
+    - value: -f
+      description: Execute commands from file
+    - value: -h
+      description: Database server host
+    - value: -l
+      description: List available databases
+    - value: -o
+      description: Write query output to file
+    - value: -p
+      description: Database server port
+    - value: -q
+      description: Run quietly
+    - value: -s
+      description: Single-step mode
+    - value: -t
+      description: Print rows only
+    - value: -U
+      description: Database user name
+    - value: -v
+      description: Set psql variable
+    - value: -w
+      description: Never prompt for password
+    - value: -W
+      description: Force password prompt
+    - value: -x
+      description: Turn on expanded output
+    - value: --command
+      description: Execute a single command
+    - value: --csv
+      description: Output in CSV format
+    - value: --dbname
+      description: Database name to connect to
+    - value: --echo-all
+      description: Echo all input from script
+    - value: --echo-errors
+      description: Echo failed commands
+    - value: --echo-queries
+      description: Echo commands sent to server
+    - value: --field-separator
+      description: Field separator for unaligned output
+    - value: --file
+      description: Execute commands from file
+    - value: --help
+      description: Display help
+    - value: --host
+      description: Database server host
+    - value: --html
+      description: Turn on HTML output
+    - value: --list
+      description: List available databases
+    - value: --log-file
+      description: Write session log to file
+    - value: --no-align
+      description: Unaligned output mode
+    - value: --no-password
+      description: Never prompt for password
+    - value: --no-psqlrc
+      description: Don't read psqlrc file
+    - value: --output
+      description: Write query output to file
+    - value: --password
+      description: Force password prompt
+    - value: --pset
+      description: Set printing option
+    - value: --port
+      description: Database server port
+    - value: --quiet
+      description: Run quietly
+    - value: --record-separator
+      description: Record separator for unaligned output
+    - value: --set
+      description: Set psql variable
+    - value: --single-line
+      description: End of line terminates command
+    - value: --single-step
+      description: Single-step mode
+    - value: --single-transaction
+      description: Execute as a single transaction
+    - value: --tuples-only
+      description: Print rows only
+    - value: --username
+      description: Database user name
+    - value: --variable
+      description: Set psql variable
+    - value: --version
+      description: Show version
+
+  mysql:
+    - value: -D
+      description: Database to use
+    - value: -e
+      description: Execute command and quit
+    - value: -h
+      description: Connect to host
+    - value: -p
+      description: Password
+    - value: -P
+      description: Port number
+    - value: -S
+      description: Socket file
+    - value: -u
+      description: User for login
+    - value: -v
+      description: Verbose mode
+    - value: --auto-rehash
+      description: Enable automatic rehashing
+    - value: --batch
+      description: Don't use history file
+    - value: --binary-as-hex
+      description: Print binary values as hex
+    - value: --column-names
+      description: Write column names in results
+    - value: --compress
+      description: Compress data sent to server
+    - value: --database
+      description: Database to use
+    - value: --debug
+      description: Write debugging log
+    - value: --default-character-set
+      description: Set default character set
+    - value: --delimiter
+      description: Set statement delimiter
+    - value: --execute
+      description: Execute command and quit
+    - value: --help
+      description: Display help
+    - value: --host
+      description: Connect to host
+    - value: --html
+      description: Produce HTML output
+    - value: --line-numbers
+      description: Write line numbers for errors
+    - value: --local-infile
+      description: Enable LOAD DATA LOCAL INFILE
+    - value: --named-commands
+      description: Enable named commands
+    - value: --no-auto-rehash
+      description: Disable automatic rehashing
+    - value: --no-beep
+      description: Turn off beep on error
+    - value: --one-database
+      description: Ignore statements except for default database
+    - value: --pager
+      description: Set pager for output
+    - value: --password
+      description: Password
+    - value: --port
+      description: Port number
+    - value: --prompt
+      description: Set custom prompt
+    - value: --protocol
+      description: Connection protocol
+    - value: --quick
+      description: Don't cache result
+    - value: --raw
+      description: Don't escape special characters
+    - value: --reconnect
+      description: Reconnect if connection is lost
+    - value: --safe-updates
+      description: Allow only UPDATE and DELETE with keys
+    - value: --secure-auth
+      description: Refuse old protocol authentication
+    - value: --show-warnings
+      description: Show warnings after each statement
+    - value: --sigint-ignore
+      description: Ignore SIGINT signals
+    - value: --silent
+      description: Silent mode
+    - value: --skip-column-names
+      description: Don't write column names in results
+    - value: --socket
+      description: Socket file
+    - value: --ssl
+      description: Enable SSL
+    - value: --ssl-ca
+      description: CA certificate file
+    - value: --ssl-cert
+      description: Client certificate file
+    - value: --ssl-key
+      description: Client private key file
+    - value: --table
+      description: Output in table format
+    - value: --tee
+      description: Append everything to file
+    - value: --unbuffered
+      description: Flush buffer after each query
+    - value: --user
+      description: User for login
+    - value: --verbose
+      description: Verbose mode
+    - value: --version
+      description: Show version
+    - value: --vertical
+      description: Print query results vertically
+    - value: --wait
+      description: Wait and retry if connection is down
+    - value: --xml
+      description: Produce XML output
+
+  mongosh:
+    - value: --authenticationDatabase
+      description: Authentication database
+    - value: --authenticationMechanism
+      description: Authentication mechanism
+    - value: --eval
+      description: Evaluate JavaScript
+    - value: --file
+      description: Execute script file
+    - value: --help
+      description: Display help
+    - value: --host
+      description: Server to connect to
+    - value: --nodb
+      description: Start without connecting to a database
+    - value: --norc
+      description: Don't run .mongoshrc.js
+    - value: --password
+      description: Password for authentication
+    - value: --port
+      description: Port to connect to
+    - value: --quiet
+      description: Silence output from the shell
+    - value: --retryWrites
+      description: Retry write operations on network errors
+    - value: --shell
+      description: Run the shell after executing files
+    - value: --tls
+      description: Use TLS connection
+    - value: --tlsAllowInvalidCertificates
+      description: Bypass certificate validation
+    - value: --tlsAllowInvalidHostnames
+      description: Bypass hostname validation
+    - value: --tlsCAFile
+      description: TLS CA certificate file
+    - value: --tlsCertificateKeyFile
+      description: TLS certificate and key file
+    - value: --username
+      description: Username for authentication
+    - value: --verbose
+      description: Increase verbosity
+    - value: --version
+      description: Show version
