@@ -319,6 +319,76 @@ func (m *Model) SetCursor(pos int) {
 	m.pos = clamp(pos, 0, len(m.values[m.selectedValueIndex]))
 }
 
+// getCursorPosition returns the current cursor position.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) getCursorPosition() int {
+	return m.pos
+}
+
+// setValue sets the input buffer value to the primary value slot.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) setValue(value []rune) {
+	m.values[0] = value
+	m.selectedValueIndex = 0
+}
+
+// getValue returns the current input buffer value.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) getValue() []rune {
+	return m.values[m.selectedValueIndex]
+}
+
+// setCursor sets the cursor position.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) setCursor(pos int) {
+	m.SetCursor(pos)
+}
+
+// setError sets the validation error.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) setError(err error) {
+	m.Err = err
+}
+
+// suppressSuggestions suppresses suggestions until next input.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) suppressSuggestions() {
+	m.suppressSuggestionsUntilInput = true
+}
+
+// clearSuggestions clears matched suggestions.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) clearSuggestions() {
+	m.matchedSuggestions = [][]rune{}
+	m.currentSuggestionIndex = 0
+}
+
+// getKillRing returns a KillRing constructed from the Model's kill ring fields.
+// This is a temporary helper until the kill ring fields are moved to a KillRing field.
+func (m *Model) getKillRing() *KillRing {
+	return &KillRing{
+		ring:          m.killRing,
+		index:         m.killRingIndex,
+		lastDirection: m.lastKillDirection,
+		lastWasKill:   m.lastCommandWasKill,
+		yankActive:    m.lastYankActive,
+		yankStart:     m.lastYankStart,
+		yankEnd:       m.lastYankEnd,
+	}
+}
+
+// updateFromKillRing updates the Model's kill ring fields from a KillRing.
+// This is a temporary helper until the kill ring fields are moved to a KillRing field.
+func (m *Model) updateFromKillRing(kr *KillRing) {
+	m.killRing = kr.ring
+	m.killRingIndex = kr.index
+	m.lastKillDirection = kr.lastDirection
+	m.lastCommandWasKill = kr.lastWasKill
+	m.lastYankActive = kr.yankActive
+	m.lastYankStart = kr.yankStart
+	m.lastYankEnd = kr.yankEnd
+}
+
 // CursorStart moves the cursor to the start of the input field.
 func (m *Model) CursorStart() {
 	m.SetCursor(0)
@@ -464,82 +534,24 @@ func (m *Model) deleteAfterCursor() {
 // recordKill captures killed text for yank operations and temporarily suppresses
 // autocomplete hints until the user provides new input.
 func (m *Model) recordKill(killed []rune, direction killDirection) {
-	if len(killed) > 0 {
-		cleaned := cloneRunes(killed)
-
-		if m.lastCommandWasKill && direction == m.lastKillDirection && len(m.killRing) > 0 {
-			if direction == killDirectionForward {
-				m.killRing[0] = append(m.killRing[0], cleaned...)
-			} else {
-				m.killRing[0] = append(cleaned, m.killRing[0]...)
-			}
-		} else {
-			m.killRing = append([][]rune{cleaned}, m.killRing...)
-			if len(m.killRing) > killRingMax {
-				m.killRing = m.killRing[:killRingMax]
-			}
-			m.killRingIndex = 0
-		}
-		m.lastCommandWasKill = true
-	} else {
-		m.lastCommandWasKill = false
-	}
-
-	m.lastKillDirection = direction
-	m.lastYankActive = false
-	m.suppressSuggestionsUntilInput = true
-	m.matchedSuggestions = [][]rune{}
-	m.currentSuggestionIndex = 0
-	m.resetCompletion()
+	kr := m.getKillRing()
+	kr.RecordKill(m, killed, direction)
+	m.updateFromKillRing(kr)
 }
 
 // yankKillBuffer pastes the most recently killed text at the cursor position.
 func (m *Model) yankKillBuffer() {
-	if len(m.killRing) == 0 {
-		return
-	}
-
-	killed := cloneRunes(m.killRing[0])
-	m.insertRunesFromUserInput(killed)
-	m.lastYankStart = m.pos - len(killed)
-	m.lastYankEnd = m.pos
-	m.killRingIndex = 0
-	m.lastYankActive = true
-	m.lastCommandWasKill = false
+	kr := m.getKillRing()
+	kr.YankKillBuffer(m)
+	m.updateFromKillRing(kr)
 }
 
 // yankPop cycles through the kill ring after a yank, replacing the previously
 // yanked text with the next entry.
 func (m *Model) yankPop() {
-	if !m.lastYankActive || len(m.killRing) == 0 {
-		return
-	}
-
-	if len(m.killRing) == 1 {
-		return
-	}
-
-	m.killRingIndex = (m.killRingIndex + 1) % len(m.killRing)
-
-	value := m.values[m.selectedValueIndex]
-	start := clamp(m.lastYankStart, 0, len(value))
-	end := clamp(m.lastYankEnd, start, len(value))
-
-	replacement := cloneRunes(m.killRing[m.killRingIndex])
-	newValue := make([]rune, 0, len(value)-end+start+len(replacement))
-	newValue = append(newValue, value[:start]...)
-	newValue = append(newValue, replacement...)
-	newValue = append(newValue, value[end:]...)
-
-	m.Err = m.validate(newValue)
-	m.values[0] = newValue
-	m.selectedValueIndex = 0
-	m.SetCursor(start + len(replacement))
-
-	m.lastYankStart = start
-	m.lastYankEnd = start + len(replacement)
-	m.lastYankActive = true
-	m.lastCommandWasKill = false
+	kr := m.getKillRing()
+	kr.YankPop(m)
+	m.updateFromKillRing(kr)
 }
 
 // deleteWordBackward deletes the word left to the cursor.
