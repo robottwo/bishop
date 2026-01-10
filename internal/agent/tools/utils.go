@@ -61,27 +61,27 @@ var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, qu
 	out := termenv.NewOutput(os.Stdout)
 
 	// Build the prompt with styled components
-	// Format: (y)es  [N]o  (m)anage  [or type feedback]: (with manage)
-	// Format: (y)es  [N]o  [or type feedback]: (without manage)
+	// Format: (y)es  [N]o - default  (m)anage menu  [or type feedback]: (with manage)
+	// Format: (y)es  [N]o - default  [or type feedback]: (without manage)
 	var promptSuffix string
 	if defaultToYes {
-		// When default is yes: [Y]es  (n)o  (m)anage  [or type feedback]:
-		yesOption := out.String("[Y]es").Foreground(out.Color("11")).Bold().String()
+		// When default is yes: [Y]es - default  (n)o  (m)anage menu  [or type feedback]:
+		yesOption := out.String("[Y]es - default").Foreground(out.Color("11")).Bold().String()
 		noOption := out.String("(n)o").Foreground(out.Color("11")).String()
 		hint := out.String("[or type feedback]").Foreground(out.Color("244")).String()
 		if showManage {
-			manageOption := out.String("(m)anage").Foreground(out.Color("11")).String()
+			manageOption := out.String("(m)anage menu").Foreground(out.Color("11")).String()
 			promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
 		} else {
 			promptSuffix = " " + yesOption + "  " + noOption + "  " + hint + ": "
 		}
 	} else {
-		// When default is no: (y)es  [N]o  (m)anage  [or type feedback]:
+		// When default is no: (y)es  [N]o - default  (m)anage menu  [or type feedback]:
 		yesOption := out.String("(y)es").Foreground(out.Color("11")).String()
-		noOption := out.String("[N]o").Foreground(out.Color("11")).Bold().String()
+		noOption := out.String("[N]o - default").Foreground(out.Color("11")).Bold().String()
 		hint := out.String("[or type feedback]").Foreground(out.Color("244")).String()
 		if showManage {
-			manageOption := out.String("(m)anage").Foreground(out.Color("11")).String()
+			manageOption := out.String("(m)anage menu").Foreground(out.Color("11")).String()
 			promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
 		} else {
 			promptSuffix = " " + yesOption + "  " + noOption + "  " + hint + ": "
