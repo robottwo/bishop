@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/robottwo/bishop/pkg/reverse"
@@ -27,7 +28,17 @@ type HistoryEntry struct {
 }
 
 func NewHistoryManager(dbFilePath string) (*HistoryManager, error) {
-	db, err := gorm.Open(sqlite.Open(dbFilePath), &gorm.Config{})
+	// Add SQLite pragmas for performance:
+	// - journal_mode=WAL: Write-Ahead Logging for better concurrency and performance
+	// - synchronous=NORMAL: Faster writes, safe enough for WAL
+	// - busy_timeout=5000: Wait up to 5s for locks
+	separator := "?"
+	if strings.Contains(dbFilePath, "?") {
+		separator = "&"
+	}
+	dsn := fmt.Sprintf("%s%s_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)", dbFilePath, separator)
+
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening database")
 		return nil, err
