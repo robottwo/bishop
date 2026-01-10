@@ -3,7 +3,6 @@ package completion
 import (
 	"fmt"
 	"io/fs"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -70,7 +69,8 @@ func (cl *ConfigLoader) LoadAllCompletions() (map[string][]UserCompletion, error
 // This is useful for loading specific configuration files on demand
 func (cl *ConfigLoader) LoadCompletionsFromFile(filename string) (map[string][]UserCompletion, error) {
 	// Construct the path - assuming files are in data/ directory
-	path := filepath.Join("data", filename)
+	// Note: embed.FS always uses forward slashes, regardless of OS
+	path := "data/" + filename
 
 	// Read the file
 	data, err := fs.ReadFile(cl.fs, path)
