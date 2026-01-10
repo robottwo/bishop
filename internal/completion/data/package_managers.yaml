@@ -1,0 +1,582 @@
+commands:
+  npm:
+    - value: access
+      description: Set access level on published packages
+    - value: adduser
+      description: Add a registry user account
+    - value: audit
+      description: Run a security audit
+    - value: bin
+      description: Display npm bin folder
+    - value: build
+      description: Build a package
+    - value: bugs
+      description: Report bugs for a package
+    - value: cache
+      description: Manipulate packages cache
+    - value: ci
+      description: Install project with clean slate
+    - value: completion
+      description: Tab completion for npm
+    - value: config
+      description: Manage npm configuration
+    - value: dedupe
+      description: Reduce duplication in package tree
+    - value: deprecate
+      description: Deprecate a version of a package
+    - value: diff
+      description: Show changes between package versions
+    - value: dist-tag
+      description: Modify package distribution tags
+    - value: docs
+      description: Open docs for a package in a web browser
+    - value: doctor
+      description: Check your npm environment
+    - value: edit
+      description: Edit an installed package
+    - value: exec
+      description: Run a command from a local or remote npm package
+    - value: explain
+      description: Explain installed packages
+    - value: explore
+      description: Browse an installed package
+    - value: find-dupes
+      description: Find duplicate packages
+    - value: fund
+      description: Display funding information
+    - value: help
+      description: Get help on npm
+    - value: hook
+      description: Manage registry hooks
+    - value: init
+      description: Create a package.json file
+    - value: install
+      description: Install a package
+    - value: install-ci-test
+      description: Install and run tests
+    - value: install-test
+      description: Install and test a package
+    - value: link
+      description: Create symlink to a package folder
+    - value: login
+      description: Log in to a registry
+    - value: logout
+      description: Log out of a registry
+    - value: ls
+      description: List installed packages
+    - value: outdated
+      description: Check for outdated packages
+    - value: owner
+      description: Manage package owners
+    - value: pack
+      description: Create a tarball from a package
+    - value: ping
+      description: Ping npm registry
+    - value: pkg
+      description: Manage package.json
+    - value: prefix
+      description: Display prefix
+    - value: profile
+      description: Manage registry profile
+    - value: prune
+      description: Remove extraneous packages
+    - value: publish
+      description: Publish a package
+    - value: rebuild
+      description: Rebuild a package
+    - value: repo
+      description: Open package repository in browser
+    - value: restart
+      description: Restart a package
+    - value: root
+      description: Display npm root
+    - value: run
+      description: Run arbitrary package scripts
+    - value: search
+      description: Search for packages
+    - value: set
+      description: Set a config key
+    - value: shrinkwrap
+      description: Lock down dependency versions
+    - value: star
+      description: Mark favorite packages
+    - value: stars
+      description: View starred packages
+    - value: start
+      description: Start a package
+    - value: stop
+      description: Stop a package
+    - value: team
+      description: Manage organization teams
+    - value: test
+      description: Test a package
+    - value: token
+      description: Manage authentication tokens
+    - value: uninstall
+      description: Remove a package
+    - value: unpublish
+      description: Remove a package from registry
+    - value: unstar
+      description: Remove package from starred list
+    - value: update
+      description: Update packages
+    - value: version
+      description: Manage package version
+    - value: view
+      description: View registry info
+    - value: whoami
+      description: Display npm username
+
+  yarn:
+    - value: add
+      description: Install a package
+    - value: audit
+      description: Run vulnerability audit
+    - value: autoclean
+      description: Clean and remove unnecessary files
+    - value: bin
+      description: Display the folder for yarn binaries
+    - value: cache
+      description: Manage the global cache
+    - value: check
+      description: Verify package dependencies
+    - value: config
+      description: Manage the yarn configuration files
+    - value: create
+      description: Create new projects from create-* starter kits
+    - value: dedupe
+      description: Deduplicate dependencies
+    - value: dlx
+      description: Run a package in a temporary environment
+    - value: exec
+      description: Execute a shell command
+    - value: generate-lock-entry
+      description: Generate a lock file entry
+    - value: global
+      description: Install packages globally
+    - value: help
+      description: Display help information
+    - value: import
+      description: Generate yarn.lock from package-lock.json
+    - value: info
+      description: Show information about a package
+    - value: init
+      description: Create a new package.json
+    - value: install
+      description: Install all dependencies
+    - value: licenses
+      description: List licenses for installed packages
+    - value: link
+      description: Symlink a package
+    - value: list
+      description: List installed packages
+    - value: login
+      description: Store registry credentials
+    - value: logout
+      description: Clear registry credentials
+    - value: outdated
+      description: Check for outdated packages
+    - value: owner
+      description: Manage package owners
+    - value: pack
+      description: Create a compressed gzip archive
+    - value: plugin
+      description: Manage plugins
+    - value: policies
+      description: Define project-wide policies
+    - value: publish
+      description: Publish a package to npm
+    - value: rebuild
+      description: Rebuild all packages
+    - value: remove
+      description: Remove a package
+    - value: run
+      description: Run a defined package script
+    - value: set
+      description: Change configuration settings
+    - value: start
+      description: Run the start script
+    - value: tag
+      description: Add, remove, or list package tags
+    - value: team
+      description: Manage organization teams
+    - value: test
+      description: Run the test script
+    - value: unlink
+      description: Remove a linked package
+    - value: unplug
+      description: Break a package out of cache
+    - value: upgrade
+      description: Upgrade packages
+    - value: upgrade-interactive
+      description: Interactively upgrade packages
+    - value: version
+      description: Update the package version
+    - value: versions
+      description: Display version information
+    - value: why
+      description: Show information about why a package is installed
+    - value: workspace
+      description: Run a command within a workspace
+    - value: workspaces
+      description: Manage workspaces
+
+  pnpm:
+    - value: add
+      description: Install a package
+    - value: audit
+      description: Check for known security issues
+    - value: bin
+      description: Print the directory where executables are installed
+    - value: config
+      description: Manage the pnpm configuration files
+    - value: create
+      description: Create a project from a create-* starter kit
+    - value: dedupe
+      description: Perform deduplication
+    - value: dlx
+      description: Run a package in a temporary environment
+    - value: env
+      description: Manage Node.js versions
+    - value: exec
+      description: Execute a shell command
+    - value: fetch
+      description: Fetch packages from a lockfile
+    - value: import
+      description: Generate pnpm-lock.yaml from package-lock.json
+    - value: init
+      description: Create a package.json file
+    - value: install
+      description: Install all dependencies
+    - value: licenses
+      description: List licenses of packages
+    - value: link
+      description: Connect local project to another
+    - value: list
+      description: List installed packages
+    - value: outdated
+      description: Check for outdated packages
+    - value: pack
+      description: Create a tarball from a package
+    - value: patch
+      description: Prepare a package for patching
+    - value: patch-commit
+      description: Commit a patch
+    - value: prune
+      description: Remove extraneous packages
+    - value: publish
+      description: Publish a package to npm
+    - value: rebuild
+      description: Rebuild a package
+    - value: remove
+      description: Remove packages from node_modules
+    - value: root
+      description: Print the root directory
+    - value: run
+      description: Run a defined package script
+    - value: server
+      description: Start a store server
+    - value: setup
+      description: Set up pnpm
+    - value: start
+      description: Run the start script
+    - value: store
+      description: Manage the package store
+    - value: test
+      description: Run the test script
+    - value: unlink
+      description: Unlink a linked package
+    - value: update
+      description: Update packages
+    - value: why
+      description: Show why a package is installed
+
+  go:
+    - value: build
+      description: Compile packages and dependencies
+    - value: bug
+      description: Start a bug report
+    - value: clean
+      description: Remove object files and cached files
+    - value: doc
+      description: Show documentation for package or symbol
+    - value: env
+      description: Print Go environment information
+    - value: fix
+      description: Update packages to use new APIs
+    - value: fmt
+      description: Gofmt (reformat) package sources
+    - value: generate
+      description: Generate Go files by processing source
+    - value: get
+      description: Add dependencies to current module
+    - value: help
+      description: Display help for a command
+    - value: install
+      description: Compile and install packages
+    - value: list
+      description: List packages or modules
+    - value: mod
+      description: Module maintenance
+    - value: run
+      description: Compile and run Go program
+    - value: test
+      description: Test packages
+    - value: tool
+      description: Run specified go tool
+    - value: version
+      description: Print Go version
+    - value: vet
+      description: Report likely mistakes in packages
+    - value: work
+      description: Workspace maintenance
+
+  cargo:
+    - value: add
+      description: Add dependencies to a Cargo.toml manifest file
+    - value: bench
+      description: Execute benchmarks of a package
+    - value: build
+      description: Compile the current package
+    - value: check
+      description: Check a local package for errors
+    - value: clean
+      description: Remove artifacts that cargo has generated
+    - value: clippy
+      description: Run Clippy lints
+    - value: doc
+      description: Build package documentation
+    - value: fetch
+      description: Fetch dependencies from network
+    - value: fix
+      description: Automatically fix lint warnings
+    - value: fmt
+      description: Format Rust source code
+    - value: generate-lockfile
+      description: Generate Cargo.lock for a project
+    - value: help
+      description: Display help for a command
+    - value: init
+      description: Create a new Cargo package in an existing directory
+    - value: install
+      description: Install a Rust binary
+    - value: locate-project
+      description: Print a JSON representation of a Cargo.toml file's location
+    - value: login
+      description: Log in to a registry
+    - value: logout
+      description: Log out from a registry
+    - value: metadata
+      description: Output the resolved dependencies in JSON
+    - value: new
+      description: Create a new Cargo package
+    - value: owner
+      description: Manage the owners of a crate
+    - value: package
+      description: Assemble the local package into a tarball
+    - value: pkgid
+      description: Print a fully qualified package spec
+    - value: publish
+      description: Upload a package to the registry
+    - value: read-manifest
+      description: Print a JSON representation of a Cargo.toml manifest
+    - value: remove
+      description: Remove dependencies from a Cargo.toml manifest file
+    - value: report
+      description: Generate and display various reports
+    - value: run
+      description: Run a binary or example
+    - value: rustc
+      description: Compile a package with extra rustc flags
+    - value: rustdoc
+      description: Build package's documentation with rustdoc flags
+    - value: search
+      description: Search packages in the registry
+    - value: test
+      description: Run tests for a package
+    - value: tree
+      description: Display a tree of dependencies
+    - value: uninstall
+      description: Remove a Rust binary
+    - value: update
+      description: Update dependencies in Cargo.lock
+    - value: vendor
+      description: Vendor all dependencies locally
+    - value: verify-project
+      description: Check correctness of crate manifest
+    - value: version
+      description: Show version information
+    - value: yank
+      description: Remove a pushed crate from the index
+
+  pip:
+    - value: cache
+      description: Inspect and manage pip's wheel cache
+    - value: check
+      description: Verify installed packages have compatible dependencies
+    - value: completion
+      description: Generate shell completion
+    - value: config
+      description: Manage pip configuration
+    - value: debug
+      description: Show information for debugging
+    - value: download
+      description: Download packages
+    - value: freeze
+      description: Output installed packages in requirements format
+    - value: hash
+      description: Compute hashes of package archives
+    - value: help
+      description: Show help for commands
+    - value: index
+      description: Inspect available versions of a package
+    - value: inspect
+      description: Inspect the environment
+    - value: install
+      description: Install packages
+    - value: list
+      description: List installed packages
+    - value: search
+      description: Search PyPI for packages
+    - value: show
+      description: Show information about installed packages
+    - value: uninstall
+      description: Uninstall packages
+    - value: wheel
+      description: Build wheels from your requirements
+
+  apt:
+    - value: autoremove
+      description: Remove automatically installed packages no longer needed
+    - value: build-dep
+      description: Configure build-dependencies for source packages
+    - value: changelog
+      description: View package changelogs
+    - value: check
+      description: Verify that there are no broken dependencies
+    - value: clean
+      description: Clear out the local repository of retrieved package files
+    - value: depends
+      description: Show package dependencies
+    - value: dist-upgrade
+      description: Upgrade the system by removing/installing packages
+    - value: download
+      description: Download package files
+    - value: edit-sources
+      description: Edit the source list
+    - value: full-upgrade
+      description: Perform an upgrade, possibly installing and removing packages
+    - value: help
+      description: Display help information
+    - value: install
+      description: Install packages
+    - value: list
+      description: List packages based on package names
+    - value: moo
+      description: Easter egg
+    - value: policy
+      description: Show policy settings
+    - value: purge
+      description: Remove packages and configuration files
+    - value: rdepends
+      description: Show reverse dependencies
+    - value: reinstall
+      description: Reinstall packages
+    - value: remove
+      description: Remove packages
+    - value: satisfy
+      description: Satisfy dependency strings
+    - value: search
+      description: Search package descriptions
+    - value: show
+      description: Show package details
+    - value: showsrc
+      description: Show source package details
+    - value: source
+      description: Download source archives
+    - value: update
+      description: Update list of available packages
+    - value: upgrade
+      description: Install available upgrades for all packages
+
+  brew:
+    - value: analytics
+      description: Manage analytics preferences
+    - value: autoremove
+      description: Uninstall unused dependencies
+    - value: cask
+      description: Manage macOS apps
+    - value: cleanup
+      description: Remove stale lock files and outdated downloads
+    - value: commands
+      description: Show commands
+    - value: completions
+      description: Manage shell completions
+    - value: config
+      description: Show Homebrew configuration
+    - value: deps
+      description: Show dependencies for formulae
+    - value: desc
+      description: Show formula descriptions
+    - value: doctor
+      description: Check for potential problems
+    - value: edit
+      description: Edit formula or cask
+    - value: fetch
+      description: Download source packages
+    - value: gist-logs
+      description: Upload logs to GitHub Gist
+    - value: help
+      description: Display help
+    - value: home
+      description: Open formula homepage
+    - value: info
+      description: Show formula information
+    - value: install
+      description: Install formula or cask
+    - value: leaves
+      description: Show installed formulae not required by another formula
+    - value: link
+      description: Symlink a formula's files
+    - value: list
+      description: List installed formulae
+    - value: log
+      description: Show the git log for formula
+    - value: migrate
+      description: Migrate formula to a different tap
+    - value: missing
+      description: Check for missing dependencies
+    - value: options
+      description: Show formula install options
+    - value: outdated
+      description: Show outdated formulae or casks
+    - value: pin
+      description: Pin a formula to a version
+    - value: postinstall
+      description: Rerun the post-install step
+    - value: reinstall
+      description: Reinstall formula or cask
+    - value: search
+      description: Search for formulae and casks
+    - value: services
+      description: Manage background services with macOS launchctl
+    - value: shellenv
+      description: Print export statements for shell environment
+    - value: tap
+      description: Tap a formula repository
+    - value: tap-info
+      description: Show tap info
+    - value: uninstall
+      description: Uninstall formula or cask
+    - value: unlink
+      description: Remove symlinks
+    - value: unpin
+      description: Unpin a formula
+    - value: untap
+      description: Remove a tap
+    - value: update
+      description: Fetch newest version of Homebrew
+    - value: upgrade
+      description: Upgrade outdated formulae and casks
+    - value: uses
+      description: Show formulae that depend on formula
