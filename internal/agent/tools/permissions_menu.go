@@ -347,7 +347,22 @@ func (m *simplePermissionsModel) View() string {
 		runes := []rune(command)
 		if len(runes) > maxCommandWidth {
 			command = string(runes[:maxCommandWidth-3]) + "..."
+		// Command (truncate if needed)
+		command := atom.Command
+		// Reduced width to account for numeric hint (4 chars)
+		maxCommandWidth := 56
+		runes := []rune(command)
+		if len(runes) > maxCommandWidth {
+			command = string(runes[:maxCommandWidth-3]) + "..."
 		}
+
+		// Add numeric shortcut hint (1-9)
+		indexHint := "   "
+		if i < 9 {
+			indexHint = fmt.Sprintf("%2d.", i+1)
+		}
+
+		line := fmt.Sprintf(" %s%s%s %s", indexHint, indicator, checkbox, command)
 
 		// Add numeric shortcut hint (1-9)
 		indexHint := "   "
