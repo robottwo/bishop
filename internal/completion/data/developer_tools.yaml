@@ -1,0 +1,642 @@
+commands:
+  gh:
+    - value: alias
+      description: Create command shortcuts
+    - value: api
+      description: Make an authenticated GitHub API request
+    - value: attestation
+      description: Work with artifact attestations
+    - value: auth
+      description: Authenticate gh with GitHub
+    - value: browse
+      description: Open the repo in the browser
+    - value: cache
+      description: Manage GitHub Actions caches
+    - value: codespace
+      description: Connect to and manage codespaces
+    - value: completion
+      description: Generate shell completion scripts
+    - value: config
+      description: Manage configuration for gh
+    - value: extension
+      description: Manage gh extensions
+    - value: gist
+      description: Manage gists
+    - value: gpg-key
+      description: Manage GPG keys
+    - value: help
+      description: Display help for a command
+    - value: issue
+      description: Manage issues
+    - value: label
+      description: Manage labels
+    - value: org
+      description: Manage organizations
+    - value: pr
+      description: Manage pull requests
+    - value: project
+      description: Work with GitHub Projects
+    - value: release
+      description: Manage GitHub releases
+    - value: repo
+      description: Manage repositories
+    - value: ruleset
+      description: View repository rulesets
+    - value: run
+      description: View and manage GitHub Actions workflow runs
+    - value: search
+      description: Search for repositories, issues, and pull requests
+    - value: secret
+      description: Manage GitHub secrets
+    - value: ssh-key
+      description: Manage SSH keys
+    - value: status
+      description: Print information about relevant issues, PRs, notifications
+    - value: variable
+      description: Manage GitHub Actions variables
+    - value: workflow
+      description: View and manage GitHub Actions workflows
+
+  code:
+    - value: -a
+      description: Add folder to last active window
+    - value: -d
+      description: Compare two files with each other
+    - value: -g
+      description: Open file at specific line and character
+    - value: -n
+      description: Force new window
+    - value: -r
+      description: Reuse existing window
+    - value: -w
+      description: Wait for files to be closed
+    - value: --add
+      description: Add folder to last active window
+    - value: --diff
+      description: Compare two files with each other
+    - value: --disable-extensions
+      description: Disable all installed extensions
+    - value: --extensions-dir
+      description: Set the root path for extensions
+    - value: --goto
+      description: Open file at specific line and character
+    - value: --help
+      description: Print usage
+    - value: --install-extension
+      description: Install an extension
+    - value: --list-extensions
+      description: List installed extensions
+    - value: --locale
+      description: Set display language
+    - value: --log
+      description: Set log level
+    - value: --new-window
+      description: Force new window
+    - value: --prof-startup
+      description: Profile startup time
+    - value: --reuse-window
+      description: Reuse existing window
+    - value: --status
+      description: Print process usage and diagnostics
+    - value: --telemetry
+      description: Show telemetry status
+    - value: --uninstall-extension
+      description: Uninstall an extension
+    - value: --user-data-dir
+      description: Set user data directory
+    - value: --verbose
+      description: Print verbose output
+    - value: --version
+      description: Print version
+    - value: --wait
+      description: Wait for files to be closed
+
+  vim:
+    - value: +
+      description: Start at end of file
+    - value: -c
+      description: Execute command after loading first file
+    - value: -d
+      description: Diff mode
+    - value: -e
+      description: Ex mode
+    - value: -n
+      description: No swap file
+    - value: -o
+      description: Open windows horizontally
+    - value: -O
+      description: Open windows vertically
+    - value: -p
+      description: Open tab pages
+    - value: -R
+      description: Read-only mode
+    - value: -r
+      description: Recover crashed editing sessions
+    - value: -s
+      description: Silent (batch) mode
+    - value: -S
+      description: Source file after loading first file
+    - value: -u
+      description: Use specified vimrc
+    - value: -v
+      description: Vi mode
+    - value: --clean
+      description: Start in a clean environment
+    - value: --help
+      description: Print help message
+    - value: --noplugin
+      description: Don't load any plugins
+    - value: --version
+      description: Print version
+
+  nvim:
+    - value: +
+      description: Start at end of file
+    - value: -c
+      description: Execute command after loading first file
+    - value: -d
+      description: Diff mode
+    - value: -e
+      description: Ex mode
+    - value: -E
+      description: Improved Ex mode
+    - value: -es
+      description: Silent Ex mode
+    - value: -h
+      description: Print help message
+    - value: -l
+      description: Execute Lua script
+    - value: -n
+      description: No swap file
+    - value: -o
+      description: Open windows horizontally
+    - value: -O
+      description: Open windows vertically
+    - value: -p
+      description: Open tab pages
+    - value: -R
+      description: Read-only mode
+    - value: -r
+      description: Recover crashed editing sessions
+    - value: -S
+      description: Source file after loading first file
+    - value: -u
+      description: Use specified init.vim
+    - value: -v
+      description: Print version
+    - value: --clean
+      description: Start in a clean environment
+    - value: --headless
+      description: Don't start the UI
+    - value: --noplugin
+      description: Don't load any plugins
+    - value: --startuptime
+      description: Write startup timing messages
+    - value: --version
+      description: Print version
+
+  tmux:
+    - value: attach
+      description: Attach to a session (alias: attach-session, a)
+    - value: attach-session
+      description: Attach to a session
+    - value: bind-key
+      description: Bind a key
+    - value: break-pane
+      description: Break pane to new window
+    - value: capture-pane
+      description: Capture the contents of a pane
+    - value: choose-buffer
+      description: Put a pane into buffer selection mode
+    - value: choose-client
+      description: Put a window into client selection mode
+    - value: choose-session
+      description: Put a pane into session selection mode
+    - value: choose-tree
+      description: Choose a session, window, or pane from a tree
+    - value: choose-window
+      description: Put a pane into window selection mode
+    - value: clear-history
+      description: Clear history for a pane
+    - value: clock-mode
+      description: Enter clock mode
+    - value: command-prompt
+      description: Open the command prompt
+    - value: confirm-before
+      description: Run command after confirmation
+    - value: copy-mode
+      description: Enter copy mode
+    - value: delete-buffer
+      description: Delete a paste buffer
+    - value: detach
+      description: Detach current client (alias: detach-client)
+    - value: detach-client
+      description: Detach a client
+    - value: display-menu
+      description: Display a menu
+    - value: display-message
+      description: Display a message in the status line
+    - value: display-panes
+      description: Display pane indicators
+    - value: display-popup
+      description: Display a popup box over a pane
+    - value: find-window
+      description: Search for a pattern in windows
+    - value: has-session
+      description: Check if a session exists
+    - value: if-shell
+      description: Execute command if shell command succeeds
+    - value: join-pane
+      description: Join pane from another window
+    - value: kill-pane
+      description: Kill a pane
+    - value: kill-server
+      description: Kill tmux server
+    - value: kill-session
+      description: Kill a session
+    - value: kill-window
+      description: Kill a window
+    - value: last-pane
+      description: Select the previously active pane
+    - value: last-window
+      description: Select the previously active window
+    - value: link-window
+      description: Link a window to another
+    - value: list-buffers
+      description: List paste buffers
+    - value: list-clients
+      description: List all clients
+    - value: list-commands
+      description: List supported commands
+    - value: list-keys
+      description: List key bindings
+    - value: list-panes
+      description: List panes
+    - value: list-sessions
+      description: List sessions
+    - value: list-windows
+      description: List windows
+    - value: load-buffer
+      description: Load a paste buffer from a file
+    - value: lock-client
+      description: Lock a client
+    - value: lock-server
+      description: Lock all clients
+    - value: lock-session
+      description: Lock all clients attached to a session
+    - value: move-pane
+      description: Move a pane
+    - value: move-window
+      description: Move a window to another index
+    - value: new
+      description: Create a new session (alias: new-session)
+    - value: new-session
+      description: Create a new session
+    - value: new-window
+      description: Create a new window
+    - value: next-layout
+      description: Move to the next layout
+    - value: next-window
+      description: Move to the next window
+    - value: paste-buffer
+      description: Paste the most recent paste buffer
+    - value: pipe-pane
+      description: Pipe output of a pane to a shell command
+    - value: previous-layout
+      description: Move to the previous layout
+    - value: previous-window
+      description: Move to the previous window
+    - value: refresh-client
+      description: Refresh a client
+    - value: rename-session
+      description: Rename a session
+    - value: rename-window
+      description: Rename a window
+    - value: resize-pane
+      description: Resize a pane
+    - value: resize-window
+      description: Resize a window
+    - value: respawn-pane
+      description: Respawn a pane
+    - value: respawn-window
+      description: Respawn a window
+    - value: rotate-window
+      description: Rotate positions of panes
+    - value: run-shell
+      description: Execute a shell command
+    - value: save-buffer
+      description: Save a paste buffer to a file
+    - value: select-layout
+      description: Choose a pane layout
+    - value: select-pane
+      description: Make a pane active
+    - value: select-window
+      description: Select a window
+    - value: send-keys
+      description: Send keystrokes to a pane
+    - value: send-prefix
+      description: Send the prefix key
+    - value: server-info
+      description: Show server information
+    - value: set-buffer
+      description: Set the contents of a paste buffer
+    - value: set-environment
+      description: Set an environment variable
+    - value: set-hook
+      description: Set a hook
+    - value: set-option
+      description: Set a session option
+    - value: set-window-option
+      description: Set a window option
+    - value: show-buffer
+      description: Display the contents of a paste buffer
+    - value: show-environment
+      description: Show environment variables
+    - value: show-hooks
+      description: Show hooks
+    - value: show-messages
+      description: Show messages
+    - value: show-options
+      description: Show session options
+    - value: show-window-options
+      description: Show window options
+    - value: source-file
+      description: Execute commands from a file
+    - value: split-window
+      description: Split a pane into two
+    - value: start-server
+      description: Start the tmux server
+    - value: suspend-client
+      description: Suspend a client
+    - value: swap-pane
+      description: Swap two panes
+    - value: swap-window
+      description: Swap two windows
+    - value: switch-client
+      description: Switch clients
+    - value: unbind-key
+      description: Unbind a key
+    - value: unlink-window
+      description: Unlink a window
+    - value: wait-for
+      description: Wait for an event or trigger it
+
+  curl:
+    - value: -d
+      description: Send data in POST request
+    - value: -F
+      description: Send form data
+    - value: -H
+      description: Add header to request
+    - value: -I
+      description: Fetch headers only
+    - value: -L
+      description: Follow redirects
+    - value: -o
+      description: Write output to file
+    - value: -O
+      description: Write output to file with remote name
+    - value: -s
+      description: Silent mode
+    - value: -u
+      description: Server user and password
+    - value: -v
+      description: Verbose mode
+    - value: -X
+      description: Specify request method
+    - value: --compressed
+      description: Request compressed response
+    - value: --connect-timeout
+      description: Maximum time for connection
+    - value: --cookie
+      description: Send cookies from file
+    - value: --cookie-jar
+      description: Save cookies to file
+    - value: --data
+      description: Send data in POST request
+    - value: --data-binary
+      description: Send binary data
+    - value: --data-raw
+      description: Send raw data
+    - value: --data-urlencode
+      description: Send URL-encoded data
+    - value: --fail
+      description: Fail silently on HTTP errors
+    - value: --form
+      description: Send form data
+    - value: --header
+      description: Add header to request
+    - value: --help
+      description: Display help
+    - value: --http1.0
+      description: Use HTTP 1.0
+    - value: --http1.1
+      description: Use HTTP 1.1
+    - value: --http2
+      description: Use HTTP 2
+    - value: --insecure
+      description: Allow insecure SSL connections
+    - value: --location
+      description: Follow redirects
+    - value: --max-time
+      description: Maximum time allowed for transfer
+    - value: --output
+      description: Write output to file
+    - value: --progress-bar
+      description: Show progress bar
+    - value: --proxy
+      description: Use proxy
+    - value: --request
+      description: Specify request method
+    - value: --silent
+      description: Silent mode
+    - value: --trace
+      description: Write debug trace to file
+    - value: --upload-file
+      description: Upload file
+    - value: --user
+      description: Server user and password
+    - value: --user-agent
+      description: Set User-Agent header
+    - value: --verbose
+      description: Verbose mode
+    - value: --version
+      description: Show version
+
+  jq:
+    - value: -c
+      description: Compact output
+    - value: -C
+      description: Colorize output
+    - value: -e
+      description: Set exit status based on output
+    - value: -f
+      description: Read filter from file
+    - value: -M
+      description: Monochrome output
+    - value: -n
+      description: Use null as single input
+    - value: -r
+      description: Output raw strings
+    - value: -R
+      description: Read raw strings
+    - value: -s
+      description: Slurp all inputs into an array
+    - value: -S
+      description: Sort object keys
+    - value: --arg
+      description: Set variable to string
+    - value: --argjson
+      description: Set variable to JSON
+    - value: --compact-output
+      description: Compact output
+    - value: --color-output
+      description: Colorize output
+    - value: --exit-status
+      description: Set exit status based on output
+    - value: --from-file
+      description: Read filter from file
+    - value: --help
+      description: Display help
+    - value: --indent
+      description: Set indentation level
+    - value: --jsonargs
+      description: Treat arguments as JSON
+    - value: --monochrome-output
+      description: Monochrome output
+    - value: --null-input
+      description: Use null as single input
+    - value: --raw-input
+      description: Read raw strings
+    - value: --raw-output
+      description: Output raw strings
+    - value: --slurp
+      description: Slurp all inputs into an array
+    - value: --slurpfile
+      description: Slurp file into variable
+    - value: --sort-keys
+      description: Sort object keys
+    - value: --tab
+      description: Use tabs for indentation
+    - value: --version
+      description: Show version
+
+  systemctl:
+    - value: cat
+      description: Show unit files
+    - value: daemon-reexec
+      description: Reexecute the manager
+    - value: daemon-reload
+      description: Reload unit files
+    - value: disable
+      description: Disable one or more units
+    - value: edit
+      description: Edit unit files
+    - value: enable
+      description: Enable one or more units
+    - value: halt
+      description: Shut down and halt the system
+    - value: hibernate
+      description: Hibernate the system
+    - value: hybrid-sleep
+      description: Hybrid sleep the system
+    - value: is-active
+      description: Check whether units are active
+    - value: is-enabled
+      description: Check whether units are enabled
+    - value: is-failed
+      description: Check whether units failed
+    - value: isolate
+      description: Start one unit and stop all others
+    - value: kexec
+      description: Shut down and reboot with kexec
+    - value: kill
+      description: Send signal to processes of a unit
+    - value: link
+      description: Link unit files
+    - value: list-dependencies
+      description: Show unit dependency tree
+    - value: list-jobs
+      description: List jobs
+    - value: list-machines
+      description: List registered machines
+    - value: list-sockets
+      description: List socket units
+    - value: list-timers
+      description: List timer units
+    - value: list-unit-files
+      description: List installed unit files
+    - value: list-units
+      description: List loaded units
+    - value: log-level
+      description: Get/set logging threshold
+    - value: mask
+      description: Mask one or more units
+    - value: poweroff
+      description: Shut down and power off the system
+    - value: preset
+      description: Reset enabling of units to defaults
+    - value: reboot
+      description: Shut down and reboot the system
+    - value: reenable
+      description: Reenable one or more units
+    - value: reload
+      description: Reload one or more units
+    - value: reload-or-restart
+      description: Reload or restart one or more units
+    - value: rescue
+      description: Enter rescue mode
+    - value: reset-failed
+      description: Reset failed state
+    - value: restart
+      description: Restart one or more units
+    - value: revert
+      description: Revert unit file changes
+    - value: set-default
+      description: Set the default target
+    - value: set-environment
+      description: Set environment variables
+    - value: set-property
+      description: Set unit properties
+    - value: show
+      description: Show unit properties
+    - value: show-environment
+      description: Dump environment
+    - value: start
+      description: Start one or more units
+    - value: status
+      description: Show runtime status of units
+    - value: stop
+      description: Stop one or more units
+    - value: suspend
+      description: Suspend the system
+    - value: suspend-then-hibernate
+      description: Suspend then hibernate
+    - value: switch-root
+      description: Switch root filesystem
+    - value: try-reload-or-restart
+      description: Try to reload-or-restart units
+    - value: try-restart
+      description: Try to restart units
+    - value: unmask
+      description: Unmask one or more units
+    - value: unset-environment
+      description: Unset environment variables
+
+  python:
+    - value: -c
+      description: Execute Python code from command line
+    - value: -m
+      description: Run library module as a script
+    - value: -i
+      description: Run in interactive mode after executing script
+    - value: -u
+      description: Unbuffered binary stdout and stderr
+    - value: -v
+      description: Verbose mode
+    - value: -V
+      description: Print Python version
+    - value: --version
+      description: Print Python version
+    - value: --help
+      description: Print help message
