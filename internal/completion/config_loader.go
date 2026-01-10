@@ -1,7 +1,6 @@
 package completion
 
 import (
-	"embed"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -12,13 +11,13 @@ import (
 
 // ConfigLoader handles loading completion data from embedded YAML files
 type ConfigLoader struct {
-	fs embed.FS
+	fs fs.FS
 }
 
-// NewConfigLoader creates a new ConfigLoader with the given embedded filesystem
-func NewConfigLoader(embedFS embed.FS) *ConfigLoader {
+// NewConfigLoader creates a new ConfigLoader with the given filesystem
+func NewConfigLoader(filesystem fs.FS) *ConfigLoader {
 	return &ConfigLoader{
-		fs: embedFS,
+		fs: filesystem,
 	}
 }
 

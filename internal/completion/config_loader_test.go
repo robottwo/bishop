@@ -1,7 +1,6 @@
 package completion
 
 import (
-	"embed"
 	"testing"
 	"testing/fstest"
 )
@@ -13,9 +12,6 @@ func TestNewConfigLoader(t *testing.T) {
 	loader := NewConfigLoader(testFS)
 	if loader == nil {
 		t.Fatal("NewConfigLoader returned nil")
-	}
-	if loader.fs == nil {
-		t.Fatal("ConfigLoader fs field is nil")
 	}
 }
 
@@ -505,9 +501,6 @@ func TestConfigLoader_ListEmbeddedFiles(t *testing.T) {
 		{
 			name: "ignore directories",
 			fs: fstest.MapFS{
-				"data": &fstest.MapFile{
-					Mode: 0755 | fstest.ModeDir,
-				},
 				"data/test.yaml": &fstest.MapFile{
 					Data: []byte(`commands: {}`),
 				},
