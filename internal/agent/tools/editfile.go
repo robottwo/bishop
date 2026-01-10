@@ -107,7 +107,7 @@ func previewAndConfirm(runner *interp.Runner, logger *zap.Logger, path string, n
 	printDiff(diff)
 
 	agentName := environment.GetAgentName(runner)
-	confirmResponse := userConfirmation(logger, runner, fmt.Sprintf("%s: Do I have your permission to make the edit proposed above?", agentName), "")
+	confirmResponse := userConfirmation(logger, runner, fmt.Sprintf("%s: Do I have your permission to make the edit proposed above?", agentName), "", false) // Don't show manage option for file operations
 	if confirmResponse == "n" {
 		return "User declined this request"
 	} else if confirmResponse != "y" {

@@ -155,7 +155,7 @@ func TestUserConfirmationFunction(t *testing.T) {
 				userConfirmation = originalUserConfirmation
 			}()
 
-			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 				if tt.mockError == gline.ErrInterrupted {
 					return "n" // Simulate Ctrl+C handling
 				}
@@ -184,7 +184,7 @@ func TestUserConfirmationFunction(t *testing.T) {
 				return line
 			}
 
-			result := userConfirmation(logger, nil, "test question", "test explanation")
+			result := userConfirmation(logger, nil, "test question", "test explanation", true)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -219,7 +219,7 @@ func TestUserConfirmationVariousInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 				// Simulate the actual processing logic
 				line := tt.input
 				if strings.TrimSpace(line) == "" {
@@ -240,7 +240,7 @@ func TestUserConfirmationVariousInputs(t *testing.T) {
 				return line
 			}
 
-			result := userConfirmation(logger, nil, "test question", "test explanation")
+			result := userConfirmation(logger, nil, "test question", "test explanation", true)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -255,7 +255,7 @@ func TestUserConfirmationQuestionAndExplanationParameters(t *testing.T) {
 	}()
 
 	var receivedQuestion, receivedExplanation string
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		receivedQuestion = question
 		receivedExplanation = explanation
 		return "y"
@@ -264,7 +264,7 @@ func TestUserConfirmationQuestionAndExplanationParameters(t *testing.T) {
 	expectedQuestion := "Do you want to continue?"
 	expectedExplanation := "This will execute a command"
 
-	userConfirmation(logger, nil, expectedQuestion, expectedExplanation)
+	userConfirmation(logger, nil, expectedQuestion, expectedExplanation, true)
 
 	assert.Equal(t, expectedQuestion, receivedQuestion)
 	assert.Equal(t, expectedExplanation, receivedExplanation)
@@ -277,13 +277,13 @@ func TestUserConfirmationWithNilLogger(t *testing.T) {
 	}()
 
 	// Test that function doesn't panic with nil logger
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		// Should handle nil logger gracefully
 		return "y"
 	}
 
 	assert.NotPanics(t, func() {
-		result := userConfirmation(nil, nil, "test", "test")
+		result := userConfirmation(nil, nil, "test", "test", true)
 		assert.Equal(t, "y", result)
 	})
 }
@@ -296,11 +296,11 @@ func TestActualUserConfirmationWithErrors(t *testing.T) {
 	logger := zap.NewNop()
 
 	// Create a mock that simulates the actual function's error handling
-	mockUserConfirmation := func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	mockUserConfirmation := func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		// Simulate error - return default "n"
 		return "n"
 	}
 
-	result := mockUserConfirmation(logger, nil, "test", "test")
+	result := mockUserConfirmation(logger, nil, "test", "test", true)
 	assert.Equal(t, "n", result)
 }

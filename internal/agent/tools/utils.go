@@ -51,7 +51,7 @@ func printCommandPrompt(prompt string) {
 }
 
 // defaultUserConfirmation is the default implementation that calls gline.Gline
-var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 	defaultToYes := false
 	if runner != nil {
 		defaultToYes = environment.GetDefaultToYes(runner)
@@ -61,22 +61,31 @@ var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, qu
 	out := termenv.NewOutput(os.Stdout)
 
 	// Build the prompt with styled components
-	// Format: (y)es  [N]o  (m)anage  [or type feedback]:
+	// Format: (y)es  [N]o  (m)anage  [or type feedback]: (with manage)
+	// Format: (y)es  [N]o  [or type feedback]: (without manage)
 	var promptSuffix string
 	if defaultToYes {
 		// When default is yes: [Y]es  (n)o  (m)anage  [or type feedback]:
 		yesOption := out.String("[Y]es").Foreground(out.Color("11")).Bold().String()
 		noOption := out.String("(n)o").Foreground(out.Color("11")).String()
-		manageOption := out.String("(m)anage").Foreground(out.Color("11")).String()
 		hint := out.String("[or type feedback]").Foreground(out.Color("244")).String()
-		promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
+		if showManage {
+			manageOption := out.String("(m)anage").Foreground(out.Color("11")).String()
+			promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
+		} else {
+			promptSuffix = " " + yesOption + "  " + noOption + "  " + hint + ": "
+		}
 	} else {
 		// When default is no: (y)es  [N]o  (m)anage  [or type feedback]:
 		yesOption := out.String("(y)es").Foreground(out.Color("11")).String()
 		noOption := out.String("[N]o").Foreground(out.Color("11")).Bold().String()
-		manageOption := out.String("(m)anage").Foreground(out.Color("11")).String()
 		hint := out.String("[or type feedback]").Foreground(out.Color("244")).String()
-		promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
+		if showManage {
+			manageOption := out.String("(m)anage").Foreground(out.Color("11")).String()
+			promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
+		} else {
+			promptSuffix = " " + yesOption + "  " + noOption + "  " + hint + ": "
+		}
 	}
 	prompt := styles.AGENT_QUESTION(question) + promptSuffix
 
@@ -124,7 +133,7 @@ var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, qu
 }
 
 // userConfirmation is a wrapper that checks for test mode before calling the real implementation
-var userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+var userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 	// Check if we're in test mode and this function hasn't been mocked
 	// We detect if it's been mocked by checking if the function pointer has changed
 	if flag.Lookup("test.v") != nil {
@@ -136,5 +145,5 @@ var userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question 
 		return "n"
 	}
 
-	return defaultUserConfirmation(logger, runner, question, explanation)
+	return defaultUserConfirmation(logger, runner, question, explanation, showManage)
 }

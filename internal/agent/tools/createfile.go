@@ -72,6 +72,7 @@ func CreateFileTool(runner *interp.Runner, logger *zap.Logger, params map[string
 		runner,
 		fmt.Sprintf("%s: Do I have your permission to create the file with the content shown above?", agentName),
 		"",
+		false, // Don't show manage option for file operations
 	)
 	if confirmResponse == "n" {
 		return failedToolResponse("User declined this request")

@@ -216,6 +216,7 @@ func BashTool(runner *interp.Runner, historyManager *history.HistoryManager, log
 			runner,
 			"bish: Do I have your permission to run this command?",
 			reason, // Only pass reason, not command (already displayed)
+			true,   // Show manage option for bash commands
 		)
 	}
 	if confirmResponse == "n" {
