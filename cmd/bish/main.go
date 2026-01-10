@@ -240,13 +240,6 @@ func printUsage() {
 
 		fmt.Printf("  %-28s %s\n", flagStr, usage)
 	})
-
-	fmt.Println()
-	fmt.Println(styles.AGENT_QUESTION("Key Features:"))
-	fmt.Printf("  %-28s %s\n", "# <message>", "Chat with the agent")
-	fmt.Printf("  %-28s %s\n", "#!<control>", "Agent controls (e.g., #!config, #!new)")
-	fmt.Printf("  %-28s %s\n", "#?", "Magic Fix: Analyze and fix the last error")
-	fmt.Printf("  %-28s %s\n", "#/<macro>", "Run a chat macro (e.g., #/gitdiff)")
 }
 
 func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {

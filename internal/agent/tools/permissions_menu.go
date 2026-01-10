@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/styles"
-	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -342,13 +342,14 @@ func (m *simplePermissionsModel) View() string {
 
 		// Command (truncate if needed)
 		command := atom.Command
-		// Command (truncate if needed)
-		command := atom.Command
 		// Reduced width to account for numeric hint (4 chars)
 		maxCommandWidth := 56
-		runes := []rune(command)
-		if len(runes) > maxCommandWidth {
-			command = string(runes[:maxCommandWidth-3]) + "..."
+		if len(command) > maxCommandWidth {
+			// Use rune slice for safe truncation
+			runes := []rune(command)
+			if len(runes) > maxCommandWidth {
+				command = string(runes[:maxCommandWidth-3]) + "..."
+			}
 		}
 
 		// Add numeric shortcut hint (1-9)
@@ -357,15 +358,7 @@ func (m *simplePermissionsModel) View() string {
 			indexHint = fmt.Sprintf("%2d.", i+1)
 		}
 
-		line := fmt.Sprintf(" %s%s%s %s", indexHint, indicator, checkbox, command)
-
-		// Add numeric shortcut hint (1-9)
-		indexHint := "   "
-		if i < 9 {
-			indexHint = fmt.Sprintf("%2d.", i+1)
-		}
-
-		line := fmt.Sprintf(" %s%s%s %s", indexHint, indicator, checkbox, command)
+		line := fmt.Sprintf(" %s %s%s %s", indexHint, indicator, checkbox, command)
 
 		// Highlight selected line
 		if isSelected {
@@ -519,7 +512,8 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 		line.WriteString(command)
 
 		// Pad to consistent width
-		padding := maxCommandWidth - len(command)
+		// Use rune count for correct visual width calculation
+		padding := maxCommandWidth - len([]rune(command))
 		if padding > 0 {
 			line.WriteString(strings.Repeat(" ", padding))
 		}
