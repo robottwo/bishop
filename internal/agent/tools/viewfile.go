@@ -10,7 +10,6 @@ import (
 
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/utils"
-	"github.com/robottwo/bishop/pkg/gline"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
@@ -68,7 +67,7 @@ func ViewFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 
 	agentName := environment.GetAgentName(runner)
 	printToolMessage(fmt.Sprintf("%s: I'm reading the following file:", agentName))
-	fmt.Print(gline.RESET_CURSOR_COLUMN + utils.HideHomeDirPath(runner, path) + "\n")
+	printToolPath(utils.HideHomeDirPath(runner, path))
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, file)

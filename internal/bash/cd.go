@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
@@ -16,12 +17,17 @@ import (
 // NOTE: This global variable pattern is intentionally used here due to the constraints
 // of the interp.ExecHandlerFunc signature, which doesn't allow passing additional context.
 // The runner must be available to update internal PWD/OLDPWD variables alongside OS env.
-var cdRunner *interp.Runner
+var (
+	cdRunner   *interp.Runner
+	cdRunnerMu sync.RWMutex
+)
 
 // SetCdRunner sets the global runner reference for the cd command handler.
 // This enables the cd command to update both OS environment variables and
 // the interpreter's internal PWD/OLDPWD variables for consistency.
 func SetCdRunner(runner *interp.Runner) {
+	cdRunnerMu.Lock()
+	defer cdRunnerMu.Unlock()
 	cdRunner = runner
 }
 
@@ -33,24 +39,93 @@ func NewCdCommandHandler() func(next interp.ExecHandlerFunc) interp.ExecHandlerF
 				return next(ctx, args)
 			}
 
-			// Handle the 'bish_cd' command on all platforms
-			// Handle the native 'cd' command on Windows only
 			commandName := args[0]
-			if runtime.GOOS == "windows" {
-				if commandName != "bish_cd" && commandName != "cd" {
-					return next(ctx, args)
-				}
-			} else {
-				// On non-Windows platforms, only handle 'bish_cd'
-				if commandName != "bish_cd" {
-					return next(ctx, args)
-				}
+
+			// Handle bish_cd_hook - called after builtin cd to sync external state
+			if commandName == "bish_cd_hook" {
+				return handleCdHook(args)
 			}
 
-			// Handle cd command
+			// Handle 'cd' and 'bish_cd' commands on all platforms
+			// This ensures runner.Dir and environment variables stay in sync
+			if commandName != "bish_cd" && commandName != "cd" {
+				return next(ctx, args)
+			}
+
+			// Handle cd command (legacy - for direct bish_cd calls)
 			return handleCdCommand(ctx, args)
 		}
 	}
+}
+
+// handleCdHook syncs external state after the builtin cd has run
+// It takes the new directory as an argument (passed from the cd function as $PWD)
+// and calls os.Chdir() to actually change the process's working directory
+func handleCdHook(args []string) error {
+	// The new directory is passed as an argument from the cd function
+	// cd function: function cd() { builtin cd "$@" && bish_cd_hook "$PWD"; }
+	if len(args) < 2 {
+		return fmt.Errorf("bish_cd_hook: missing directory argument")
+	}
+	newDir := args[1]
+
+	// Validate path is absolute to prevent path traversal attacks
+	if !filepath.IsAbs(newDir) {
+		return fmt.Errorf("bish_cd_hook: path must be absolute: %s", newDir)
+	}
+
+	// Resolve symlinks to get canonical path (prevents TOCTOU attacks)
+	// Resolve symlinks to get canonical path
+	// Note: This doesn't fully prevent TOCTOU as the symlink could change between
+	// resolution and chdir, but it provides best-effort path normalization
+	resolvedDir, err := filepath.EvalSymlinks(newDir)
+	if err != nil {
+		// If symlink resolution fails, os.Chdir will validate the path
+		resolvedDir = newDir
+	}
+	if err != nil {
+		// Fall back to the original path if symlink resolution fails
+		// (e.g., path doesn't exist yet)
+		resolvedDir = newDir
+	}
+
+	// Get the old working directory BEFORE we change it
+	oldPwd, _ := os.Getwd()
+
+	// Actually change the process's working directory
+	if err := os.Chdir(resolvedDir); err != nil {
+		fmt.Fprintf(os.Stderr, "cd: %s: %v\n", newDir, err)
+		return err
+	}
+
+	// Update OS environment variables - rollback on failure
+	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
+		_ = os.Chdir(oldPwd)
+		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
+		return err
+	}
+	if err := os.Setenv("PWD", resolvedDir); err != nil {
+		_ = os.Chdir(oldPwd)
+		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
+		return err
+	}
+
+	// Update the interpreter's external state (thread-safe access)
+	cdRunnerMu.Lock()
+	runner := cdRunner
+	if runner != nil {
+		runner.Dir = resolvedDir
+
+		if runner.Vars == nil {
+			runner.Vars = make(map[string]expand.Variable)
+		}
+
+		runner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: resolvedDir, Exported: true}
+		runner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
+	}
+	cdRunnerMu.Unlock()
+
+	return nil
 }
 
 func handleCdCommand(ctx context.Context, args []string) error {
@@ -174,7 +249,27 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		return fmt.Errorf("directory not found") // Use consistent error message for cross-platform compatibility
 	}
 
-	// Check for read and execute permissions
+	// Determine the old working directory for OLDPWD BEFORE changing directory
+	// Priority: runner.Dir > env.Get("PWD") > os.Getwd()
+	// Use read lock to safely access runner.Dir
+	var oldPwd string
+	cdRunnerMu.RLock()
+	if cdRunner != nil && cdRunner.Dir != "" {
+		oldPwd = cdRunner.Dir
+	}
+	cdRunnerMu.RUnlock()
+
+	if oldPwd == "" {
+		if pwd := env.Get("PWD").String(); pwd != "" {
+			oldPwd = pwd
+		} else if cwd, err := os.Getwd(); err == nil {
+			oldPwd = cwd
+		} else {
+			fmt.Fprintf(os.Stderr, "cd: warning: unable to determine previous directory for OLDPWD\n")
+		}
+	}
+
+	// Check for read and execute permissions by attempting to change directory
 	if err := os.Chdir(targetDir); err != nil {
 		if os.IsPermission(err) {
 			fmt.Fprintf(os.Stderr, "cd: permission denied: %s\n", targetDir)
@@ -184,24 +279,38 @@ func handleCdCommand(ctx context.Context, args []string) error {
 		return err
 	}
 
-	// Update PWD and OLDPWD environment variables
-	oldPwd := env.Get("PWD").String()
-
-	// Update OS environment variables (for child processes)
+	// Update OS environment variables (for child processes) - rollback on failure
 	if err := os.Setenv("OLDPWD", oldPwd); err != nil {
+		_ = os.Chdir(oldPwd) // Rollback directory change
 		fmt.Fprintf(os.Stderr, "cd: failed to set OLDPWD: %v\n", err)
+		return err
 	}
 	if err := os.Setenv("PWD", targetDir); err != nil {
+		_ = os.Chdir(oldPwd) // Rollback directory change
 		fmt.Fprintf(os.Stderr, "cd: failed to set PWD: %v\n", err)
+		return err
 	}
 
-	// Update the interpreter's internal environment variables
-	// This ensures that shell variable expansion (e.g., $PWD) and env.Get("PWD")
-	// return the correct values, keeping prompt and completion context in sync.
-	if cdRunner != nil && cdRunner.Vars != nil {
+	// Update the interpreter's internal state (thread-safe access)
+	// This ensures that:
+	// 1. runner.Dir reflects the new working directory (used by the interpreter)
+	// 2. $PWD and $OLDPWD environment variables are correctly set for shell expansion
+	cdRunnerMu.Lock()
+	if cdRunner != nil {
+		// Update the interpreter's working directory - this is critical!
+		// runner.Dir is what the interpreter uses as the current directory
+		cdRunner.Dir = targetDir
+
+		// Initialize runner.Vars if nil (can happen with fresh runner)
+		if cdRunner.Vars == nil {
+			cdRunner.Vars = make(map[string]expand.Variable)
+		}
+
+		// Update the environment variables for shell expansion
 		cdRunner.Vars["OLDPWD"] = expand.Variable{Kind: expand.String, Str: oldPwd, Exported: true}
 		cdRunner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: targetDir, Exported: true}
 	}
+	cdRunnerMu.Unlock()
 
 	// Print the new directory path for cd - (matches bash behavior)
 	if printPath {

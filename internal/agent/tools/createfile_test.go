@@ -165,6 +165,9 @@ func TestCreateFileToolWithRelativePath(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "gsh_createfile_test")
 	require.NoError(t, err)
 
+	// Set runner.Dir (primary source for GetPwd)
+	runner.Dir = tempDir
+
 	// Initialize Vars map
 	if runner.Vars == nil {
 		runner.Vars = make(map[string]expand.Variable)

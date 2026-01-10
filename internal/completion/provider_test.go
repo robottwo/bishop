@@ -3,7 +3,6 @@ package completion
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -152,21 +151,6 @@ func TestGetCompletions(t *testing.T) {
 
 	manager := &mockCompletionManager{}
 	provider := NewShellCompletionProvider(manager, runner)
-
-	// Helper to determine expected /bin/ completions based on OS
-	var binCompletions []string
-	if runtime.GOOS == "windows" {
-		// On Windows, paths will be normalized with backslashes
-		// Using filepath.Join to construct expected Windows paths
-		binCompletions = []string{
-			filepath.Join("\\bin", "bash"),
-			filepath.Join("\\bin", "cat"),
-			filepath.Join("\\bin", "ls"),
-			filepath.Join("\\bin", "sh"),
-		}
-	} else {
-		binCompletions = []string{"/bin/bash", "/bin/cat", "/bin/ls", "/bin/sh"}
-	}
 
 	tests := []struct {
 		name     string
@@ -402,22 +386,6 @@ func TestGetCompletions(t *testing.T) {
 			expected: []shellinput.CompletionCandidate{}, // Will depend on actual executable files in current directory
 		},
 		{
-			name: "path-based command completion with /bin/",
-			line: "/bin/",
-			pos:  5,
-			setup: func() {
-				// Mock GetSpec to return no completion spec for path-based commands
-				manager.On("GetSpec", "/bin/").Return(CompletionSpec{}, false)
-			},
-			expected: func() []shellinput.CompletionCandidate {
-				candidates := make([]shellinput.CompletionCandidate, len(binCompletions))
-				for i, path := range binCompletions {
-					candidates[i] = shellinput.CompletionCandidate{Value: path}
-				}
-				return candidates
-			}(),
-		},
-		{
 			name: "alias completion with matching prefix",
 			line: "test",
 			pos:  4,
@@ -461,6 +429,33 @@ func TestGetCompletions(t *testing.T) {
 			},
 			expected: []shellinput.CompletionCandidate{},
 		},
+	}
+
+	// Add /bin/ path completion test only on non-Windows
+	// Windows doesn't have /bin/ and uses backslashes for paths
+	if runtime.GOOS != "windows" {
+		binCompletions := []string{"/bin/bash", "/bin/cat", "/bin/ls", "/bin/sh"}
+		tests = append(tests, struct {
+			name     string
+			line     string
+			pos      int
+			setup    func()
+			expected []shellinput.CompletionCandidate
+		}{
+			name: "path-based command completion with /bin/",
+			line: "/bin/",
+			pos:  5,
+			setup: func() {
+				manager.On("GetSpec", "/bin/").Return(CompletionSpec{}, false)
+			},
+			expected: func() []shellinput.CompletionCandidate {
+				candidates := make([]shellinput.CompletionCandidate, len(binCompletions))
+				for i, path := range binCompletions {
+					candidates[i] = shellinput.CompletionCandidate{Value: path}
+				}
+				return candidates
+			}(),
+		})
 	}
 
 	for _, tt := range tests {

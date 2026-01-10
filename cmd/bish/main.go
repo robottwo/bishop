@@ -240,6 +240,13 @@ func printUsage() {
 
 		fmt.Printf("  %-28s %s\n", flagStr, usage)
 	})
+
+	fmt.Println()
+	fmt.Println(styles.AGENT_QUESTION("Key Features:"))
+	fmt.Printf("  %-28s %s\n", "# <message>", "Chat with the agent")
+	fmt.Printf("  %-28s %s\n", "#!<control>", "Agent controls (e.g., #!config, #!new)")
+	fmt.Printf("  %-28s %s\n", "#?", "Magic Fix: Analyze and fix the last error")
+	fmt.Printf("  %-28s %s\n", "#/<macro>", "Run a chat macro (e.g., #/gitdiff)")
 }
 
 func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {
@@ -338,9 +345,11 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		panic(err)
 	}
 
-	// Override cd command to use bish_cd implementation
-	// This allows us to provide better error messages when cd fails
-	if _, _, err := bash.RunBashCommand(context.Background(), runner, `function cd() { bish_cd "$@"; }`); err != nil {
+	// Override cd command to run builtin cd first, then sync our state
+	// The builtin cd updates the interpreter's internal directory tracking
+	// The bish_cd_hook syncs os.Chdir(), runner.Dir, os.Setenv(PWD), etc.
+	// We use $PWD which is set by builtin cd after it changes the directory
+	if _, _, err := bash.RunBashCommand(context.Background(), runner, `function cd() { builtin cd "$@" && bish_cd_hook "$PWD"; }`); err != nil {
 		panic(err)
 	}
 
