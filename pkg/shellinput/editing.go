@@ -1,6 +1,11 @@
 package shellinput
 
-import "unicode"
+import (
+	"strings"
+	"unicode"
+
+	"mvdan.cc/sh/v3/syntax"
+)
 
 // wordBackward moves the cursor one word to the left. If input is masked, move
 // input to the start so as not to reveal word breaks in the masked input.
@@ -284,4 +289,97 @@ func (m *Model) swapWords() {
 	// So cursor should be at: len(part1) + len(part4) + len(part3) + len(part2)
 
 	m.SetCursor(len(part1) + len(part4) + len(part3) + len(part2))
+}
+
+// insertLastArg inserts the last argument of the previous command.
+func (m *Model) insertLastArg() {
+	if len(m.values) <= 1 {
+		return
+	}
+
+	// Determine which history entry to look at
+	// m.values[0] is current input. m.values[1] is last command.
+	// Index 1 is most recent history.
+
+	if !m.lastCommandWasInsertArg {
+		m.lastArgInsertionIndex = 1
+	} else {
+		m.lastArgInsertionIndex++
+	}
+
+	if m.lastArgInsertionIndex >= len(m.values) {
+		m.lastArgInsertionIndex = 1 // Cycle back to start
+	}
+
+	histLine := string(m.values[m.lastArgInsertionIndex])
+
+	// Parse to find last argument
+	lastArg := GetLastArgument(histLine)
+	if lastArg == "" {
+		return
+	}
+
+	runesToInsert := []rune(lastArg)
+
+	if m.lastCommandWasInsertArg {
+		// Replace previously inserted arg
+		// Cursor is at end of inserted arg.
+		// Remove m.lastInsertedArgLen characters before cursor.
+		start := m.pos - m.lastInsertedArgLen
+		if start < 0 {
+			start = 0
+		} // Should not happen
+
+		// Remove
+		// value = value[:start] + value[m.pos:]
+		v := m.values[m.selectedValueIndex]
+		remaining := v[m.pos:]
+		prefix := v[:start]
+
+		// Construct new
+		var newValue []rune
+		newValue = append(newValue, prefix...)
+		newValue = append(newValue, runesToInsert...)
+		newValue = append(newValue, remaining...)
+
+		m.values[0] = newValue
+		m.values[m.selectedValueIndex] = newValue
+		m.SetCursor(start + len(runesToInsert))
+	} else {
+		// Insert at cursor
+		m.insertRunesFromUserInput(runesToInsert)
+		// insertRunesFromUserInput updates pos
+	}
+
+	m.lastInsertedArgLen = len(runesToInsert)
+	m.lastCommandWasInsertArg = true
+}
+
+// GetLastArgument extracts the last argument from a shell command line.
+func GetLastArgument(line string) string {
+	p := syntax.NewParser()
+	f, err := p.Parse(strings.NewReader(line), "")
+	if err != nil {
+		// Fallback to simple split?
+		parts := strings.Fields(line)
+		if len(parts) > 0 {
+			return parts[len(parts)-1]
+		}
+		return ""
+	}
+
+	var lastArg string
+	syntax.Walk(f, func(node syntax.Node) bool {
+		if word, ok := node.(*syntax.Word); ok {
+			// We want the literal value of the word
+			var sb strings.Builder
+			printer := syntax.NewPrinter()
+			_ = printer.Print(&sb, word)
+			lastArg = sb.String()
+		}
+		return true
+	})
+
+	// The walker visits in order. So lastArg will be overwritten by the last word found.
+	return lastArg
 }
