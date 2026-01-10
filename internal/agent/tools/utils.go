@@ -3,8 +3,10 @@ package tools
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/muesli/termenv"
 	"github.com/robottwo/bishop/internal/environment"
 	"github.com/robottwo/bishop/internal/styles"
 	"github.com/robottwo/bishop/pkg/gline"
@@ -55,11 +57,28 @@ var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, qu
 		defaultToYes = environment.GetDefaultToYes(runner)
 	}
 
-	promptSuffix := " (y/N/manage/freeform) "
+	// Create termenv output for styling
+	out := termenv.NewOutput(os.Stdout)
+
+	// Build the prompt with styled components
+	// Format: (y)es  [N]o  (m)anage  [or type feedback]:
+	var promptSuffix string
 	if defaultToYes {
-		promptSuffix = " (Y/n/manage/freeform) "
+		// When default is yes: [Y]es  (n)o  (m)anage  [or type feedback]:
+		yesOption := out.String("[Y]es").Foreground(out.Color("11")).Bold().String()
+		noOption := out.String("(n)o").Foreground(out.Color("11")).String()
+		manageOption := out.String("(m)anage").Foreground(out.Color("11")).String()
+		hint := out.String("[or type feedback]").Foreground(out.Color("244")).String()
+		promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
+	} else {
+		// When default is no: (y)es  [N]o  (m)anage  [or type feedback]:
+		yesOption := out.String("(y)es").Foreground(out.Color("11")).String()
+		noOption := out.String("[N]o").Foreground(out.Color("11")).Bold().String()
+		manageOption := out.String("(m)anage").Foreground(out.Color("11")).String()
+		hint := out.String("[or type feedback]").Foreground(out.Color("244")).String()
+		promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
 	}
-	prompt := styles.AGENT_QUESTION(question + promptSuffix)
+	prompt := styles.AGENT_QUESTION(question) + promptSuffix
 
 	line, err := gline.Gline(prompt, []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
 	if err != nil {
