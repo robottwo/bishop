@@ -27,9 +27,6 @@ SOFTWARE.
 package shellinput
 
 import (
-	"fmt"
-	"reflect"
-	"strings"
 	"time"
 	"unicode"
 
@@ -39,17 +36,21 @@ import (
 	"github.com/charmbracelet/bubbles/runeutil"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/ansi"
-	"github.com/muesli/reflow/wrap"
-	"github.com/rivo/uniseg"
-	"mvdan.cc/sh/v3/syntax"
 )
+
+// ============================================================================
+// Internal Messages
+// ============================================================================
 
 // Internal messages for clipboard operations.
 type (
 	pasteMsg    string
 	pasteErrMsg struct{ error }
 )
+
+// ============================================================================
+// Types and Configuration
+// ============================================================================
 
 // EchoMode sets the input behavior of the text input field.
 type EchoMode int
@@ -129,17 +130,9 @@ var DefaultKeyMap = KeyMap{
 	InsertLastArg:           key.NewBinding(key.WithKeys("alt+.")),
 }
 
-const (
-	killRingMax = 30
-)
-
-type killDirection int
-
-const (
-	killDirectionUnknown killDirection = iota
-	killDirectionForward
-	killDirectionBackward
-)
+// ============================================================================
+// Model
+// ============================================================================
 
 // Model is the Bubble Tea model for this text input element.
 type Model struct {
@@ -189,18 +182,8 @@ type Model struct {
 	// Cursor position.
 	pos int
 
-	// killRing stores recently killed text for yank operations. The head is
-	// the most recent kill.
-	killRing [][]rune
-	// killRingIndex is used when cycling through the ring with yank-pop.
-	killRingIndex int
-	// lastKillDirection tracks the direction of the previous kill to
-	// support Bash/zsh-style kill ring appending semantics.
-	lastKillDirection  killDirection
-	lastCommandWasKill bool
-	lastYankActive     bool
-	lastYankStart      int
-	lastYankEnd        int
+	// killRing manages Emacs-style kill/yank operations
+	killRing KillRing
 
 	// State for Alt+. (Insert Last Argument)
 	lastArgInsertionIndex   int
@@ -216,19 +199,52 @@ type Model struct {
 	// rune sanitizer for input.
 	rsan runeutil.Sanitizer
 
-	// Should the input suggest to complete
+	// ShowSuggestions enables autocomplete suggestions. When true, the input
+	// will display suggestions that match the current input value. This works
+	// in conjunction with SetSuggestions() to provide tab-completion functionality.
+	// The suggestion display can be customized via CompletionStyle.
 	ShowSuggestions bool
 
 	// suppressSuggestionsUntilInput temporarily disables autocomplete hints
 	// until the user enters more text. This is used, for example, when the
 	// user trims the line with Ctrl+K so that ghost text and help reflect
-	// the truncated command until new input arrives.
+	// the truncated command until new input arrives. This flag is cleared
+	// when the user types any character, restoring normal suggestion behavior.
 	suppressSuggestionsUntilInput bool
 
-	// suggestions is a list of suggestions that may be used to complete the
-	// input.
-	suggestions            [][]rune
-	matchedSuggestions     [][]rune
+	// Suggestion state fields (managed by methods in suggestions.go)
+	//
+	// The suggestion system provides tab-completion functionality through a
+	// three-stage process:
+	// 1. suggestions: Full list of available completions set via SetSuggestions()
+	// 2. matchedSuggestions: Filtered subset matching current input (case-insensitive prefix)
+	// 3. currentSuggestionIndex: Currently selected match when cycling with Tab/Shift+Tab
+	//
+	// Key methods (see suggestions.go):
+	//   - SetSuggestions([]string): Sets available suggestions and triggers matching
+	//   - updateSuggestions(): Refreshes matched list based on current input
+	//   - AvailableSuggestions(): Returns all available suggestions
+	//   - MatchedSuggestions(): Returns suggestions matching current input
+	//   - CurrentSuggestion(): Returns the currently selected suggestion
+	//   - CurrentSuggestionIndex(): Returns the selection index
+	//   - canAcceptSuggestion(): Checks if a suggestion is available to accept
+
+	// suggestions stores the full list of available suggestions that may be
+	// used to autocomplete the input. Set via SetSuggestions() method.
+	// Each suggestion is stored as a []rune for efficient text manipulation.
+	suggestions [][]rune
+
+	// matchedSuggestions stores the filtered list of suggestions that match
+	// the current input value using case-insensitive prefix matching.
+	// This list is automatically updated by updateSuggestions() whenever
+	// the input value changes. Only suggestions from this list can be
+	// cycled through and accepted by the user.
+	matchedSuggestions [][]rune
+
+	// currentSuggestionIndex tracks which matched suggestion is currently
+	// selected when cycling through suggestions with Tab/Shift+Tab keys.
+	// The index is reset to 0 when the matched suggestions list changes.
+	// Valid range: [0, len(matchedSuggestions)-1]
 	currentSuggestionIndex int
 
 	// values[0] is the current value. other indices represent history values
@@ -244,6 +260,10 @@ type Model struct {
 	historyItems       []HistoryItem
 	historySearchState historySearchState
 }
+
+// ============================================================================
+// Constructor
+// ============================================================================
 
 // New creates a new model with default settings.
 func New() Model {
@@ -266,6 +286,10 @@ func New() Model {
 	}
 }
 
+// ============================================================================
+// Value Management
+// ============================================================================
+
 // SetValue sets the value of the text input.
 func (m *Model) SetValue(s string) {
 	// Clean up any special characters in the input provided by the
@@ -277,8 +301,8 @@ func (m *Model) SetValue(s string) {
 
 func (m *Model) setValueInternal(runes []rune, err error) {
 	m.Err = err
-	m.lastCommandWasKill = false
-	m.lastYankActive = false
+	m.killRing.lastWasKill = false
+	m.killRing.yankActive = false
 
 	empty := len(m.values[m.selectedValueIndex]) == 0
 
@@ -313,10 +337,58 @@ func (m Model) Position() int {
 	return m.pos
 }
 
+// ============================================================================
+// Cursor and Position Management
+// ============================================================================
+
 // SetCursor moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
 func (m *Model) SetCursor(pos int) {
 	m.pos = clamp(pos, 0, len(m.values[m.selectedValueIndex]))
+}
+
+// getCursorPosition returns the current cursor position.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) getCursorPosition() int {
+	return m.pos
+}
+
+// setValue sets the input buffer value to the primary value slot.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) setValue(value []rune) {
+	m.values[0] = value
+	m.selectedValueIndex = 0
+}
+
+// getValue returns the current input buffer value.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) getValue() []rune {
+	return m.values[m.selectedValueIndex]
+}
+
+// setCursor sets the cursor position.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) setCursor(pos int) {
+	m.SetCursor(pos)
+}
+
+// setError sets the validation error.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) setError(err error) {
+	m.Err = err
+}
+
+// suppressSuggestions suppresses suggestions until next input.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) suppressSuggestions() {
+	m.suppressSuggestionsUntilInput = true
+}
+
+// clearSuggestions clears matched suggestions.
+// This method implements the bufferEditor interface for KillRing operations.
+func (m *Model) clearSuggestions() {
+	m.matchedSuggestions = [][]rune{}
+	m.currentSuggestionIndex = 0
 }
 
 // CursorStart moves the cursor to the start of the input field.
@@ -328,6 +400,10 @@ func (m *Model) CursorStart() {
 func (m *Model) CursorEnd() {
 	m.SetCursor(len(m.values[m.selectedValueIndex]))
 }
+
+// ============================================================================
+// Focus and Blur
+// ============================================================================
 
 // Focused returns the focus state on the model.
 func (m Model) Focused() bool {
@@ -348,22 +424,15 @@ func (m *Model) Blur() {
 	m.Cursor.Blur()
 }
 
+// ============================================================================
+// State Management
+// ============================================================================
+
 // Reset sets the input to its default state with no input.
 func (m *Model) Reset() {
 	m.values = [][]rune{{}}
 	m.selectedValueIndex = 0
 	m.SetCursor(0)
-}
-
-// SetSuggestions sets the suggestions for the input.
-func (m *Model) SetSuggestions(suggestions []string) {
-
-	m.suggestions = make([][]rune, len(suggestions))
-	for i, s := range suggestions {
-		m.suggestions[i] = []rune(s)
-	}
-
-	m.updateSuggestions()
 }
 
 // SetHistoryValues sets the suggestions for the input.
@@ -391,10 +460,14 @@ func (m *Model) san() runeutil.Sanitizer {
 	return m.rsan
 }
 
+// ============================================================================
+// Input Handling
+// ============================================================================
+
 func (m *Model) insertRunesFromUserInput(v []rune) {
 	m.suppressSuggestionsUntilInput = false
-	m.lastCommandWasKill = false
-	m.lastYankActive = false
+	m.killRing.lastWasKill = false
+	m.killRing.yankActive = false
 	// Only reset lastCommandWasInsertArg if it wasn't set by insertLastArg just before calling this
 	// But insertLastArg calls this, so it will be reset.
 	// So insertLastArg must re-set it to true.
@@ -435,498 +508,30 @@ func (m *Model) insertRunesFromUserInput(v []rune) {
 	m.setValueInternal(result, inputErr)
 }
 
-// deleteBeforeCursor deletes all text before the cursor.
-func (m *Model) deleteBeforeCursor() {
-	killed := m.values[m.selectedValueIndex][:m.pos]
-	m.recordKill(killed, killDirectionBackward)
-
-	newValue := cloneRunes(m.values[m.selectedValueIndex][m.pos:])
-	m.Err = m.validate(newValue)
-	m.values[0] = newValue
-	m.selectedValueIndex = 0
-	m.SetCursor(0)
-}
-
-// deleteAfterCursor deletes all text after the cursor. If input is masked
-// delete everything after the cursor so as not to reveal word breaks in the
-// masked input.
-func (m *Model) deleteAfterCursor() {
-	killed := m.values[m.selectedValueIndex][m.pos:]
-	m.recordKill(killed, killDirectionForward)
-
-	newValue := cloneRunes(m.values[m.selectedValueIndex][:m.pos])
-	m.Err = m.validate(newValue)
-	m.values[0] = newValue
-	m.selectedValueIndex = 0
-	m.SetCursor(len(m.values[0]))
-}
+// ============================================================================
+// Kill Ring Integration
+// ============================================================================
 
 // recordKill captures killed text for yank operations and temporarily suppresses
 // autocomplete hints until the user provides new input.
 func (m *Model) recordKill(killed []rune, direction killDirection) {
-	if len(killed) > 0 {
-		cleaned := cloneRunes(killed)
-
-		if m.lastCommandWasKill && direction == m.lastKillDirection && len(m.killRing) > 0 {
-			if direction == killDirectionForward {
-				m.killRing[0] = append(m.killRing[0], cleaned...)
-			} else {
-				m.killRing[0] = append(cleaned, m.killRing[0]...)
-			}
-		} else {
-			m.killRing = append([][]rune{cleaned}, m.killRing...)
-			if len(m.killRing) > killRingMax {
-				m.killRing = m.killRing[:killRingMax]
-			}
-			m.killRingIndex = 0
-		}
-		m.lastCommandWasKill = true
-	} else {
-		m.lastCommandWasKill = false
-	}
-
-	m.lastKillDirection = direction
-	m.lastYankActive = false
-	m.suppressSuggestionsUntilInput = true
-	m.matchedSuggestions = [][]rune{}
-	m.currentSuggestionIndex = 0
-	m.resetCompletion()
+	m.killRing.RecordKill(m, killed, direction)
 }
 
 // yankKillBuffer pastes the most recently killed text at the cursor position.
 func (m *Model) yankKillBuffer() {
-	if len(m.killRing) == 0 {
-		return
-	}
-
-	killed := cloneRunes(m.killRing[0])
-	m.insertRunesFromUserInput(killed)
-	m.lastYankStart = m.pos - len(killed)
-	m.lastYankEnd = m.pos
-	m.killRingIndex = 0
-	m.lastYankActive = true
-	m.lastCommandWasKill = false
+	m.killRing.YankKillBuffer(m)
 }
 
 // yankPop cycles through the kill ring after a yank, replacing the previously
 // yanked text with the next entry.
 func (m *Model) yankPop() {
-	if !m.lastYankActive || len(m.killRing) == 0 {
-		return
-	}
-
-	if len(m.killRing) == 1 {
-		return
-	}
-
-	m.killRingIndex = (m.killRingIndex + 1) % len(m.killRing)
-
-	value := m.values[m.selectedValueIndex]
-	start := clamp(m.lastYankStart, 0, len(value))
-	end := clamp(m.lastYankEnd, start, len(value))
-
-	replacement := cloneRunes(m.killRing[m.killRingIndex])
-	newValue := make([]rune, 0, len(value)-end+start+len(replacement))
-	newValue = append(newValue, value[:start]...)
-	newValue = append(newValue, replacement...)
-	newValue = append(newValue, value[end:]...)
-
-	m.Err = m.validate(newValue)
-	m.values[0] = newValue
-	m.selectedValueIndex = 0
-	m.SetCursor(start + len(replacement))
-
-	m.lastYankStart = start
-	m.lastYankEnd = start + len(replacement)
-	m.lastYankActive = true
-	m.lastCommandWasKill = false
+	m.killRing.YankPop(m)
 }
 
-// deleteWordBackward deletes the word left to the cursor.
-func (m *Model) deleteWordBackward() {
-	if m.pos == 0 || len(m.values[m.selectedValueIndex]) == 0 {
-		return
-	}
-
-	if m.EchoMode != EchoNormal {
-		m.deleteBeforeCursor()
-		return
-	}
-
-	// Linter note: it's critical that we acquire the initial cursor position
-	// here prior to altering it via SetCursor() below. As such, moving this
-	// call into the corresponding if clause does not apply here.
-	oldPos := m.pos //nolint:ifshort
-
-	m.SetCursor(m.pos - 1)
-	for unicode.IsSpace(m.values[m.selectedValueIndex][m.pos]) {
-		if m.pos <= 0 {
-			break
-		}
-		// ignore series of whitespace before cursor
-		m.SetCursor(m.pos - 1)
-	}
-
-	for m.pos > 0 {
-		if !unicode.IsSpace(m.values[m.selectedValueIndex][m.pos]) {
-			m.SetCursor(m.pos - 1)
-		} else {
-			if m.pos > 0 {
-				// keep the previous space
-				m.SetCursor(m.pos + 1)
-			}
-			break
-		}
-	}
-
-	var newValue []rune
-	if oldPos > len(m.values[m.selectedValueIndex]) {
-		newValue = cloneRunes(m.values[m.selectedValueIndex][:m.pos])
-	} else {
-		newValue = cloneConcatRunes(m.values[m.selectedValueIndex][:m.pos], m.values[m.selectedValueIndex][oldPos:])
-	}
-
-	m.recordKill(m.values[m.selectedValueIndex][m.pos:oldPos], killDirectionBackward)
-
-	m.Err = m.validate(newValue)
-	m.values[0] = newValue
-	m.selectedValueIndex = 0
-}
-
-// deleteWordForward deletes the word right to the cursor. If input is masked
-// delete everything after the cursor so as not to reveal word breaks in the
-// masked input.
-func (m *Model) deleteWordForward() {
-	if m.pos >= len(m.values[m.selectedValueIndex]) || len(m.values[m.selectedValueIndex]) == 0 {
-		return
-	}
-
-	if m.EchoMode != EchoNormal {
-		m.deleteAfterCursor()
-		return
-	}
-
-	oldPos := m.pos
-	m.SetCursor(m.pos + 1)
-	for unicode.IsSpace(m.values[m.selectedValueIndex][m.pos]) {
-		// ignore series of whitespace after cursor
-		m.SetCursor(m.pos + 1)
-
-		if m.pos >= len(m.values[m.selectedValueIndex]) {
-			break
-		}
-	}
-
-	for m.pos < len(m.values[m.selectedValueIndex]) {
-		if !unicode.IsSpace(m.values[m.selectedValueIndex][m.pos]) {
-			m.SetCursor(m.pos + 1)
-		} else {
-			break
-		}
-	}
-
-	var newValue []rune
-	if m.pos > len(m.values[m.selectedValueIndex]) {
-		newValue = cloneRunes(m.values[m.selectedValueIndex][:oldPos])
-	} else {
-		newValue = cloneConcatRunes(m.values[m.selectedValueIndex][:oldPos], m.values[m.selectedValueIndex][m.pos:])
-	}
-
-	killEnd := min(m.pos, len(m.values[m.selectedValueIndex]))
-	m.recordKill(m.values[m.selectedValueIndex][oldPos:killEnd], killDirectionForward)
-	m.Err = m.validate(newValue)
-	m.values[0] = newValue
-	m.selectedValueIndex = 0
-	m.SetCursor(oldPos)
-}
-
-// wordBackward moves the cursor one word to the left. If input is masked, move
-// input to the start so as not to reveal word breaks in the masked input.
-func (m *Model) wordBackward() {
-	if m.pos == 0 || len(m.values[m.selectedValueIndex]) == 0 {
-		return
-	}
-
-	if m.EchoMode != EchoNormal {
-		m.CursorStart()
-		return
-	}
-
-	i := m.pos - 1
-	for i >= 0 {
-		if unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
-			m.SetCursor(m.pos - 1)
-			i--
-		} else {
-			break
-		}
-	}
-
-	for i >= 0 {
-		if !unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
-			m.SetCursor(m.pos - 1)
-			i--
-		} else {
-			break
-		}
-	}
-}
-
-// wordForward moves the cursor one word to the right. If the input is masked,
-// move input to the end so as not to reveal word breaks in the masked input.
-func (m *Model) wordForward() {
-	if m.pos >= len(m.values[m.selectedValueIndex]) || len(m.values[m.selectedValueIndex]) == 0 {
-		return
-	}
-
-	if m.EchoMode != EchoNormal {
-		m.CursorEnd()
-		return
-	}
-
-	i := m.pos
-	for i < len(m.values[m.selectedValueIndex]) {
-		if unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
-			m.SetCursor(m.pos + 1)
-			i++
-		} else {
-			break
-		}
-	}
-
-	for i < len(m.values[m.selectedValueIndex]) {
-		if !unicode.IsSpace(m.values[m.selectedValueIndex][i]) {
-			m.SetCursor(m.pos + 1)
-			i++
-		} else {
-			break
-		}
-	}
-}
-
-// swapCharacters swaps the character before the cursor with the one before that.
-func (m *Model) swapCharacters() {
-	if m.pos == 0 || len(m.values[m.selectedValueIndex]) < 2 {
-		return
-	}
-
-	// If at end of line, swap the two characters before the cursor
-	idx := m.pos
-	if idx == len(m.values[m.selectedValueIndex]) {
-		// Swap idx-1 and idx-2
-		m.values[m.selectedValueIndex][idx-1], m.values[m.selectedValueIndex][idx-2] = m.values[m.selectedValueIndex][idx-2], m.values[m.selectedValueIndex][idx-1]
-		m.values[0] = m.values[m.selectedValueIndex]
-		// Cursor stays at end
-		return
-	}
-
-	// Swap idx-1 and idx
-	m.values[m.selectedValueIndex][idx-1], m.values[m.selectedValueIndex][idx] = m.values[m.selectedValueIndex][idx], m.values[m.selectedValueIndex][idx-1]
-	m.values[0] = m.values[m.selectedValueIndex]
-	m.SetCursor(m.pos + 1)
-}
-
-// swapWords swaps the word before the cursor with the word before that.
-func (m *Model) swapWords() {
-	v := m.values[m.selectedValueIndex]
-	if len(v) == 0 {
-		return
-	}
-
-	// Step 1: Check if there is a word at or after pos.
-	hasWordAfter := false
-	temp := m.pos
-	for temp < len(v) {
-		if !unicode.IsSpace(v[temp]) {
-			hasWordAfter = true
-			break
-		}
-		temp++
-	}
-	w2Start := temp
-	var w2End int
-
-	if hasWordAfter {
-		// Word 2 starts at w2Start. Find its end.
-		w2End = w2Start
-		for w2End < len(v) && !unicode.IsSpace(v[w2End]) {
-			w2End++
-		}
-	} else {
-		// No word after. Treat word before cursor (or EOL) as Word 2.
-		// Scan back from EOL to find end of Word 2.
-		w2End = len(v)
-		for w2End > 0 && unicode.IsSpace(v[w2End-1]) {
-			w2End--
-		}
-		if w2End == 0 {
-			return
-		} // No words
-
-		// Find start of Word 2
-		w2Start = w2End
-		for w2Start > 0 && !unicode.IsSpace(v[w2Start-1]) {
-			w2Start--
-		}
-	}
-
-	// Now we have Word 2 (w2Start, w2End).
-	// Find Word 1 before Word 2.
-	w1End := w2Start
-	// Skip spaces backwards
-	for w1End > 0 && unicode.IsSpace(v[w1End-1]) {
-		w1End--
-	}
-	if w1End == 0 {
-		return
-	} // No Word 1
-
-	// Find start of Word 1
-	w1Start := w1End
-	for w1Start > 0 && !unicode.IsSpace(v[w1Start-1]) {
-		w1Start--
-	}
-
-	// Construct new value
-	// ... w1 ... w2 ...
-	// ... w1Start ... w1End ... w2Start ... w2End ...
-
-	// We need to preserve text between words (usually spaces)
-	// part1: 0 to w1Start
-	// part2: w1 (w1Start to w1End)
-	// part3: w1End to w2Start (separator)
-	// part4: w2 (w2Start to w2End)
-	// part5: w2End to end
-
-	// New: part1 + part4 + part3 + part2 + part5
-
-	part1 := v[:w1Start]
-	part2 := v[w1Start:w1End]
-	part3 := v[w1End:w2Start]
-	part4 := v[w2Start:w2End]
-	part5 := v[w2End:]
-
-	var newValue []rune
-	newValue = append(newValue, part1...)
-	newValue = append(newValue, part4...)
-	newValue = append(newValue, part3...)
-	newValue = append(newValue, part2...)
-	newValue = append(newValue, part5...)
-
-	m.values[0] = newValue
-	m.values[m.selectedValueIndex] = newValue
-
-	// Cursor should move to end of inserted word2 (which is now in second position? No, Bash says "moving point over that word as well")
-	// If "one two|", result "two one|". Cursor moves to end of "one" (which is now last).
-	// So cursor should be at: len(part1) + len(part4) + len(part3) + len(part2)
-
-	m.SetCursor(len(part1) + len(part4) + len(part3) + len(part2))
-}
-
-// insertLastArg inserts the last argument of the previous command.
-func (m *Model) insertLastArg() {
-	if len(m.values) <= 1 {
-		return
-	}
-
-	// Determine which history entry to look at
-	// m.values[0] is current input. m.values[1] is last command.
-	// Index 1 is most recent history.
-
-	if !m.lastCommandWasInsertArg {
-		m.lastArgInsertionIndex = 1
-	} else {
-		m.lastArgInsertionIndex++
-	}
-
-	if m.lastArgInsertionIndex >= len(m.values) {
-		m.lastArgInsertionIndex = 1 // Cycle back to start
-	}
-
-	histLine := string(m.values[m.lastArgInsertionIndex])
-
-	// Parse to find last argument
-	lastArg := GetLastArgument(histLine)
-	if lastArg == "" {
-		return
-	}
-
-	runesToInsert := []rune(lastArg)
-
-	if m.lastCommandWasInsertArg {
-		// Replace previously inserted arg
-		// Cursor is at end of inserted arg.
-		// Remove m.lastInsertedArgLen characters before cursor.
-		start := m.pos - m.lastInsertedArgLen
-		if start < 0 {
-			start = 0
-		} // Should not happen
-
-		// Remove
-		// value = value[:start] + value[m.pos:]
-		v := m.values[m.selectedValueIndex]
-		remaining := v[m.pos:]
-		prefix := v[:start]
-
-		// Construct new
-		var newValue []rune
-		newValue = append(newValue, prefix...)
-		newValue = append(newValue, runesToInsert...)
-		newValue = append(newValue, remaining...)
-
-		m.values[0] = newValue
-		m.values[m.selectedValueIndex] = newValue
-		m.SetCursor(start + len(runesToInsert))
-	} else {
-		// Insert at cursor
-		m.insertRunesFromUserInput(runesToInsert)
-		// insertRunesFromUserInput updates pos
-	}
-
-	m.lastInsertedArgLen = len(runesToInsert)
-	m.lastCommandWasInsertArg = true
-}
-
-func GetLastArgument(line string) string {
-	p := syntax.NewParser()
-	f, err := p.Parse(strings.NewReader(line), "")
-	if err != nil {
-		// Fallback to simple split?
-		parts := strings.Fields(line)
-		if len(parts) > 0 {
-			return parts[len(parts)-1]
-		}
-		return ""
-	}
-
-	var lastArg string
-	syntax.Walk(f, func(node syntax.Node) bool {
-		if word, ok := node.(*syntax.Word); ok {
-			// We want the literal value of the word
-			var sb strings.Builder
-			printer := syntax.NewPrinter()
-			_ = printer.Print(&sb, word)
-			lastArg = sb.String()
-		}
-		return true
-	})
-
-	// The walker visits in order. So lastArg will be overwritten by the last word found.
-	return lastArg
-}
-
-func (m Model) echoTransform(v string) string {
-	switch m.EchoMode {
-	case EchoPassword:
-		return strings.Repeat(string(m.EchoCharacter), uniseg.StringWidth(v))
-	case EchoNone:
-		return ""
-	case EchoNormal:
-		return v
-	default:
-		return v
-	}
-}
+// ============================================================================
+// Update Loop
+// ============================================================================
 
 // Update is the Bubble Tea update loop.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -1121,11 +726,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 		if !killCommand && !yankCommand {
-			m.lastCommandWasKill = false
+			m.killRing.lastWasKill = false
 		}
 
 		if !yankCommand {
-			m.lastYankActive = false
+			m.killRing.yankActive = false
 		}
 
 		// Check again if can be completed
@@ -1156,78 +761,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View renders the textinput in its current state.
-func (m Model) View() string {
-	if m.inReverseSearch {
-		// When in reverse search mode, show the search prompt
-		matchText := ""
-		prefix := "(reverse-i-search)"
-
-		// Use rich history state to determine if there are matches and what the selected one is
-		if len(m.historySearchState.filteredIndices) > 0 {
-			selectedIdx := m.historySearchState.selected
-			if selectedIdx >= 0 && selectedIdx < len(m.historySearchState.filteredIndices) {
-				originalIdx := m.historySearchState.filteredIndices[selectedIdx]
-				if originalIdx >= 0 && originalIdx < len(m.historyItems) {
-					matchText = m.historyItems[originalIdx].Command
-				}
-			}
-		} else if m.reverseSearchQuery != "" {
-			prefix = "(failed reverse-i-search)"
-		}
-
-		return m.ReverseSearchPromptStyle.Render(fmt.Sprintf("%s`%s': %s", prefix, m.reverseSearchQuery, matchText))
-	}
-
-	styleText := m.TextStyle.Inline(true).Render
-
-	value := m.values[m.selectedValueIndex]
-	pos := max(0, m.pos)
-	v := m.PromptStyle.Render(m.Prompt) + styleText(m.echoTransform(string(value[:pos])))
-
-	if pos < len(value) { //nolint:nestif
-		char := m.echoTransform(string(value[pos]))
-		m.Cursor.SetChar(char)
-		v += m.Cursor.View()                                   // cursor and text under it
-		v += styleText(m.echoTransform(string(value[pos+1:]))) // text after cursor
-		v += m.completionView(0)                               // suggested completion
-	} else {
-		if m.canAcceptSuggestion() {
-			suggestion := m.matchedSuggestions[m.currentSuggestionIndex]
-			if len(value) < len(suggestion) {
-				m.Cursor.TextStyle = m.CompletionStyle
-				m.Cursor.SetChar(m.echoTransform(string(suggestion[pos])))
-				v += m.Cursor.View()
-				v += m.completionView(1)
-			} else {
-				m.Cursor.SetChar(" ")
-				v += m.Cursor.View()
-			}
-		} else {
-			m.Cursor.SetChar(" ")
-			v += m.Cursor.View()
-		}
-		v += m.completionSuffixView() // suffix from active completion (e.g., "/" for directories)
-	}
-
-	totalWidth := uniseg.StringWidth(v)
-
-	// If a max width is set, we need to respect the horizontal boundary
-	if m.Width > 0 {
-		if totalWidth <= m.Width {
-			// fill empty spaces with the background color
-			padding := max(0, m.Width-totalWidth)
-			if totalWidth+padding <= m.Width && pos < len(value) {
-				padding++
-			}
-			v += styleText(strings.Repeat(" ", padding))
-		} else {
-			v = wrap.String(v, m.Width)
-		}
-	}
-
-	return v
-}
+// ============================================================================
+// Commands
+// ============================================================================
 
 // Blink is a command used to initialize cursor blinking.
 func Blink() tea.Msg {
@@ -1243,28 +779,9 @@ func Paste() tea.Msg {
 	return pasteMsg(str)
 }
 
-func clamp(v, low, high int) int {
-	if high < low {
-		low, high = high, low
-	}
-	return min(high, max(low, v))
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-// Deprecated.
+// ============================================================================
+// Deprecated Types and Methods
+// ============================================================================
 
 // Deprecated: use cursor.Mode.
 type CursorMode int
@@ -1292,270 +809,15 @@ func (m *Model) SetCursorMode(mode CursorMode) tea.Cmd {
 	return m.Cursor.SetMode(cursor.Mode(mode))
 }
 
-func (m Model) completionView(offset int) string {
-	var (
-		value = m.values[m.selectedValueIndex]
-		style = m.CompletionStyle.Inline(true).Render
-	)
-
-	if m.canAcceptSuggestion() {
-		suggestion := m.matchedSuggestions[m.currentSuggestionIndex]
-		if len(value) < len(suggestion) {
-			return style(string(suggestion[len(value)+offset:]))
-		}
-	}
-	return ""
-}
-
-// completionSuffixView renders the suffix from the currently selected completion candidate
-// as a greyed-out inline suggestion (e.g., "/" for directories)
-func (m Model) completionSuffixView() string {
-	// Only show suffix if completion is active and a suggestion is selected
-	if !m.completion.active || m.completion.selected < 0 || m.completion.selected >= len(m.completion.suggestions) {
-		return ""
-	}
-
-	// Get the currently selected completion candidate
-	candidate := m.completion.suggestions[m.completion.selected]
-
-	// If there's a suffix, render it with the completion style (greyed out)
-	if candidate.Suffix != "" {
-		return m.CompletionStyle.Inline(true).Render(candidate.Suffix)
-	}
-
-	return ""
-}
-
-// CompletionBoxView renders the completion info box with all available completions
-// CompletionBoxView renders the completion info box with all available completions
-func (m Model) CompletionBoxView(height int, width int) string {
-	if !m.completion.shouldShowInfoBox() {
-		return ""
-	}
-
-	if height <= 0 {
-		height = 4 // default fallback
-	}
-
-	totalItems := len(m.completion.suggestions)
-	if totalItems == 0 {
-		return ""
-	}
-
-	// Check if we need to show descriptions (Zsh style)
-	hasDescriptions := false
-	maxCandidateWidth := 0
-	maxItemWidth := 0
-	for _, s := range m.completion.suggestions {
-		if s.Description != "" {
-			hasDescriptions = true
-		}
-
-		// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
-		displayWidth := 0
-		if s.Display != "" {
-			displayWidth = ansi.PrintableRuneWidth(s.Display)
-		} else {
-			displayWidth = ansi.PrintableRuneWidth(s.Value)
-		}
-		if displayWidth > maxCandidateWidth {
-			maxCandidateWidth = displayWidth
-		}
-
-		// Length + prefix ("> ") + spacing ("  ")
-		l := displayWidth + 4
-		if l > maxItemWidth {
-			maxItemWidth = l
-		}
-	}
-
-	// Ensure at least some width
-	if maxItemWidth < 10 {
-		maxItemWidth = 10
-	}
-
-	// Calculate columns - single column when showing descriptions for alignment
-	numColumns := 1
-	if !hasDescriptions && width > 0 {
-		numColumns = width / maxItemWidth
-		if numColumns < 1 {
-			numColumns = 1
-		}
-	}
-
-	// If items <= height, we stick to 1 column regardless of width (looks cleaner)
-	if totalItems <= height {
-		numColumns = 1
-	}
-
-	capacity := height * numColumns
-
-	// Calculate visible window
-	var startIdx int
-	selectedIdx := m.completion.selected
-	if selectedIdx < 0 {
-		selectedIdx = 0
-	}
-
-	// Page-based scrolling logic
-	page := selectedIdx / capacity
-	startIdx = page * capacity
-
-	// Ensure bounds are valid
-	if startIdx < 0 {
-		startIdx = 0
-	}
-
-	var content strings.Builder
-
-	// Render rows
-	for r := 0; r < height; r++ {
-		lineContent := ""
-
-		for c := 0; c < numColumns; c++ {
-			idx := startIdx + c*height + r
-			if idx >= totalItems {
-				continue
-			}
-
-			candidate := m.completion.suggestions[idx]
-			displayText := candidate.Display
-			if displayText == "" {
-				displayText = candidate.Value
-			}
-
-			var prefix string
-
-			// Regular line with spacing
-			prefix = " "
-
-			// Add selection indicator
-			if idx == m.completion.selected {
-				prefix += "> "
-			} else {
-				prefix += "  "
-			}
-
-			itemStr := prefix + displayText
-
-			if hasDescriptions {
-				// Render as two columns: Candidate | Description
-				// Pad the candidate to align descriptions
-				// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
-				visualWidth := ansi.PrintableRuneWidth(displayText)
-				padding := maxCandidateWidth - visualWidth + 2
-				itemStr += strings.Repeat(" ", padding)
-				itemStr += lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(candidate.Description)
-			} else {
-				// Pad the column (except the last one)
-				if c < numColumns-1 {
-					// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
-					itemWidth := ansi.PrintableRuneWidth(itemStr)
-					if itemWidth < maxItemWidth {
-						itemStr += strings.Repeat(" ", maxItemWidth-itemWidth)
-					} else {
-						itemStr += "  "
-					}
-				}
-			}
-
-			lineContent += itemStr
-		}
-
-		if lineContent != "" {
-			content.WriteString(lineContent)
-		}
-
-		if r < height-1 {
-			content.WriteString("\n")
-		}
-	}
-
-	return content.String()
-}
-
-func (m Model) HelpBoxView() string {
-	if !m.completion.shouldShowHelpBox() {
-		return ""
-	}
-
-	return m.completion.helpInfo
-}
-
-func (m *Model) getSuggestions(sugs [][]rune) []string {
-	suggestions := make([]string, len(sugs))
-	for i, s := range sugs {
-		suggestions[i] = string(s)
-	}
-	return suggestions
-}
-
-// AvailableSuggestions returns the list of available suggestions.
-func (m *Model) AvailableSuggestions() []string {
-	return m.getSuggestions(m.suggestions)
-}
-
-// MatchedSuggestions returns the list of matched suggestions.
-func (m *Model) MatchedSuggestions() []string {
-	return m.getSuggestions(m.matchedSuggestions)
-}
+// ============================================================================
+// Helper Methods
+// ============================================================================
 
 // SuggestionsSuppressedUntilInput reports whether autocomplete hints are
 // temporarily disabled until the user provides additional input (for example
 // after a kill command like Ctrl+K).
 func (m Model) SuggestionsSuppressedUntilInput() bool {
 	return m.suppressSuggestionsUntilInput
-}
-
-// CurrentSuggestion returns the currently selected suggestion index.
-func (m *Model) CurrentSuggestionIndex() int {
-	return m.currentSuggestionIndex
-}
-
-// CurrentSuggestion returns the currently selected suggestion.
-func (m *Model) CurrentSuggestion() string {
-	if m.currentSuggestionIndex >= len(m.matchedSuggestions) {
-		return ""
-	}
-
-	return string(m.matchedSuggestions[m.currentSuggestionIndex])
-}
-
-// canAcceptSuggestion returns whether there is an acceptable suggestion to
-// autocomplete the current value.
-func (m *Model) canAcceptSuggestion() bool {
-	return len(m.matchedSuggestions) > 0
-}
-
-// updateSuggestions refreshes the list of matching suggestions.
-func (m *Model) updateSuggestions() {
-	if !m.ShowSuggestions {
-		return
-	}
-
-	if m.suppressSuggestionsUntilInput {
-		m.matchedSuggestions = [][]rune{}
-		return
-	}
-
-	if len(m.suggestions) <= 0 {
-		m.matchedSuggestions = [][]rune{}
-		return
-	}
-
-	matches := [][]rune{}
-	for _, s := range m.suggestions {
-		suggestion := string(s)
-
-		if strings.HasPrefix(strings.ToLower(suggestion), strings.ToLower(string(m.values[m.selectedValueIndex]))) {
-			matches = append(matches, []rune(suggestion))
-		}
-	}
-	if !reflect.DeepEqual(matches, m.matchedSuggestions) {
-		m.currentSuggestionIndex = 0
-	}
-
-	m.matchedSuggestions = matches
 }
 
 func (m *Model) nextValue() {
@@ -1582,6 +844,8 @@ func (m *Model) previousValue() {
 	m.SetCursor(len(m.values[m.selectedValueIndex]))
 }
 
+// validate runs the Model's Validate function on the given rune slice.
+// Returns an error if validation fails, or nil if no validator is set or validation passes.
 func (m Model) validate(v []rune) error {
 	if m.Validate != nil {
 		return m.Validate(string(v))
@@ -1589,18 +853,9 @@ func (m Model) validate(v []rune) error {
 	return nil
 }
 
-func cloneRunes(r []rune) []rune {
-	clone := make([]rune, len(r))
-	copy(clone, r)
-	return clone
-}
-
-func cloneConcatRunes(r1, r2 []rune) []rune {
-	clone := make([]rune, len(r1)+len(r2))
-	copy(clone, r1)
-	copy(clone[len(r1):], r2)
-	return clone
-}
+// ============================================================================
+// Reverse Search
+// ============================================================================
 
 // toggleReverseSearch toggles the reverse search mode.
 func (m *Model) toggleReverseSearch() {

@@ -314,15 +314,15 @@ func TestKillRingAppendAndYankPop(t *testing.T) {
 	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}, Alt: true}
 	updatedModel, _ := model.Update(msg)
 	assert.Equal(t, "hello mars", updatedModel.Value(), "Alt+D should delete the next word")
-	require.Len(t, updatedModel.killRing, 1, "Kill ring should capture the deleted word")
-	assert.Equal(t, " world", string(updatedModel.killRing[0]))
+	require.Len(t, updatedModel.killRing.ring, 1, "Kill ring should capture the deleted word")
+	assert.Equal(t, " world", string(updatedModel.killRing.ring[0]))
 
 	// Second forward kill (Ctrl+K) should append to the previous kill ring entry
 	msg = tea.KeyMsg{Type: tea.KeyCtrlK}
 	updatedModel, _ = updatedModel.Update(msg)
 	assert.Equal(t, "hello", updatedModel.Value(), "Ctrl+K should delete to the end of the line")
-	require.Len(t, updatedModel.killRing, 1, "Kills in the same direction should append to the latest entry")
-	assert.Equal(t, " world mars", string(updatedModel.killRing[0]))
+	require.Len(t, updatedModel.killRing.ring, 1, "Kills in the same direction should append to the latest entry")
+	assert.Equal(t, " world mars", string(updatedModel.killRing.ring[0]))
 
 	// New kill should start a fresh entry
 	updatedModel.SetValue("alpha beta gamma")
@@ -331,8 +331,8 @@ func TestKillRingAppendAndYankPop(t *testing.T) {
 	msg = tea.KeyMsg{Type: tea.KeyCtrlW}
 	updatedModel, _ = updatedModel.Update(msg)
 	assert.Equal(t, "alpha beta ", updatedModel.Value(), "Ctrl+W should delete the previous word")
-	require.Len(t, updatedModel.killRing, 2, "A new kill direction should start a new entry")
-	assert.Equal(t, "gamma", string(updatedModel.killRing[0]))
+	require.Len(t, updatedModel.killRing.ring, 2, "A new kill direction should start a new entry")
+	assert.Equal(t, "gamma", string(updatedModel.killRing.ring[0]))
 
 	// Yank and yank-pop to rotate through the ring
 	msg = tea.KeyMsg{Type: tea.KeyCtrlY}
