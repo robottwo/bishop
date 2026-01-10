@@ -153,7 +153,7 @@ func TestRenderPermissionsMenu(t *testing.T) {
 	assert.Contains(t, result, ">")        // Selection indicator
 	assert.Contains(t, result, "[ ]")      // Unchecked box
 	assert.Contains(t, result, "[✓]")      // Checked box
-	assert.Contains(t, result, "Navigate") // Instructions
+	assert.Contains(t, result, "Nav")      // Instructions
 }
 
 func TestHandleMenuInput(t *testing.T) {

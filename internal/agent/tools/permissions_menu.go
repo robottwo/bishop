@@ -334,6 +334,12 @@ func (m *simplePermissionsModel) View() string {
 			indicator = "➜ "
 		}
 
+		// Shortcut indicator (1-9)
+		shortcut := "   "
+		if i < 9 {
+			shortcut = fmt.Sprintf("%2d.", i+1)
+		}
+
 		// Checkbox
 		checkbox := "[ ]"
 		if atom.Enabled {
@@ -342,11 +348,11 @@ func (m *simplePermissionsModel) View() string {
 
 		// Command (truncate if needed)
 		command := atom.Command
-		if len(command) > 60 {
-			command = command[:57] + "..."
+		if len(command) > 57 {
+			command = command[:54] + "..."
 		}
 
-		line := fmt.Sprintf("   %s%s %s", indicator, checkbox, command)
+		line := fmt.Sprintf("   %s%s %s %s", indicator, shortcut, checkbox, command)
 
 		// Highlight selected line
 		if isSelected {
@@ -362,7 +368,8 @@ func (m *simplePermissionsModel) View() string {
 	content.WriteString(styles.AGENT_MESSAGE(" Controls:") + "\n")
 	content.WriteString("  ↑/k   Navigate Up      Space  Toggle Permission\n")
 	content.WriteString("  ↓/j   Navigate Down    Enter  Confirm & Apply\n")
-	content.WriteString("  Esc   Cancel           y/n    Yes/No (Once)\n\n")
+	content.WriteString("  1-9   Jump to Item     Esc    Cancel\n")
+	content.WriteString("  y/n   Yes/No (Once)\n\n")
 
 	content.WriteString(styles.AGENT_MESSAGE(" Tip: ") + "Enabling a permission allows matching future commands to run without prompting.\n")
 
@@ -473,6 +480,13 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 			line.WriteString("  ")
 		}
 
+		// Shortcut indicator (1-9)
+		if i < 9 {
+			line.WriteString(fmt.Sprintf("%2d. ", i+1))
+		} else {
+			line.WriteString("    ")
+		}
+
 		// Checkbox
 		if atom.Enabled {
 			line.WriteString("[✓] ")
@@ -482,7 +496,7 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 
 		// Command (truncate if too long)
 		command := atom.Command
-		maxCommandWidth := 50
+		maxCommandWidth := 46
 		if len(command) > maxCommandWidth {
 			command = command[:maxCommandWidth-3] + "..."
 		}
@@ -499,7 +513,7 @@ func renderPermissionsMenu(state *PermissionsMenuState) string {
 	}
 
 	content.WriteString("├──────────────────────────────────────────────────────────────┤\n")
-	content.WriteString("│ ↑/↓: Navigate  SPACE: Toggle  ENTER: Apply  ESC: Cancel     │\n")
+	content.WriteString("│ ↑/↓: Nav  1-9: Jump  SPACE: Toggle  ENTER: Apply  ESC: Quit │\n")
 	content.WriteString("└──────────────────────────────────────────────────────────────┘")
 
 	return content.String()
