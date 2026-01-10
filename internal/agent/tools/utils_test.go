@@ -304,3 +304,40 @@ func TestActualUserConfirmationWithErrors(t *testing.T) {
 	result := mockUserConfirmation(logger, nil, "test", "test", true)
 	assert.Equal(t, "n", result)
 }
+
+// Test that the showManage parameter is properly passed through
+func TestUserConfirmationShowManageParameter(t *testing.T) {
+	logger := zap.NewNop()
+
+	originalUserConfirmation := userConfirmation
+	defer func() {
+		userConfirmation = originalUserConfirmation
+	}()
+
+	tests := []struct {
+		name       string
+		showManage bool
+	}{
+		{
+			name:       "showManage true",
+			showManage: true,
+		},
+		{
+			name:       "showManage false",
+			showManage: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var receivedShowManage bool
+			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
+				receivedShowManage = showManage
+				return "y"
+			}
+
+			userConfirmation(logger, nil, "test question", "test explanation", tt.showManage)
+			assert.Equal(t, tt.showManage, receivedShowManage)
+		})
+	}
+}
