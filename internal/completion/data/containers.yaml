@@ -1,0 +1,396 @@
+commands:
+  docker:
+    - value: attach
+      description: Attach local stdin/stdout/stderr to a running container
+    - value: build
+      description: Build an image from a Dockerfile
+    - value: commit
+      description: Create a new image from a container's changes
+    - value: compose
+      description: Docker Compose commands
+    - value: container
+      description: Manage containers
+    - value: cp
+      description: Copy files between container and local filesystem
+    - value: create
+      description: Create a new container
+    - value: diff
+      description: Inspect changes to files on a container's filesystem
+    - value: events
+      description: Get real-time events from the server
+    - value: exec
+      description: Execute a command in a running container
+    - value: export
+      description: Export a container's filesystem as a tar archive
+    - value: history
+      description: Show the history of an image
+    - value: image
+      description: Manage images
+    - value: images
+      description: List images
+    - value: import
+      description: Import from a tarball to create a filesystem image
+    - value: info
+      description: Display system-wide information
+    - value: inspect
+      description: Return low-level information on Docker objects
+    - value: kill
+      description: Kill one or more running containers
+    - value: load
+      description: Load an image from a tar archive
+    - value: login
+      description: Log in to a registry
+    - value: logout
+      description: Log out from a registry
+    - value: logs
+      description: Fetch the logs of a container
+    - value: network
+      description: Manage networks
+    - value: pause
+      description: Pause all processes within a container
+    - value: plugin
+      description: Manage plugins
+    - value: port
+      description: List port mappings for a container
+    - value: ps
+      description: List containers
+    - value: pull
+      description: Pull an image from a registry
+    - value: push
+      description: Push an image to a registry
+    - value: rename
+      description: Rename a container
+    - value: restart
+      description: Restart one or more containers
+    - value: rm
+      description: Remove one or more containers
+    - value: rmi
+      description: Remove one or more images
+    - value: run
+      description: Run a command in a new container
+    - value: save
+      description: Save images to a tar archive
+    - value: search
+      description: Search Docker Hub for images
+    - value: start
+      description: Start one or more stopped containers
+    - value: stats
+      description: Display live container resource usage statistics
+    - value: stop
+      description: Stop one or more running containers
+    - value: system
+      description: Manage Docker
+    - value: tag
+      description: Create a tag to reference an image
+    - value: top
+      description: Display running processes of a container
+    - value: unpause
+      description: Unpause all processes within a container
+    - value: update
+      description: Update configuration of containers
+    - value: version
+      description: Show Docker version information
+    - value: volume
+      description: Manage volumes
+    - value: wait
+      description: Block until containers stop, then print exit codes
+
+  docker-compose:
+    - value: build
+      description: Build or rebuild services
+    - value: config
+      description: Validate and view the Compose file
+    - value: create
+      description: Create services
+    - value: down
+      description: Stop and remove containers, networks
+    - value: events
+      description: Receive real-time events from containers
+    - value: exec
+      description: Execute a command in a running container
+    - value: images
+      description: List images
+    - value: kill
+      description: Kill containers
+    - value: logs
+      description: View output from containers
+    - value: pause
+      description: Pause services
+    - value: port
+      description: Print the public port for a port binding
+    - value: ps
+      description: List containers
+    - value: pull
+      description: Pull service images
+    - value: push
+      description: Push service images
+    - value: restart
+      description: Restart services
+    - value: rm
+      description: Remove stopped containers
+    - value: run
+      description: Run a one-off command
+    - value: scale
+      description: Set number of containers for a service
+    - value: start
+      description: Start services
+    - value: stop
+      description: Stop services
+    - value: top
+      description: Display running processes
+    - value: unpause
+      description: Unpause services
+    - value: up
+      description: Create and start containers
+    - value: version
+      description: Show version information
+
+  kubectl:
+    - value: annotate
+      description: Update annotations on a resource
+    - value: api-resources
+      description: Print the supported API resources
+    - value: api-versions
+      description: Print the supported API versions
+    - value: apply
+      description: Apply a configuration to a resource by file or stdin
+    - value: attach
+      description: Attach to a running container
+    - value: auth
+      description: Inspect authorization
+    - value: autoscale
+      description: Auto-scale a deployment, replicaset, or statefulset
+    - value: certificate
+      description: Modify certificate resources
+    - value: cluster-info
+      description: Display cluster information
+    - value: completion
+      description: Output shell completion code
+    - value: config
+      description: Modify kubeconfig files
+    - value: cordon
+      description: Mark node as unschedulable
+    - value: cp
+      description: Copy files to and from containers
+    - value: create
+      description: Create a resource from a file or stdin
+    - value: debug
+      description: Create debugging sessions for workloads
+    - value: delete
+      description: Delete resources
+    - value: describe
+      description: Show details of a resource
+    - value: diff
+      description: Diff the live version against a config
+    - value: drain
+      description: Drain node for maintenance
+    - value: edit
+      description: Edit a resource
+    - value: events
+      description: List events
+    - value: exec
+      description: Execute a command in a container
+    - value: explain
+      description: Get documentation for a resource
+    - value: expose
+      description: Expose a resource as a new service
+    - value: get
+      description: Display one or many resources
+    - value: kustomize
+      description: Build a kustomization target
+    - value: label
+      description: Update labels on a resource
+    - value: logs
+      description: Print logs for a container
+    - value: patch
+      description: Update fields of a resource
+    - value: plugin
+      description: Manage plugins
+    - value: port-forward
+      description: Forward local ports to a pod
+    - value: proxy
+      description: Run a proxy to the Kubernetes API server
+    - value: replace
+      description: Replace a resource
+    - value: rollout
+      description: Manage rollouts of a resource
+    - value: run
+      description: Run a particular image on the cluster
+    - value: scale
+      description: Set a new size for a deployment
+    - value: set
+      description: Set specific features on objects
+    - value: taint
+      description: Update taints on nodes
+    - value: top
+      description: Display resource usage (CPU/memory)
+    - value: uncordon
+      description: Mark node as schedulable
+    - value: version
+      description: Print client and server version
+    - value: wait
+      description: Wait for a condition on resources
+
+  podman:
+    - value: attach
+      description: Attach to a running container
+    - value: build
+      description: Build an image from a Containerfile
+    - value: commit
+      description: Create new image from container changes
+    - value: container
+      description: Manage containers
+    - value: cp
+      description: Copy files/folders between container and host
+    - value: create
+      description: Create but do not start a container
+    - value: diff
+      description: Inspect changes to container filesystem
+    - value: events
+      description: Show podman events
+    - value: exec
+      description: Run a process in a running container
+    - value: export
+      description: Export container filesystem as a tarball
+    - value: generate
+      description: Generate structured data based on containers
+    - value: healthcheck
+      description: Manage healthchecks
+    - value: history
+      description: Show history of a specified image
+    - value: image
+      description: Manage images
+    - value: images
+      description: List images in local storage
+    - value: import
+      description: Import a tarball to create a filesystem image
+    - value: info
+      description: Display podman system information
+    - value: init
+      description: Initialize container(s)
+    - value: inspect
+      description: Display configuration of a container or image
+    - value: kill
+      description: Kill running containers
+    - value: load
+      description: Load an image from a container archive
+    - value: login
+      description: Login to a container registry
+    - value: logout
+      description: Logout of a container registry
+    - value: logs
+      description: Fetch logs of a container
+    - value: machine
+      description: Manage a virtual machine
+    - value: manifest
+      description: Manipulate manifest lists and image indexes
+    - value: network
+      description: Manage networks
+    - value: pause
+      description: Pause running containers
+    - value: play
+      description: Play a pod or volume from structured data
+    - value: pod
+      description: Manage pods
+    - value: port
+      description: List port mappings for a container
+    - value: ps
+      description: List containers
+    - value: pull
+      description: Pull an image from a registry
+    - value: push
+      description: Push an image to a specified destination
+    - value: rename
+      description: Rename a container
+    - value: restart
+      description: Restart containers
+    - value: rm
+      description: Remove containers
+    - value: rmi
+      description: Remove images from local storage
+    - value: run
+      description: Run a command in a new container
+    - value: save
+      description: Save image to an archive
+    - value: search
+      description: Search registry for image
+    - value: secret
+      description: Manage secrets
+    - value: start
+      description: Start containers
+    - value: stats
+      description: Display container resource usage statistics
+    - value: stop
+      description: Stop running containers
+    - value: system
+      description: Manage podman
+    - value: tag
+      description: Add an additional name to a local image
+    - value: top
+      description: Display running processes of a container
+    - value: unpause
+      description: Unpause containers
+    - value: unshare
+      description: Run a command in a modified user namespace
+    - value: version
+      description: Display version information
+    - value: volume
+      description: Manage volumes
+    - value: wait
+      description: Block on containers
+
+  helm:
+    - value: completion
+      description: Generate autocompletion scripts
+    - value: create
+      description: Create a new chart with the given name
+    - value: dependency
+      description: Manage chart dependencies
+    - value: diff
+      description: Preview helm upgrade changes as a diff
+    - value: env
+      description: Helm client environment information
+    - value: get
+      description: Download extended information of a named release
+    - value: help
+      description: Help about any command
+    - value: history
+      description: Fetch release history
+    - value: install
+      description: Install a chart
+    - value: lint
+      description: Examine a chart for possible issues
+    - value: list
+      description: List releases
+    - value: package
+      description: Package a chart directory into a chart archive
+    - value: plugin
+      description: Install, list, or uninstall Helm plugins
+    - value: pull
+      description: Download a chart from a repository
+    - value: push
+      description: Push a chart to remote
+    - value: registry
+      description: Login to or logout from a registry
+    - value: repo
+      description: Add, list, remove, update, and index chart repositories
+    - value: rollback
+      description: Roll back a release to a previous revision
+    - value: search
+      description: Search for a keyword in charts
+    - value: show
+      description: Show information of a chart
+    - value: status
+      description: Display the status of a named release
+    - value: template
+      description: Locally render templates
+    - value: test
+      description: Run tests for a release
+    - value: uninstall
+      description: Uninstall a release
+    - value: upgrade
+      description: Upgrade a release
+    - value: verify
+      description: Verify that a chart has been signed and is valid
+    - value: version
+      description: Print the client version information
