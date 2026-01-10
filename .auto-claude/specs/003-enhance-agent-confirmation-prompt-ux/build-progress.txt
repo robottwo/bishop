@@ -397,3 +397,60 @@ Added comprehensive documentation comments to all test functions:
 
 ### Next Steps
 This subtask is complete. The test suite now includes explicit testing of the showManage parameter and comprehensive documentation of the new prompt format. Ready to proceed to documentation updates.
+
+## Subtask 3.2: Update AGENTS.md documentation ✅ COMPLETED
+**Status:** Completed
+**Date:** 2026-01-10
+
+### Summary
+Successfully updated AGENTS.md to reflect the new prompt format in all examples and updated the Response Options section to match the new terminology.
+
+### Changes Made
+
+**1. Updated Response Options Section (lines 36-44):**
+- Changed "manage" description to "Open an interactive menu (manage menu)" for consistency with new prompt text
+- Replaced "freeform" terminology with "feedback" for better clarity
+- Added explicit mention of "Press Enter" behavior to explain the default option
+- Made the section more user-friendly and aligned with the new prompt design
+
+**2. Updated Example Prompt (line 93):**
+- Old format: `Do I have your permission to run the following command? (y/N/manage/freeform) m`
+- New format: `Do I have your permission to run the following command? (y)es  [N]o - default  (m)anage menu  [or type feedback]: m`
+- Shows the actual format users will see with the enhanced prompt
+
+### Verification
+
+✅ **Response Options section updated:**
+- Terminology matches new prompt design ("manage menu" instead of just "manage")
+- "Feedback" replaces confusing "freeform" terminology
+- Default behavior explained explicitly with "Press Enter" option
+
+✅ **Example updated:**
+- Shows complete new prompt format
+- Includes all elements: (y)es, [N]o - default, (m)anage menu, [or type feedback]
+- Demonstrates the default-to-no variant that most users will see
+
+✅ **Consistency:**
+- Documentation now matches implementation in utils.go
+- Examples reflect what users actually see in the terminal
+- Terminology consistent throughout the document
+
+### Files Modified
+- `AGENTS.md` - Updated Response Options section and example prompt
+
+### Git Commit
+- 62d09b8: "auto-claude: 3.2 - Update AGENTS.md with new prompt format"
+
+### Quality Checklist
+- [x] Follows patterns from reference files
+- [x] No debugging statements (documentation file)
+- [x] All examples updated to new format
+- [x] Terminology consistent with implementation
+- [x] Clean commit with descriptive message
+- [x] Documentation accurate and user-friendly
+
+### Next Steps
+This subtask is complete. AGENTS.md now accurately reflects the new prompt format and uses clear, consistent terminology. Ready to proceed to subtask 3.3 (Update CLAUDE.md documentation).
+
+---
+

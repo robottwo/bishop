@@ -39,7 +39,7 @@ When prompted for permission to run a command, you have several response options
 
 - `y` or `yes`: Allow this command to run once
 - `n` or `no`: Deny this command
-- `m` or `manage`: Open an interactive menu (manage menu) to manage permissions for command prefixes
+- `m` or `manage`: Open an interactive menu to manage permissions for command prefixes
 - Any other text: Provide feedback to the agent (treated as denial)
 - Press Enter: Use the default option (indicated by "- default" in the prompt)
 
