@@ -32,3 +32,6 @@ dist/
 
 # Auto Claude data directory
 .auto-claude/
+.DS_Store
+.auto-claude-status
+.claude_settings.json
