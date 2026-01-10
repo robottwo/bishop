@@ -1,0 +1,338 @@
+commands:
+  terraform:
+    - value: apply
+      description: Create or update infrastructure
+    - value: console
+      description: Interactive console for Terraform expressions
+    - value: destroy
+      description: Destroy Terraform-managed infrastructure
+    - value: fmt
+      description: Reformat configuration files
+    - value: force-unlock
+      description: Release a stuck lock on the current workspace
+    - value: get
+      description: Download and update modules
+    - value: graph
+      description: Generate a Graphviz graph
+    - value: import
+      description: Import existing infrastructure into Terraform
+    - value: init
+      description: Initialize a Terraform working directory
+    - value: login
+      description: Obtain and save credentials for a remote host
+    - value: logout
+      description: Remove locally-stored credentials
+    - value: metadata
+      description: Metadata related commands
+    - value: output
+      description: Show output values from state
+    - value: plan
+      description: Show an execution plan
+    - value: providers
+      description: Show providers required for configuration
+    - value: refresh
+      description: Update state to match remote systems
+    - value: show
+      description: Show current state or a saved plan
+    - value: state
+      description: Advanced state management
+    - value: taint
+      description: Mark a resource instance as not fully functional
+    - value: test
+      description: Execute integration tests
+    - value: untaint
+      description: Remove the taint status
+    - value: validate
+      description: Validate configuration files
+    - value: version
+      description: Show the current Terraform version
+    - value: workspace
+      description: Workspace management
+
+  aws:
+    - value: acm
+      description: AWS Certificate Manager
+    - value: apigateway
+      description: Amazon API Gateway
+    - value: autoscaling
+      description: Auto Scaling
+    - value: cloudformation
+      description: AWS CloudFormation
+    - value: cloudfront
+      description: Amazon CloudFront
+    - value: cloudwatch
+      description: Amazon CloudWatch
+    - value: configure
+      description: Configure AWS CLI
+    - value: dynamodb
+      description: Amazon DynamoDB
+    - value: ec2
+      description: Amazon Elastic Compute Cloud
+    - value: ecr
+      description: Amazon Elastic Container Registry
+    - value: ecs
+      description: Amazon Elastic Container Service
+    - value: eks
+      description: Amazon Elastic Kubernetes Service
+    - value: elasticache
+      description: Amazon ElastiCache
+    - value: elasticbeanstalk
+      description: AWS Elastic Beanstalk
+    - value: elb
+      description: Elastic Load Balancing
+    - value: elbv2
+      description: Elastic Load Balancing v2
+    - value: events
+      description: Amazon EventBridge
+    - value: help
+      description: Display help
+    - value: iam
+      description: AWS Identity and Access Management
+    - value: kinesis
+      description: Amazon Kinesis
+    - value: kms
+      description: AWS Key Management Service
+    - value: lambda
+      description: AWS Lambda
+    - value: logs
+      description: Amazon CloudWatch Logs
+    - value: rds
+      description: Amazon Relational Database Service
+    - value: route53
+      description: Amazon Route 53
+    - value: s3
+      description: Amazon Simple Storage Service
+    - value: s3api
+      description: Amazon S3 API
+    - value: secretsmanager
+      description: AWS Secrets Manager
+    - value: ses
+      description: Amazon Simple Email Service
+    - value: sns
+      description: Amazon Simple Notification Service
+    - value: sqs
+      description: Amazon Simple Queue Service
+    - value: ssm
+      description: AWS Systems Manager
+    - value: sts
+      description: AWS Security Token Service
+    - value: version
+      description: Show CLI version
+
+  gcloud:
+    - value: access-context-manager
+      description: Manage access policies
+    - value: ai
+      description: Cloud AI Platform
+    - value: alpha
+      description: Alpha commands
+    - value: anthos
+      description: Anthos commands
+    - value: app
+      description: App Engine management
+    - value: artifacts
+      description: Artifact Registry
+    - value: auth
+      description: Authentication commands
+    - value: beta
+      description: Beta commands
+    - value: builds
+      description: Cloud Build operations
+    - value: components
+      description: Install and update CLI components
+    - value: composer
+      description: Cloud Composer environments
+    - value: compute
+      description: Compute Engine resources
+    - value: config
+      description: CLI configuration
+    - value: container
+      description: Container clusters and images
+    - value: dataflow
+      description: Dataflow pipelines
+    - value: dataproc
+      description: Dataproc clusters
+    - value: deployment-manager
+      description: Deployment Manager
+    - value: dns
+      description: Cloud DNS
+    - value: domains
+      description: Cloud Domains
+    - value: endpoints
+      description: Cloud Endpoints
+    - value: filestore
+      description: Cloud Filestore
+    - value: firebase
+      description: Firebase projects
+    - value: functions
+      description: Cloud Functions
+    - value: help
+      description: Search for help
+    - value: iam
+      description: IAM policies and service accounts
+    - value: info
+      description: Show CLI info
+    - value: init
+      description: Initialize CLI
+    - value: kms
+      description: Cloud KMS
+    - value: logging
+      description: Cloud Logging
+    - value: memcache
+      description: Cloud Memorystore
+    - value: ml
+      description: AI Platform
+    - value: organizations
+      description: Organizations
+    - value: projects
+      description: Project management
+    - value: pubsub
+      description: Cloud Pub/Sub
+    - value: redis
+      description: Cloud Memorystore for Redis
+    - value: run
+      description: Cloud Run
+    - value: scheduler
+      description: Cloud Scheduler
+    - value: secrets
+      description: Secret Manager
+    - value: services
+      description: Service management
+    - value: source
+      description: Cloud Source Repositories
+    - value: spanner
+      description: Cloud Spanner
+    - value: sql
+      description: Cloud SQL
+    - value: storage
+      description: Cloud Storage
+    - value: tasks
+      description: Cloud Tasks
+    - value: topic
+      description: Help topics
+    - value: version
+      description: Show CLI version
+
+  az:
+    - value: account
+      description: Manage Azure subscriptions
+    - value: acr
+      description: Azure Container Registry
+    - value: ad
+      description: Azure Active Directory
+    - value: aks
+      description: Azure Kubernetes Service
+    - value: apim
+      description: Azure API Management
+    - value: appconfig
+      description: App Configuration
+    - value: appservice
+      description: App Service
+    - value: batch
+      description: Azure Batch
+    - value: bicep
+      description: Bicep operations
+    - value: cdn
+      description: Azure Content Delivery Network
+    - value: cloud
+      description: Manage registered clouds
+    - value: cognitiveservices
+      description: Cognitive Services
+    - value: config
+      description: CLI configuration
+    - value: configure
+      description: Configure CLI defaults
+    - value: container
+      description: Container Instances
+    - value: cosmosdb
+      description: Azure Cosmos DB
+    - value: deployment
+      description: Deployment operations
+    - value: disk
+      description: Managed Disks
+    - value: dns
+      description: DNS zones and records
+    - value: eventgrid
+      description: Event Grid
+    - value: eventhubs
+      description: Event Hubs
+    - value: extension
+      description: Manage CLI extensions
+    - value: feature
+      description: Feature registration
+    - value: feedback
+      description: Send feedback
+    - value: find
+      description: AI-powered query
+    - value: functionapp
+      description: Function Apps
+    - value: group
+      description: Resource groups
+    - value: hdinsight
+      description: HDInsight clusters
+    - value: help
+      description: Display help
+    - value: identity
+      description: Managed identities
+    - value: image
+      description: VM images
+    - value: iot
+      description: IoT Hub
+    - value: keyvault
+      description: Key Vault
+    - value: kusto
+      description: Azure Data Explorer
+    - value: login
+      description: Log in to Azure
+    - value: logout
+      description: Log out
+    - value: logicapp
+      description: Logic Apps
+    - value: managed-cassandra
+      description: Managed Cassandra
+    - value: maps
+      description: Azure Maps
+    - value: mariadb
+      description: Azure Database for MariaDB
+    - value: monitor
+      description: Azure Monitor
+    - value: mysql
+      description: Azure Database for MySQL
+    - value: network
+      description: Network resources
+    - value: postgres
+      description: Azure Database for PostgreSQL
+    - value: provider
+      description: Resource providers
+    - value: redis
+      description: Azure Cache for Redis
+    - value: resource
+      description: Resource management
+    - value: role
+      description: Role-based access control
+    - value: search
+      description: Azure Cognitive Search
+    - value: servicebus
+      description: Service Bus
+    - value: sf
+      description: Service Fabric
+    - value: signalr
+      description: Azure SignalR
+    - value: sql
+      description: Azure SQL
+    - value: staticwebapp
+      description: Static Web Apps
+    - value: storage
+      description: Storage accounts
+    - value: tag
+      description: Resource tags
+    - value: term
+      description: Marketplace terms
+    - value: version
+      description: Show CLI version
+    - value: vm
+      description: Virtual Machines
+    - value: vmss
+      description: VM Scale Sets
+    - value: webapp
+      description: Web Apps
