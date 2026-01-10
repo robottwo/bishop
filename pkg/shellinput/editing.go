@@ -403,7 +403,18 @@ func GetLastArgument(line string) string {
 // deleteBeforeCursor deletes all text before the cursor.
 func (m *Model) deleteBeforeCursor() {
 	killed := m.values[m.selectedValueIndex][:m.pos]
-	m.recordKill(killed, killDirectionBackward)
+func GetLastArgument(line string) string {
+	p := syntax.NewParser()
+	f, err := p.Parse(strings.NewReader(line), "")
+	if err != nil {
+		// Fallback: parse errors are not critical for this feature
+		// Use simple split as best-effort for malformed input
+		parts := strings.Fields(line)
+		if len(parts) > 0 {
+			return parts[len(parts)-1]
+		}
+		return ""
+	}
 
 	newValue := cloneRunes(m.values[m.selectedValueIndex][m.pos:])
 	m.Err = m.validate(newValue)
