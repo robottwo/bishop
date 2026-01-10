@@ -383,3 +383,29 @@ func GetLastArgument(line string) string {
 	// The walker visits in order. So lastArg will be overwritten by the last word found.
 	return lastArg
 }
+
+// deleteBeforeCursor deletes all text before the cursor.
+func (m *Model) deleteBeforeCursor() {
+	killed := m.values[m.selectedValueIndex][:m.pos]
+	m.recordKill(killed, killDirectionBackward)
+
+	newValue := cloneRunes(m.values[m.selectedValueIndex][m.pos:])
+	m.Err = m.validate(newValue)
+	m.values[0] = newValue
+	m.selectedValueIndex = 0
+	m.SetCursor(0)
+}
+
+// deleteAfterCursor deletes all text after the cursor. If input is masked
+// delete everything after the cursor so as not to reveal word breaks in the
+// masked input.
+func (m *Model) deleteAfterCursor() {
+	killed := m.values[m.selectedValueIndex][m.pos:]
+	m.recordKill(killed, killDirectionForward)
+
+	newValue := cloneRunes(m.values[m.selectedValueIndex][:m.pos])
+	m.Err = m.validate(newValue)
+	m.values[0] = newValue
+	m.selectedValueIndex = 0
+	m.SetCursor(len(m.values[0]))
+}
