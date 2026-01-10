@@ -197,7 +197,7 @@ commands:
 
   tmux:
     - value: attach
-      description: Attach to a session (alias: attach-session, a)
+      description: "Attach to a session (alias: attach-session, a)"
     - value: attach-session
       description: Attach to a session
     - value: bind-key
@@ -229,7 +229,7 @@ commands:
     - value: delete-buffer
       description: Delete a paste buffer
     - value: detach
-      description: Detach current client (alias: detach-client)
+      description: "Detach current client (alias: detach-client)"
     - value: detach-client
       description: Detach a client
     - value: display-menu
@@ -289,7 +289,7 @@ commands:
     - value: move-window
       description: Move a window to another index
     - value: new
-      description: Create a new session (alias: new-session)
+      description: "Create a new session (alias: new-session)"
     - value: new-session
       description: Create a new session
     - value: new-window
