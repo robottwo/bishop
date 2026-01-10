@@ -8,6 +8,8 @@ commands:
       description: Run a security audit
     - value: bin
       description: Display npm bin folder
+    - value: build
+      description: Build a package
     - value: bugs
       description: Report bugs for a package
     - value: cache

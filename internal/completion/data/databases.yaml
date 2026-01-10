@@ -84,6 +84,12 @@ commands:
       description: Show version
 
   psql:
+    - value: "\\c"
+      description: Connect to a database
+    - value: "\\l"
+      description: List databases
+    - value: "\\dt"
+      description: List tables
     - value: -c
       description: Execute a single command
     - value: -d
