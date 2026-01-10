@@ -346,17 +346,16 @@ func TestKillRing_RecordKill_IsolatesData(t *testing.T) {
 
 func TestKillRing_YankKillBuffer_IsolatesData(t *testing.T) {
 	original := []rune("test")
-	kr := &KillRing{
-		ring: [][]rune{original},
-	}
+	kr := &KillRing{}
 	editor := &mockBufferEditor{}
 
-	kr.YankKillBuffer(editor)
+	// Use RecordKill to properly add data to the ring (which clones it)
+	kr.RecordKill(editor, original, killDirectionForward)
 
 	// Modify original slice
 	original[0] = 'X'
 
-	// Yank again - should get original value
+	// Yank - should get original value since RecordKill cloned the data
 	editor2 := &mockBufferEditor{}
 	kr.YankKillBuffer(editor2)
 

@@ -27,9 +27,6 @@ SOFTWARE.
 package shellinput
 
 import (
-	"fmt"
-	"reflect"
-	"strings"
 	"time"
 	"unicode"
 
@@ -39,17 +36,21 @@ import (
 	"github.com/charmbracelet/bubbles/runeutil"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/ansi"
-	"github.com/muesli/reflow/wrap"
-	"github.com/rivo/uniseg"
-	"mvdan.cc/sh/v3/syntax"
 )
+
+// ============================================================================
+// Internal Messages
+// ============================================================================
 
 // Internal messages for clipboard operations.
 type (
 	pasteMsg    string
 	pasteErrMsg struct{ error }
 )
+
+// ============================================================================
+// Types and Configuration
+// ============================================================================
 
 // EchoMode sets the input behavior of the text input field.
 type EchoMode int
@@ -129,6 +130,10 @@ var DefaultKeyMap = KeyMap{
 	InsertLastArg:           key.NewBinding(key.WithKeys("alt+.")),
 }
 
+// ============================================================================
+// Model
+// ============================================================================
+
 // Model is the Bubble Tea model for this text input element.
 type Model struct {
 	Err error
@@ -194,19 +199,52 @@ type Model struct {
 	// rune sanitizer for input.
 	rsan runeutil.Sanitizer
 
-	// Should the input suggest to complete
+	// ShowSuggestions enables autocomplete suggestions. When true, the input
+	// will display suggestions that match the current input value. This works
+	// in conjunction with SetSuggestions() to provide tab-completion functionality.
+	// The suggestion display can be customized via CompletionStyle.
 	ShowSuggestions bool
 
 	// suppressSuggestionsUntilInput temporarily disables autocomplete hints
 	// until the user enters more text. This is used, for example, when the
 	// user trims the line with Ctrl+K so that ghost text and help reflect
-	// the truncated command until new input arrives.
+	// the truncated command until new input arrives. This flag is cleared
+	// when the user types any character, restoring normal suggestion behavior.
 	suppressSuggestionsUntilInput bool
 
-	// suggestions is a list of suggestions that may be used to complete the
-	// input.
-	suggestions            [][]rune
-	matchedSuggestions     [][]rune
+	// Suggestion state fields (managed by methods in suggestions.go)
+	//
+	// The suggestion system provides tab-completion functionality through a
+	// three-stage process:
+	// 1. suggestions: Full list of available completions set via SetSuggestions()
+	// 2. matchedSuggestions: Filtered subset matching current input (case-insensitive prefix)
+	// 3. currentSuggestionIndex: Currently selected match when cycling with Tab/Shift+Tab
+	//
+	// Key methods (see suggestions.go):
+	//   - SetSuggestions([]string): Sets available suggestions and triggers matching
+	//   - updateSuggestions(): Refreshes matched list based on current input
+	//   - AvailableSuggestions(): Returns all available suggestions
+	//   - MatchedSuggestions(): Returns suggestions matching current input
+	//   - CurrentSuggestion(): Returns the currently selected suggestion
+	//   - CurrentSuggestionIndex(): Returns the selection index
+	//   - canAcceptSuggestion(): Checks if a suggestion is available to accept
+
+	// suggestions stores the full list of available suggestions that may be
+	// used to autocomplete the input. Set via SetSuggestions() method.
+	// Each suggestion is stored as a []rune for efficient text manipulation.
+	suggestions [][]rune
+
+	// matchedSuggestions stores the filtered list of suggestions that match
+	// the current input value using case-insensitive prefix matching.
+	// This list is automatically updated by updateSuggestions() whenever
+	// the input value changes. Only suggestions from this list can be
+	// cycled through and accepted by the user.
+	matchedSuggestions [][]rune
+
+	// currentSuggestionIndex tracks which matched suggestion is currently
+	// selected when cycling through suggestions with Tab/Shift+Tab keys.
+	// The index is reset to 0 when the matched suggestions list changes.
+	// Valid range: [0, len(matchedSuggestions)-1]
 	currentSuggestionIndex int
 
 	// values[0] is the current value. other indices represent history values
@@ -222,6 +260,10 @@ type Model struct {
 	historyItems       []HistoryItem
 	historySearchState historySearchState
 }
+
+// ============================================================================
+// Constructor
+// ============================================================================
 
 // New creates a new model with default settings.
 func New() Model {
@@ -243,6 +285,10 @@ func New() Model {
 		selectedValueIndex: 0,
 	}
 }
+
+// ============================================================================
+// Value Management
+// ============================================================================
 
 // SetValue sets the value of the text input.
 func (m *Model) SetValue(s string) {
@@ -290,6 +336,10 @@ func (m Model) InReverseSearch() bool {
 func (m Model) Position() int {
 	return m.pos
 }
+
+// ============================================================================
+// Cursor and Position Management
+// ============================================================================
 
 // SetCursor moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
@@ -351,6 +401,10 @@ func (m *Model) CursorEnd() {
 	m.SetCursor(len(m.values[m.selectedValueIndex]))
 }
 
+// ============================================================================
+// Focus and Blur
+// ============================================================================
+
 // Focused returns the focus state on the model.
 func (m Model) Focused() bool {
 	return m.focus
@@ -369,6 +423,10 @@ func (m *Model) Blur() {
 	m.focus = false
 	m.Cursor.Blur()
 }
+
+// ============================================================================
+// State Management
+// ============================================================================
 
 // Reset sets the input to its default state with no input.
 func (m *Model) Reset() {
@@ -401,6 +459,10 @@ func (m *Model) san() runeutil.Sanitizer {
 	}
 	return m.rsan
 }
+
+// ============================================================================
+// Input Handling
+// ============================================================================
 
 func (m *Model) insertRunesFromUserInput(v []rune) {
 	m.suppressSuggestionsUntilInput = false
@@ -446,6 +508,10 @@ func (m *Model) insertRunesFromUserInput(v []rune) {
 	m.setValueInternal(result, inputErr)
 }
 
+// ============================================================================
+// Kill Ring Integration
+// ============================================================================
+
 // recordKill captures killed text for yank operations and temporarily suppresses
 // autocomplete hints until the user provides new input.
 func (m *Model) recordKill(killed []rune, direction killDirection) {
@@ -463,18 +529,9 @@ func (m *Model) yankPop() {
 	m.killRing.YankPop(m)
 }
 
-func (m Model) echoTransform(v string) string {
-	switch m.EchoMode {
-	case EchoPassword:
-		return strings.Repeat(string(m.EchoCharacter), uniseg.StringWidth(v))
-	case EchoNone:
-		return ""
-	case EchoNormal:
-		return v
-	default:
-		return v
-	}
-}
+// ============================================================================
+// Update Loop
+// ============================================================================
 
 // Update is the Bubble Tea update loop.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -704,78 +761,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View renders the textinput in its current state.
-func (m Model) View() string {
-	if m.inReverseSearch {
-		// When in reverse search mode, show the search prompt
-		matchText := ""
-		prefix := "(reverse-i-search)"
-
-		// Use rich history state to determine if there are matches and what the selected one is
-		if len(m.historySearchState.filteredIndices) > 0 {
-			selectedIdx := m.historySearchState.selected
-			if selectedIdx >= 0 && selectedIdx < len(m.historySearchState.filteredIndices) {
-				originalIdx := m.historySearchState.filteredIndices[selectedIdx]
-				if originalIdx >= 0 && originalIdx < len(m.historyItems) {
-					matchText = m.historyItems[originalIdx].Command
-				}
-			}
-		} else if m.reverseSearchQuery != "" {
-			prefix = "(failed reverse-i-search)"
-		}
-
-		return m.ReverseSearchPromptStyle.Render(fmt.Sprintf("%s`%s': %s", prefix, m.reverseSearchQuery, matchText))
-	}
-
-	styleText := m.TextStyle.Inline(true).Render
-
-	value := m.values[m.selectedValueIndex]
-	pos := max(0, m.pos)
-	v := m.PromptStyle.Render(m.Prompt) + styleText(m.echoTransform(string(value[:pos])))
-
-	if pos < len(value) { //nolint:nestif
-		char := m.echoTransform(string(value[pos]))
-		m.Cursor.SetChar(char)
-		v += m.Cursor.View()                                   // cursor and text under it
-		v += styleText(m.echoTransform(string(value[pos+1:]))) // text after cursor
-		v += m.completionView(0)                               // suggested completion
-	} else {
-		if m.canAcceptSuggestion() {
-			suggestion := m.matchedSuggestions[m.currentSuggestionIndex]
-			if len(value) < len(suggestion) {
-				m.Cursor.TextStyle = m.CompletionStyle
-				m.Cursor.SetChar(m.echoTransform(string(suggestion[pos])))
-				v += m.Cursor.View()
-				v += m.completionView(1)
-			} else {
-				m.Cursor.SetChar(" ")
-				v += m.Cursor.View()
-			}
-		} else {
-			m.Cursor.SetChar(" ")
-			v += m.Cursor.View()
-		}
-		v += m.completionSuffixView() // suffix from active completion (e.g., "/" for directories)
-	}
-
-	totalWidth := uniseg.StringWidth(v)
-
-	// If a max width is set, we need to respect the horizontal boundary
-	if m.Width > 0 {
-		if totalWidth <= m.Width {
-			// fill empty spaces with the background color
-			padding := max(0, m.Width-totalWidth)
-			if totalWidth+padding <= m.Width && pos < len(value) {
-				padding++
-			}
-			v += styleText(strings.Repeat(" ", padding))
-		} else {
-			v = wrap.String(v, m.Width)
-		}
-	}
-
-	return v
-}
+// ============================================================================
+// Commands
+// ============================================================================
 
 // Blink is a command used to initialize cursor blinking.
 func Blink() tea.Msg {
@@ -791,28 +779,9 @@ func Paste() tea.Msg {
 	return pasteMsg(str)
 }
 
-func clamp(v, low, high int) int {
-	if high < low {
-		low, high = high, low
-	}
-	return min(high, max(low, v))
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-// Deprecated.
+// ============================================================================
+// Deprecated Types and Methods
+// ============================================================================
 
 // Deprecated: use cursor.Mode.
 type CursorMode int
@@ -840,195 +809,9 @@ func (m *Model) SetCursorMode(mode CursorMode) tea.Cmd {
 	return m.Cursor.SetMode(cursor.Mode(mode))
 }
 
-func (m Model) completionView(offset int) string {
-	var (
-		value = m.values[m.selectedValueIndex]
-		style = m.CompletionStyle.Inline(true).Render
-	)
-
-	if m.canAcceptSuggestion() {
-		suggestion := m.matchedSuggestions[m.currentSuggestionIndex]
-		if len(value) < len(suggestion) {
-			return style(string(suggestion[len(value)+offset:]))
-		}
-	}
-	return ""
-}
-
-// completionSuffixView renders the suffix from the currently selected completion candidate
-// as a greyed-out inline suggestion (e.g., "/" for directories)
-func (m Model) completionSuffixView() string {
-	// Only show suffix if completion is active and a suggestion is selected
-	if !m.completion.active || m.completion.selected < 0 || m.completion.selected >= len(m.completion.suggestions) {
-		return ""
-	}
-
-	// Get the currently selected completion candidate
-	candidate := m.completion.suggestions[m.completion.selected]
-
-	// If there's a suffix, render it with the completion style (greyed out)
-	if candidate.Suffix != "" {
-		return m.CompletionStyle.Inline(true).Render(candidate.Suffix)
-	}
-
-	return ""
-}
-
-// CompletionBoxView renders the completion info box with all available completions
-// CompletionBoxView renders the completion info box with all available completions
-func (m Model) CompletionBoxView(height int, width int) string {
-	if !m.completion.shouldShowInfoBox() {
-		return ""
-	}
-
-	if height <= 0 {
-		height = 4 // default fallback
-	}
-
-	totalItems := len(m.completion.suggestions)
-	if totalItems == 0 {
-		return ""
-	}
-
-	// Check if we need to show descriptions (Zsh style)
-	hasDescriptions := false
-	maxCandidateWidth := 0
-	maxItemWidth := 0
-	for _, s := range m.completion.suggestions {
-		if s.Description != "" {
-			hasDescriptions = true
-		}
-
-		// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
-		displayWidth := 0
-		if s.Display != "" {
-			displayWidth = ansi.PrintableRuneWidth(s.Display)
-		} else {
-			displayWidth = ansi.PrintableRuneWidth(s.Value)
-		}
-		if displayWidth > maxCandidateWidth {
-			maxCandidateWidth = displayWidth
-		}
-
-		// Length + prefix ("> ") + spacing ("  ")
-		l := displayWidth + 4
-		if l > maxItemWidth {
-			maxItemWidth = l
-		}
-	}
-
-	// Ensure at least some width
-	if maxItemWidth < 10 {
-		maxItemWidth = 10
-	}
-
-	// Calculate columns - single column when showing descriptions for alignment
-	numColumns := 1
-	if !hasDescriptions && width > 0 {
-		numColumns = width / maxItemWidth
-		if numColumns < 1 {
-			numColumns = 1
-		}
-	}
-
-	// If items <= height, we stick to 1 column regardless of width (looks cleaner)
-	if totalItems <= height {
-		numColumns = 1
-	}
-
-	capacity := height * numColumns
-
-	// Calculate visible window
-	var startIdx int
-	selectedIdx := m.completion.selected
-	if selectedIdx < 0 {
-		selectedIdx = 0
-	}
-
-	// Page-based scrolling logic
-	page := selectedIdx / capacity
-	startIdx = page * capacity
-
-	// Ensure bounds are valid
-	if startIdx < 0 {
-		startIdx = 0
-	}
-
-	var content strings.Builder
-
-	// Render rows
-	for r := 0; r < height; r++ {
-		lineContent := ""
-
-		for c := 0; c < numColumns; c++ {
-			idx := startIdx + c*height + r
-			if idx >= totalItems {
-				continue
-			}
-
-			candidate := m.completion.suggestions[idx]
-			displayText := candidate.Display
-			if displayText == "" {
-				displayText = candidate.Value
-			}
-
-			var prefix string
-
-			// Regular line with spacing
-			prefix = " "
-
-			// Add selection indicator
-			if idx == m.completion.selected {
-				prefix += "> "
-			} else {
-				prefix += "  "
-			}
-
-			itemStr := prefix + displayText
-
-			if hasDescriptions {
-				// Render as two columns: Candidate | Description
-				// Pad the candidate to align descriptions
-				// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
-				visualWidth := ansi.PrintableRuneWidth(displayText)
-				padding := maxCandidateWidth - visualWidth + 2
-				itemStr += strings.Repeat(" ", padding)
-				itemStr += lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(candidate.Description)
-			} else {
-				// Pad the column (except the last one)
-				if c < numColumns-1 {
-					// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
-					itemWidth := ansi.PrintableRuneWidth(itemStr)
-					if itemWidth < maxItemWidth {
-						itemStr += strings.Repeat(" ", maxItemWidth-itemWidth)
-					} else {
-						itemStr += "  "
-					}
-				}
-			}
-
-			lineContent += itemStr
-		}
-
-		if lineContent != "" {
-			content.WriteString(lineContent)
-		}
-
-		if r < height-1 {
-			content.WriteString("\n")
-		}
-	}
-
-	return content.String()
-}
-
-func (m Model) HelpBoxView() string {
-	if !m.completion.shouldShowHelpBox() {
-		return ""
-	}
-
-	return m.completion.helpInfo
-}
+// ============================================================================
+// Helper Methods
+// ============================================================================
 
 // SuggestionsSuppressedUntilInput reports whether autocomplete hints are
 // temporarily disabled until the user provides additional input (for example
@@ -1061,6 +844,8 @@ func (m *Model) previousValue() {
 	m.SetCursor(len(m.values[m.selectedValueIndex]))
 }
 
+// validate runs the Model's Validate function on the given rune slice.
+// Returns an error if validation fails, or nil if no validator is set or validation passes.
 func (m Model) validate(v []rune) error {
 	if m.Validate != nil {
 		return m.Validate(string(v))
@@ -1068,18 +853,9 @@ func (m Model) validate(v []rune) error {
 	return nil
 }
 
-func cloneRunes(r []rune) []rune {
-	clone := make([]rune, len(r))
-	copy(clone, r)
-	return clone
-}
-
-func cloneConcatRunes(r1, r2 []rune) []rune {
-	clone := make([]rune, len(r1)+len(r2))
-	copy(clone, r1)
-	copy(clone[len(r1):], r2)
-	return clone
-}
+// ============================================================================
+// Reverse Search
+// ============================================================================
 
 // toggleReverseSearch toggles the reverse search mode.
 func (m *Model) toggleReverseSearch() {
