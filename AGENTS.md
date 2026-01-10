@@ -39,8 +39,9 @@ When prompted for permission to run a command, you have several response options
 
 - `y` or `yes`: Allow this command to run once
 - `n` or `no`: Deny this command
-- `m` or `manage`: Open an interactive menu to manage permissions for command prefixes
-- Any other text: Provide custom feedback to the agent (treated as denial)
+- `m` or `manage`: Open an interactive menu (manage menu) to manage permissions for command prefixes
+- Any other text: Provide feedback to the agent (treated as denial)
+- Press Enter: Use the default option (indicated by "- default" in the prompt)
 
 ### "Manage" Functionality
 
@@ -89,7 +90,7 @@ The system combines clean, reliable display with immediate keyboard responsivene
 # First time running a git status command
 bish> # check git status
 Agent wants to run: git status
-Do I have your permission to run the following command? (y/N/manage/freeform) m
+Do I have your permission to run the following command? (y)es  [N]o - default  (m)anage menu  [or type feedback]: m
 
 # The permission menu opens, and you can approve "^git status.*" which is saved to ~/.config/gsh/authorized_commands
 # Future git status commands will be auto-approved:
