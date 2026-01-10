@@ -32,3 +32,12 @@ dist/
 
 # Auto Claude data directory
 .auto-claude/
+
+# macOS system files
+.DS_Store
+
+# Local development status files
+.auto-claude-status
+
+# User-specific IDE/editor settings
+.claude_settings.json
