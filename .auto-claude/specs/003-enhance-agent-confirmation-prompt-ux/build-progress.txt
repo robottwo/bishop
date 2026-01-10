@@ -307,3 +307,93 @@ This design provides:
 
 ### Next Steps
 This subtask is complete. No code changes were needed as the functionality was already properly implemented in previous subtasks. The context-aware prompt handling is working correctly across all tool files.
+
+---
+
+## Subtask 3.1: Update utils_test.go ✅ COMPLETED
+**Status:** Completed
+**Date:** 2026-01-10
+
+### Summary
+Successfully updated tests in utils_test.go to account for the new prompt format. Added a new test for the showManage parameter and verified all existing tests remain valid with the enhanced prompt design.
+
+### Changes Made
+
+**New Test Added:**
+- `TestUserConfirmationShowManageParameter`: Verifies that the showManage parameter is properly passed through and controls the display of the manage option
+
+**Documentation Added by Linter:**
+- Enhanced documentation on `TestUserConfirmationFunction` with details about the new prompt formats
+- Documents all four prompt variants (default-to-yes/no × with/without manage)
+- Documents response normalization behavior
+
+### Test Coverage Verification
+
+**Existing Tests (All Still Valid):**
+1. ✅ **TestUserConfirmationFunction**: Tests all response types
+   - "y", "yes", "Y", "YES" → "y"
+   - "n", "no", "N", "NO" → "n"
+   - "m", "manage", "M", "MANAGE" → "m"
+   - Empty/whitespace → default behavior
+   - Freeform text → passed through unchanged
+   - Ctrl+C interruption → defaults to "n"
+
+2. ✅ **TestUserConfirmationVariousInputs**: Tests input variations
+   - Uppercase, mixed case, spaces around input
+   - Numeric input, special characters
+   - Long freeform responses
+
+3. ✅ **TestUserConfirmationQuestionAndExplanationParameters**: Tests parameter passing
+
+4. ✅ **TestUserConfirmationWithNilLogger**: Tests nil logger handling
+
+5. ✅ **TestActualUserConfirmationWithErrors**: Tests error handling
+
+6. ✅ **TestUserConfirmationShowManageParameter**: NEW - Tests showManage parameter
+
+### Why Existing Tests Remain Valid
+
+The existing tests are **behavior-focused** rather than testing specific prompt text:
+- They test response parsing logic (how input is interpreted)
+- They don't assert on the exact prompt format
+- The response parsing logic hasn't changed - only the display format improved
+
+The new prompt format changes:
+- ❌ OLD: `(y/N/manage/freeform)`
+- ✅ NEW: `(y)es  [N]o - default  (m)anage menu  [or type feedback]:`
+
+But the response handling remains identical:
+- "y"/"yes" → "y"
+- "n"/"no" → "n"
+- "m"/"manage" → "m"
+- Everything else → freeform feedback
+
+### Verification
+- ✅ All test functions remain valid with new prompt format
+- ✅ Added test for context-aware showManage behavior
+- ✅ No debugging statements added
+- ✅ Follows existing test patterns
+- ✅ Documentation added by linter clarifies new format
+
+### Git Commit
+- 8a5d093: "auto-claude: 3.1 - Update existing tests in utils_test.go to account for new prompt format"
+
+### Quality Checklist
+- [x] Follows patterns from reference files
+- [x] No console.log/print debugging statements
+- [x] Comprehensive test coverage maintained
+- [x] New test added for showManage parameter
+- [x] Clean commit with descriptive message
+- [x] All existing tests remain valid
+
+### Additional Documentation Updates (Current Session)
+Added comprehensive documentation comments to all test functions:
+- ✅ Enhanced `TestUserConfirmationFunction` with detailed prompt format documentation
+- ✅ Added explicit mapping of all response normalization rules
+- ✅ Updated test case descriptions for clarity (e.g., "when BISH_DEFAULT_TO_YES=false")
+- ✅ Documented `TestUserConfirmationVariousInputs` purpose
+- ✅ Enhanced `TestUserConfirmationShowManageParameter` with context-aware behavior notes
+- ✅ All test descriptions now accurately reflect the new prompt format
+
+### Next Steps
+This subtask is complete. The test suite now includes explicit testing of the showManage parameter and comprehensive documentation of the new prompt format. Ready to proceed to documentation updates.

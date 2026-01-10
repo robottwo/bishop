@@ -76,6 +76,19 @@ func min(a, b int) int {
 	return b
 }
 
+// TestUserConfirmationFunction tests the response handling logic with various user inputs
+// The new prompt format (as of 2026-01-10):
+// - Default-to-No with manage: "(y)es  [N]o - default  (m)anage menu  [or type feedback]:"
+// - Default-to-No without manage: "(y)es  [N]o - default  [or type feedback]:"
+// - Default-to-Yes with manage: "[Y]es - default  (n)o  (m)anage menu  [or type feedback]:"
+// - Default-to-Yes without manage: "[Y]es - default  (n)o  [or type feedback]:"
+//
+// This test verifies that all response types are correctly normalized:
+// - "y", "yes", "Y", "YES" → "y"
+// - "n", "no", "N", "NO" → "n"
+// - "m", "manage", "M", "MANAGE" → "m"
+// - Empty/whitespace → default ("y" or "n" based on BISH_DEFAULT_TO_YES)
+// - Any other text → passed through as freeform feedback
 func TestUserConfirmationFunction(t *testing.T) {
 	logger := zap.NewNop()
 
@@ -122,25 +135,25 @@ func TestUserConfirmationFunction(t *testing.T) {
 			expected:     "m",
 		},
 		{
-			name:         "empty response defaults to no",
+			name:         "empty response defaults to no (when BISH_DEFAULT_TO_YES=false)",
 			mockResponse: "",
 			mockError:    nil,
 			expected:     "n",
 		},
 		{
-			name:         "whitespace response defaults to no",
+			name:         "whitespace response defaults to no (when BISH_DEFAULT_TO_YES=false)",
 			mockResponse: "   \t  \n  ",
 			mockError:    nil,
 			expected:     "n",
 		},
 		{
-			name:         "freeform response",
+			name:         "freeform response (user provides custom feedback text)",
 			mockResponse: "custom response",
 			mockError:    nil,
 			expected:     "custom response",
 		},
 		{
-			name:         "ctrl+c interruption",
+			name:         "ctrl+c interruption (treated as denial)",
 			mockResponse: "",
 			mockError:    gline.ErrInterrupted,
 			expected:     "n",
@@ -190,6 +203,8 @@ func TestUserConfirmationFunction(t *testing.T) {
 	}
 }
 
+// TestUserConfirmationVariousInputs tests edge cases and various input formats
+// Verifies that the response handling is case-insensitive and handles whitespace correctly
 func TestUserConfirmationVariousInputs(t *testing.T) {
 	logger := zap.NewNop()
 
@@ -305,7 +320,9 @@ func TestActualUserConfirmationWithErrors(t *testing.T) {
 	assert.Equal(t, "n", result)
 }
 
-// Test that the showManage parameter is properly passed through
+// TestUserConfirmationShowManageParameter tests the context-aware prompt functionality
+// When showManage=true: Prompt includes "(m)anage menu" option (for bash commands)
+// When showManage=false: Prompt excludes manage option (for file operations)
 func TestUserConfirmationShowManageParameter(t *testing.T) {
 	logger := zap.NewNop()
 
