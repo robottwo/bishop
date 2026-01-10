@@ -49,17 +49,40 @@ func printCommandPrompt(prompt string) {
 }
 
 // defaultUserConfirmation is the default implementation that calls gline.Gline
-var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 	defaultToYes := false
 	if runner != nil {
 		defaultToYes = environment.GetDefaultToYes(runner)
 	}
 
-	promptSuffix := " (y/N/manage/freeform) "
+	// Build the prompt with styled components using style functions
+	// Format: (y)es  [N]o - default  (m)anage menu  [or type feedback]: (with manage)
+	// Format: (y)es  [N]o - default  [or type feedback]: (without manage)
+	var promptSuffix string
 	if defaultToYes {
-		promptSuffix = " (Y/n/manage/freeform) "
+		// When default is yes: [Y]es - default  (n)o  (m)anage menu  [or type feedback]:
+		yesOption := styles.PROMPT_DEFAULT("[Y]es - default")
+		noOption := styles.PROMPT_OPTION("(n)o")
+		hint := styles.PROMPT_HINT("[or type feedback]")
+		if showManage {
+			manageOption := styles.PROMPT_OPTION("(m)anage menu")
+			promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
+		} else {
+			promptSuffix = " " + yesOption + "  " + noOption + "  " + hint + ": "
+		}
+	} else {
+		// When default is no: (y)es  [N]o - default  (m)anage menu  [or type feedback]:
+		yesOption := styles.PROMPT_OPTION("(y)es")
+		noOption := styles.PROMPT_DEFAULT("[N]o - default")
+		hint := styles.PROMPT_HINT("[or type feedback]")
+		if showManage {
+			manageOption := styles.PROMPT_OPTION("(m)anage menu")
+			promptSuffix = " " + yesOption + "  " + noOption + "  " + manageOption + "  " + hint + ": "
+		} else {
+			promptSuffix = " " + yesOption + "  " + noOption + "  " + hint + ": "
+		}
 	}
-	prompt := styles.AGENT_QUESTION(question + promptSuffix)
+	prompt := styles.AGENT_QUESTION(question) + promptSuffix
 
 	line, err := gline.Gline(prompt, []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
 	if err != nil {
@@ -105,7 +128,7 @@ var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, qu
 }
 
 // userConfirmation is a wrapper that checks for test mode before calling the real implementation
-var userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+var userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 	// Check if we're in test mode and this function hasn't been mocked
 	// We detect if it's been mocked by checking if the function pointer has changed
 	if flag.Lookup("test.v") != nil {
@@ -117,5 +140,5 @@ var userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question 
 		return "n"
 	}
 
-	return defaultUserConfirmation(logger, runner, question, explanation)
+	return defaultUserConfirmation(logger, runner, question, explanation, showManage)
 }

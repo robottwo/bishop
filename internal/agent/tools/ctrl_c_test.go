@@ -21,7 +21,7 @@ func TestUserConfirmationCtrlCBehavior(t *testing.T) {
 	}()
 
 	// Test case 1: Mock gline.Gline to return ErrInterrupted (simulating Ctrl+C)
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		// Simulate the actual userConfirmation logic with ErrInterrupted
 		err := gline.ErrInterrupted // This simulates gline.Gline returning ErrInterrupted on Ctrl+C
 
@@ -35,13 +35,13 @@ func TestUserConfirmationCtrlCBehavior(t *testing.T) {
 		return ""
 	}
 
-	result := userConfirmation(logger, nil, "Test question", "Test explanation")
+	result := userConfirmation(logger, nil, "Test question", "Test explanation", true)
 	if result != "n" {
 		t.Errorf("Expected 'n' when ErrInterrupted is returned (Ctrl+C), got '%s'", result)
 	}
 
 	// Test case 2: Empty string should now return "n" (default), not "exit_agent"
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		line := "" // This simulates gline.Gline returning empty string (normal case)
 
 		// Handle empty input as default "no" response
@@ -51,13 +51,13 @@ func TestUserConfirmationCtrlCBehavior(t *testing.T) {
 		return line
 	}
 
-	result = userConfirmation(logger, nil, "Test question", "Test explanation")
+	result = userConfirmation(logger, nil, "Test question", "Test explanation", true)
 	if result != "n" {
 		t.Errorf("Expected 'n' when empty string is returned (normal case), got '%s'", result)
 	}
 
 	// Test case 3: Normal "y" response should work as before
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		line := "y"
 
 		if strings.TrimSpace(line) == "" {
@@ -71,7 +71,7 @@ func TestUserConfirmationCtrlCBehavior(t *testing.T) {
 		return line
 	}
 
-	result = userConfirmation(logger, nil, "Test question", "Test explanation")
+	result = userConfirmation(logger, nil, "Test question", "Test explanation", true)
 	if result != "y" {
 		t.Errorf("Expected 'y' for normal yes response, got '%s'", result)
 	}
@@ -88,7 +88,7 @@ func TestUserConfirmationErrorHandling(t *testing.T) {
 
 	// Test case 1: ErrInterrupted should return "n" (changed behavior)
 	t.Run("ErrInterrupted returns n", func(t *testing.T) {
-		userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+		userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 			err := gline.ErrInterrupted
 			if err != nil {
 				if err == gline.ErrInterrupted {
@@ -99,7 +99,7 @@ func TestUserConfirmationErrorHandling(t *testing.T) {
 			return ""
 		}
 
-		result := userConfirmation(logger, nil, "Test question", "Test explanation")
+		result := userConfirmation(logger, nil, "Test question", "Test explanation", true)
 		if result != "n" {
 			t.Errorf("Expected 'n' for ErrInterrupted, got '%s'", result)
 		}
@@ -108,7 +108,7 @@ func TestUserConfirmationErrorHandling(t *testing.T) {
 	// Test case 2: Other errors should return "n"
 	t.Run("Other errors return n", func(t *testing.T) {
 		otherError := errors.New("some other gline error")
-		userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+		userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 			// Simulate error handling
 			err := otherError
 			if err != nil {
@@ -121,7 +121,7 @@ func TestUserConfirmationErrorHandling(t *testing.T) {
 			return ""
 		}
 
-		result := userConfirmation(logger, nil, "Test question", "Test explanation")
+		result := userConfirmation(logger, nil, "Test question", "Test explanation", true)
 		if result != "n" {
 			t.Errorf("Expected 'n' for other errors, got '%s'", result)
 		}
@@ -144,7 +144,7 @@ func TestUserConfirmationErrorHandling(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
-			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 				line := tc.input
 
 				// Handle empty input as default "no" response
@@ -169,7 +169,7 @@ func TestUserConfirmationErrorHandling(t *testing.T) {
 				return line
 			}
 
-			result := userConfirmation(logger, nil, "Test question", "Test explanation")
+			result := userConfirmation(logger, nil, "Test question", "Test explanation", true)
 			if result != tc.expected {
 				t.Errorf("For input '%s', expected '%s', got '%s'", tc.input, tc.expected, result)
 			}
@@ -232,7 +232,7 @@ func TestBashToolExitAgentHandling(t *testing.T) {
 	}()
 
 	// Mock userConfirmation to return "n" (new behavior)
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		return "n"
 	}
 

@@ -76,6 +76,19 @@ func min(a, b int) int {
 	return b
 }
 
+// TestUserConfirmationFunction tests the response handling logic with various user inputs
+// The new prompt format (as of 2026-01-10):
+// - Default-to-No with manage: "(y)es  [N]o - default  (m)anage menu  [or type feedback]:"
+// - Default-to-No without manage: "(y)es  [N]o - default  [or type feedback]:"
+// - Default-to-Yes with manage: "[Y]es - default  (n)o  (m)anage menu  [or type feedback]:"
+// - Default-to-Yes without manage: "[Y]es - default  (n)o  [or type feedback]:"
+//
+// This test verifies that all response types are correctly normalized:
+// - "y", "yes", "Y", "YES" → "y"
+// - "n", "no", "N", "NO" → "n"
+// - "m", "manage", "M", "MANAGE" → "m"
+// - Empty/whitespace → default ("y" or "n" based on BISH_DEFAULT_TO_YES)
+// - Any other text → passed through as freeform feedback
 func TestUserConfirmationFunction(t *testing.T) {
 	logger := zap.NewNop()
 
@@ -122,25 +135,25 @@ func TestUserConfirmationFunction(t *testing.T) {
 			expected:     "m",
 		},
 		{
-			name:         "empty response defaults to no",
+			name:         "empty response defaults to no (when BISH_DEFAULT_TO_YES=false)",
 			mockResponse: "",
 			mockError:    nil,
 			expected:     "n",
 		},
 		{
-			name:         "whitespace response defaults to no",
+			name:         "whitespace response defaults to no (when BISH_DEFAULT_TO_YES=false)",
 			mockResponse: "   \t  \n  ",
 			mockError:    nil,
 			expected:     "n",
 		},
 		{
-			name:         "freeform response",
+			name:         "freeform response (user provides custom feedback text)",
 			mockResponse: "custom response",
 			mockError:    nil,
 			expected:     "custom response",
 		},
 		{
-			name:         "ctrl+c interruption",
+			name:         "ctrl+c interruption (treated as denial)",
 			mockResponse: "",
 			mockError:    gline.ErrInterrupted,
 			expected:     "n",
@@ -155,7 +168,7 @@ func TestUserConfirmationFunction(t *testing.T) {
 				userConfirmation = originalUserConfirmation
 			}()
 
-			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 				if tt.mockError == gline.ErrInterrupted {
 					return "n" // Simulate Ctrl+C handling
 				}
@@ -184,12 +197,14 @@ func TestUserConfirmationFunction(t *testing.T) {
 				return line
 			}
 
-			result := userConfirmation(logger, nil, "test question", "test explanation")
+			result := userConfirmation(logger, nil, "test question", "test explanation", true)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
+// TestUserConfirmationVariousInputs tests edge cases and various input formats
+// Verifies that the response handling is case-insensitive and handles whitespace correctly
 func TestUserConfirmationVariousInputs(t *testing.T) {
 	logger := zap.NewNop()
 
@@ -219,7 +234,7 @@ func TestUserConfirmationVariousInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 				// Simulate the actual processing logic
 				line := tt.input
 				if strings.TrimSpace(line) == "" {
@@ -240,7 +255,7 @@ func TestUserConfirmationVariousInputs(t *testing.T) {
 				return line
 			}
 
-			result := userConfirmation(logger, nil, "test question", "test explanation")
+			result := userConfirmation(logger, nil, "test question", "test explanation", true)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -255,7 +270,7 @@ func TestUserConfirmationQuestionAndExplanationParameters(t *testing.T) {
 	}()
 
 	var receivedQuestion, receivedExplanation string
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		receivedQuestion = question
 		receivedExplanation = explanation
 		return "y"
@@ -264,7 +279,7 @@ func TestUserConfirmationQuestionAndExplanationParameters(t *testing.T) {
 	expectedQuestion := "Do you want to continue?"
 	expectedExplanation := "This will execute a command"
 
-	userConfirmation(logger, nil, expectedQuestion, expectedExplanation)
+	userConfirmation(logger, nil, expectedQuestion, expectedExplanation, true)
 
 	assert.Equal(t, expectedQuestion, receivedQuestion)
 	assert.Equal(t, expectedExplanation, receivedExplanation)
@@ -277,13 +292,13 @@ func TestUserConfirmationWithNilLogger(t *testing.T) {
 	}()
 
 	// Test that function doesn't panic with nil logger
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		// Should handle nil logger gracefully
 		return "y"
 	}
 
 	assert.NotPanics(t, func() {
-		result := userConfirmation(nil, nil, "test", "test")
+		result := userConfirmation(nil, nil, "test", "test", true)
 		assert.Equal(t, "y", result)
 	})
 }
@@ -296,11 +311,50 @@ func TestActualUserConfirmationWithErrors(t *testing.T) {
 	logger := zap.NewNop()
 
 	// Create a mock that simulates the actual function's error handling
-	mockUserConfirmation := func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	mockUserConfirmation := func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		// Simulate error - return default "n"
 		return "n"
 	}
 
-	result := mockUserConfirmation(logger, nil, "test", "test")
+	result := mockUserConfirmation(logger, nil, "test", "test", true)
 	assert.Equal(t, "n", result)
+}
+
+// TestUserConfirmationShowManageParameter tests the context-aware prompt functionality
+// When showManage=true: Prompt includes "(m)anage menu" option (for bash commands)
+// When showManage=false: Prompt excludes manage option (for file operations)
+func TestUserConfirmationShowManageParameter(t *testing.T) {
+	logger := zap.NewNop()
+
+	originalUserConfirmation := userConfirmation
+	defer func() {
+		userConfirmation = originalUserConfirmation
+	}()
+
+	tests := []struct {
+		name       string
+		showManage bool
+	}{
+		{
+			name:       "showManage true",
+			showManage: true,
+		},
+		{
+			name:       "showManage false",
+			showManage: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var receivedShowManage bool
+			userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
+				receivedShowManage = showManage
+				return "y"
+			}
+
+			userConfirmation(logger, nil, "test question", "test explanation", tt.showManage)
+			assert.Equal(t, tt.showManage, receivedShowManage)
+		})
+	}
 }

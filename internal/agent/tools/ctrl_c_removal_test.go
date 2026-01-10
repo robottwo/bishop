@@ -18,14 +18,14 @@ func TestCtrlCReturnsN(t *testing.T) {
 
 	// Mock userConfirmation to simulate ctrl-c behavior
 	// Based on actual gline behavior: Ctrl+C returns empty string, which should be treated as "n"
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		// Simulate what happens when gline returns empty string (Ctrl+C behavior)
 		// The actual gline.Gline function returns "" when Ctrl+C is pressed
 		logger.Debug("User pressed Ctrl+C, gline returned empty string, treating as 'n' response")
 		return "n" // userConfirmation should treat empty result as "n"
 	}
 
-	result := userConfirmation(logger, nil, "Test question", "Test explanation")
+	result := userConfirmation(logger, nil, "Test question", "Test explanation", true)
 	if result != "n" {
 		t.Errorf("Expected 'n' when Ctrl+C is pressed, got '%s'", result)
 	}
@@ -49,7 +49,7 @@ func TestGlineCtrlCBehavior(t *testing.T) {
 	}()
 
 	// Mock gline to return empty string (simulating Ctrl+C)
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		// Simulate gline returning empty string when Ctrl+C is pressed
 		glineResult := "" // This is what gline.Gline returns on Ctrl+C
 
@@ -61,7 +61,7 @@ func TestGlineCtrlCBehavior(t *testing.T) {
 		return glineResult
 	}
 
-	result := userConfirmation(logger, nil, "Test question", "Test explanation")
+	result := userConfirmation(logger, nil, "Test question", "Test explanation", true)
 	if result != "n" {
 		t.Errorf("Expected 'n' when gline returns empty string (Ctrl+C), got '%s'", result)
 	}
@@ -79,7 +79,7 @@ func TestUserConfirmationHandlesEmptyInput(t *testing.T) {
 	}()
 
 	// Mock userConfirmation to simulate what happens when gline returns empty string
-	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 		// Simulate gline returning empty string (Ctrl+C behavior)
 		glineResult := ""
 
@@ -91,7 +91,7 @@ func TestUserConfirmationHandlesEmptyInput(t *testing.T) {
 		return glineResult
 	}
 
-	result := userConfirmation(logger, nil, "Test question", "Test explanation")
+	result := userConfirmation(logger, nil, "Test question", "Test explanation", true)
 	if result != "n" {
 		t.Errorf("Expected 'n' when gline returns empty string, got '%s'", result)
 	}
@@ -106,12 +106,12 @@ func TestNoExitAgentBehavior(t *testing.T) {
 	// Test userConfirmation with various scenarios
 	testCases := []struct {
 		name     string
-		mockFunc func(*zap.Logger, *interp.Runner, string, string) string
+		mockFunc func(*zap.Logger, *interp.Runner, string, string, bool) string
 		expected string
 	}{
 		{
 			name: "ctrl_c_returns_n",
-			mockFunc: func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+			mockFunc: func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 				// Simulate ctrl-c
 				return "n"
 			},
@@ -119,7 +119,7 @@ func TestNoExitAgentBehavior(t *testing.T) {
 		},
 		{
 			name: "empty_input_returns_n",
-			mockFunc: func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+			mockFunc: func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 				// Simulate empty input
 				return "n"
 			},
@@ -127,7 +127,7 @@ func TestNoExitAgentBehavior(t *testing.T) {
 		},
 		{
 			name: "explicit_yes",
-			mockFunc: func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
+			mockFunc: func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
 				return "y"
 			},
 			expected: "y",
@@ -142,7 +142,7 @@ func TestNoExitAgentBehavior(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			userConfirmation = tc.mockFunc
-			result := userConfirmation(logger, nil, "Test question", "Test explanation")
+			result := userConfirmation(logger, nil, "Test question", "Test explanation", true)
 
 			if result != tc.expected {
 				t.Errorf("Expected '%s', got '%s'", tc.expected, result)
