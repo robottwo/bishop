@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.1](https://github.com/robottwo/bishop/compare/v0.33.0...v0.33.1) (2026-01-10)
+
+
+### Features
+
+* Optimize history queries with database indexes ([#82](https://github.com/robottwo/bishop/issues/82)) ([1939b2f](https://github.com/robottwo/bishop/commit/1939b2f347a2e2879ae707fa4260fab2b2dd0a36))
+* Redesign the permission confirmation prompt ([#90](https://github.com/robottwo/bishop/issues/90)) ([412384f](https://github.com/robottwo/bishop/commit/412384f165e61276addc9af42a7d4528e2824d7d))
+
 ## [0.33.0](https://github.com/robottwo/bishop/compare/v0.32.0...v0.33.0) (2026-01-06)
 
 
