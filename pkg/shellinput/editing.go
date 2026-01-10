@@ -257,23 +257,7 @@ func (m *Model) swapWords() {
 
 	// Construct new value
 	// ... w1 ... w2 ...
-func (m *Model) swapCharacters() {
-	if m.pos == 0 || len(m.values[m.selectedValueIndex]) < 2 {
-		return
-	}
-
-	// If at end of line, swap the two characters before the cursor
-	idx := m.pos
-	if idx == len(m.values[m.selectedValueIndex]) {
-		if idx < 2 {
-			return // Can't swap if there aren't 2 characters before cursor
-		}
-		// Swap idx-1 and idx-2
-		m.values[m.selectedValueIndex][idx-1], m.values[m.selectedValueIndex][idx-2] = m.values[m.selectedValueIndex][idx-2], m.values[m.selectedValueIndex][idx-1]
-		m.values[0] = m.values[m.selectedValueIndex]
-		// Cursor stays at end
-		return
-	}
+	// ... w1Start ... w1End ... w2Start ... w2End ...
 
 	// We need to preserve text between words (usually spaces)
 	// part1: 0 to w1Start
@@ -403,18 +387,7 @@ func GetLastArgument(line string) string {
 // deleteBeforeCursor deletes all text before the cursor.
 func (m *Model) deleteBeforeCursor() {
 	killed := m.values[m.selectedValueIndex][:m.pos]
-func GetLastArgument(line string) string {
-	p := syntax.NewParser()
-	f, err := p.Parse(strings.NewReader(line), "")
-	if err != nil {
-		// Fallback: parse errors are not critical for this feature
-		// Use simple split as best-effort for malformed input
-		parts := strings.Fields(line)
-		if len(parts) > 0 {
-			return parts[len(parts)-1]
-		}
-		return ""
-	}
+	m.recordKill(killed, killDirectionBackward)
 
 	newValue := cloneRunes(m.values[m.selectedValueIndex][m.pos:])
 	m.Err = m.validate(newValue)
