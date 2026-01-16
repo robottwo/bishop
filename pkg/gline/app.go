@@ -359,36 +359,6 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 	return m, cmd
 }
 
-// LLM call timeout for explanations
-const explanationTimeout = 10 * time.Second
-
-func (m appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.Cmd) {
-	if m.explainer == nil {
-		return m, nil
-	}
-	if msg.stateId != m.predictionStateId {
-		return m, nil
-	}
-
-	return m, tea.Cmd(func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), explanationTimeout)
-		defer cancel()
-
-		explanation, err := m.explainer.Explain(ctx, msg.prediction)
-		if err != nil {
-			m.logger.Error("gline explanation failed", zap.Error(err))
-			return errorMsg{stateId: msg.stateId, err: err}
-		}
-
-		m.logger.Debug(
-			"gline explained prediction",
-			zap.Int("stateId", msg.stateId),
-			zap.String("explanation", explanation),
-		)
-		return setExplanationMsg{stateId: msg.stateId, explanation: explanation}
-	})
-}
-
 func (m appModel) handleClearScreen() (tea.Model, tea.Cmd) {
 	// Log the current state before clearing
 	m.logger.Debug("gline handleClearScreen called",
@@ -405,22 +375,6 @@ func (m appModel) handleClearScreen() (tea.Model, tea.Cmd) {
 	return m, tea.Cmd(func() tea.Msg {
 		return tea.ClearScreen()
 	})
-}
-
-func (m appModel) setExplanation(msg setExplanationMsg) (tea.Model, tea.Cmd) {
-	if msg.stateId != m.predictionStateId {
-		m.logger.Debug(
-			"gline discarding explanation",
-			zap.Int("startStateId", msg.stateId),
-			zap.Int("newStateId", m.predictionStateId),
-		)
-		return m, nil
-	}
-
-	m.explanation = msg.explanation
-	// Mark LLM as successful since explanation is the last step
-	m.llmIndicator.SetStatus(LLMStatusSuccess)
-	return m, nil
 }
 
 // handleIdleCheck checks if the user is idle and triggers summary generation

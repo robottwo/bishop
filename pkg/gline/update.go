@@ -224,6 +224,52 @@ func (m appModel) setPrediction(stateId int, prediction string, inputContext str
 // LLM call timeout for predictions
 const predictionTimeout = 10 * time.Second
 
+// LLM call timeout for explanations
+const explanationTimeout = 10 * time.Second
+
+func (m appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.Cmd) {
+	if m.explainer == nil {
+		return m, nil
+	}
+	if msg.stateId != m.predictionStateId {
+		return m, nil
+	}
+
+	return m, tea.Cmd(func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), explanationTimeout)
+		defer cancel()
+
+		explanation, err := m.explainer.Explain(ctx, msg.prediction)
+		if err != nil {
+			m.logger.Error("gline explanation failed", zap.Error(err))
+			return errorMsg{stateId: msg.stateId, err: err}
+		}
+
+		m.logger.Debug(
+			"gline explained prediction",
+			zap.Int("stateId", msg.stateId),
+			zap.String("explanation", explanation),
+		)
+		return setExplanationMsg{stateId: msg.stateId, explanation: explanation}
+	})
+}
+
+func (m appModel) setExplanation(msg setExplanationMsg) (tea.Model, tea.Cmd) {
+	if msg.stateId != m.predictionStateId {
+		m.logger.Debug(
+			"gline discarding explanation",
+			zap.Int("startStateId", msg.stateId),
+			zap.Int("newStateId", m.predictionStateId),
+		)
+		return m, nil
+	}
+
+	m.explanation = msg.explanation
+	// Mark LLM as successful since explanation is the last step
+	m.llmIndicator.SetStatus(LLMStatusSuccess)
+	return m, nil
+}
+
 func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cmd) {
 	if m.predictor == nil {
 		return m, nil
