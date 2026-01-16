@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/cursor"
@@ -94,9 +92,6 @@ type errorMsg struct {
 	stateId int
 	err     error
 }
-
-// helpHeaderRegex matches redundant help headers like "**#name** - "
-var helpHeaderRegex = regexp.MustCompile(`^\*\*[^\*]+\*\* - `)
 
 type setExplanationMsg struct {
 	stateId     int

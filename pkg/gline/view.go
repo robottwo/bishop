@@ -2,10 +2,14 @@ package gline
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
+
+// helpHeaderRegex matches redundant help headers like "**#name** - "
+var helpHeaderRegex = regexp.MustCompile(`^\*\*[^\*]+\*\* - `)
 
 func (m appModel) View() string {
 	// Once terminated, render nothing
