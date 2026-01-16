@@ -302,3 +302,108 @@ func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cm
 		return setPredictionMsg{stateId: msg.stateId, prediction: prediction, inputContext: inputContext}
 	})
 }
+
+func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
+	oldVal := m.textInput.Value()
+	oldMatchedSuggestions := m.textInput.MatchedSuggestions()
+	oldSuppression := m.textInput.SuggestionsSuppressedUntilInput()
+	updatedTextInput, cmd := m.textInput.Update(msg)
+	newVal := updatedTextInput.Value()
+	newMatchedSuggestions := updatedTextInput.MatchedSuggestions()
+
+	textUpdated := oldVal != newVal
+	suggestionsCleared := len(oldMatchedSuggestions) > 0 && len(newMatchedSuggestions) == 0
+	m.textInput = updatedTextInput
+
+	// if the text input has changed, we want to attempt a prediction
+	if textUpdated && m.predictor != nil {
+		m.predictionStateId++
+
+		// Update border status with new input
+		m.borderStatus.UpdateInput(newVal)
+
+		// Clear any existing error when user types
+		m.lastError = nil
+
+		// Reset idle timer and state when user types
+		m.lastInputTime = time.Now()
+		m.idleSummaryShown = false
+		m.idleSummaryStateId++
+
+		userInput := updatedTextInput.Value()
+
+		// whenever the user has typed something, mark the model as dirty
+		if len(userInput) > 0 {
+			m.dirty = true
+		}
+
+		suppressionActive := updatedTextInput.SuggestionsSuppressedUntilInput()
+		suppressionLifted := !suppressionActive && oldSuppression
+
+		switch {
+		case len(userInput) == 0 && m.dirty:
+			// if the model was dirty earlier, but now the user has cleared the input,
+			// we should clear the prediction and restore the default tip
+			m.clearPredictionAndRestoreDefault()
+		case suppressionActive:
+			// When suppression is active (e.g., after Ctrl+K), clear stale predictions but
+			// still recompute assistant help for the remaining buffer while keeping
+			// autocomplete hints hidden until new input arrives.
+			m.clearPrediction()
+			if len(userInput) > 0 {
+				cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+					return attemptPredictionMsg{
+						stateId: m.predictionStateId,
+					}
+				}))
+			}
+		case len(userInput) > 0 && strings.HasPrefix(m.prediction, userInput) && !suggestionsCleared && !suppressionLifted:
+			// if the prediction already starts with the user input, we don't need to predict again
+			m.logger.Debug("gline existing predicted input already starts with user input", zap.String("userInput", userInput))
+		default:
+			// in other cases, we should kick off a debounced prediction after clearing the current one
+			m.clearPrediction()
+
+			cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+				return attemptPredictionMsg{
+					stateId: m.predictionStateId,
+				}
+			}))
+		}
+	} else if suggestionsCleared {
+		// User trimmed away ghost suggestions (e.g., via Ctrl+K) without changing
+		// the underlying input. Clear any pending prediction and explanation so the
+		// assistant box reflects the truncated command, and re-request a prediction
+		// for the remaining buffer so the assistant can refresh its help content.
+		m.clearPrediction()
+
+		if m.predictor != nil {
+			m.predictionStateId++
+			if len(m.textInput.Value()) > 0 {
+				cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+					return attemptPredictionMsg{stateId: m.predictionStateId}
+				}))
+			}
+		}
+	}
+
+	return m, cmd
+}
+
+func (m appModel) handleClearScreen() (tea.Model, tea.Cmd) {
+	// Log the current state before clearing
+	m.logger.Debug("gline handleClearScreen called",
+		zap.String("currentInput", m.textInput.Value()),
+		zap.String("explanation", m.explanation),
+		zap.Bool("hasExplanation", m.explanation != ""))
+
+	// Use Bubble Tea's built-in screen clearing command for proper rendering pipeline integration
+	// This ensures that lipgloss-styled components like info boxes render correctly after clearing
+	m.logger.Debug("gline using tea.ClearScreen for proper rendering pipeline integration")
+
+	// Return the model unchanged with the ClearScreen command
+	// Bubble Tea will handle the screen clear and automatic re-render
+	return m, tea.Cmd(func() tea.Msg {
+		return tea.ClearScreen()
+	})
+}
