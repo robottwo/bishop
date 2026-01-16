@@ -1,10 +1,12 @@
 package gline
 
 import (
+	"context"
 	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"go.uber.org/zap"
 )
 
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -166,4 +168,91 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m.updateTextInput(msg)
+}
+
+func (m *appModel) clearPrediction() {
+	m.prediction = ""
+	m.explanation = ""
+	m.lastError = nil
+	m.textInput.SetSuggestions([]string{})
+}
+
+// clearPredictionAndRestoreDefault clears the prediction and restores the default
+// explanation (e.g., coach tips) - used when the input buffer becomes blank
+func (m *appModel) clearPredictionAndRestoreDefault() {
+	m.prediction = ""
+	m.explanation = m.defaultExplanation
+	m.lastError = nil
+	m.textInput.SetSuggestions([]string{})
+}
+
+func (m appModel) setPrediction(stateId int, prediction string, inputContext string) (appModel, tea.Cmd) {
+	if stateId != m.predictionStateId {
+		m.logger.Debug(
+			"gline discarding prediction",
+			zap.Int("startStateId", stateId),
+			zap.Int("newStateId", m.predictionStateId),
+		)
+		return m, nil
+	}
+
+	m.prediction = prediction
+	m.lastPredictionInput = inputContext
+	m.lastPrediction = prediction
+	m.textInput.SetSuggestions([]string{prediction})
+	m.textInput.UpdateHelpInfo()
+
+	// When input is blank and there's no prediction, preserve the default explanation (coach tips)
+	if strings.TrimSpace(m.textInput.Value()) == "" && prediction == "" {
+		m.explanation = m.defaultExplanation
+		// Reset LLM status to prevent pulsing when showing coaching tips
+		m.llmIndicator.SetStatus(LLMStatusSuccess)
+		return m, nil
+	}
+
+	m.explanation = ""
+	explanationTarget := prediction
+	if m.textInput.SuggestionsSuppressedUntilInput() {
+		explanationTarget = m.textInput.Value()
+	}
+
+	return m, tea.Cmd(func() tea.Msg {
+		return attemptExplanationMsg{stateId: m.predictionStateId, prediction: explanationTarget}
+	})
+}
+
+// LLM call timeout for predictions
+const predictionTimeout = 10 * time.Second
+
+func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cmd) {
+	if m.predictor == nil {
+		return m, nil
+	}
+	if msg.stateId != m.predictionStateId {
+		return m, nil
+	}
+	// Skip LLM prediction for # commands (agentic commands)
+	if strings.HasPrefix(strings.TrimSpace(m.textInput.Value()), "#") {
+		// Don't show indicator when buffer is empty - just return clean state
+		return m, nil
+	}
+
+	return m, tea.Cmd(func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), predictionTimeout)
+		defer cancel()
+
+		prediction, inputContext, err := m.predictor.Predict(ctx, m.textInput.Value())
+		if err != nil {
+			m.logger.Error("gline prediction failed", zap.Error(err))
+			return errorMsg{stateId: msg.stateId, err: err}
+		}
+
+		m.logger.Debug(
+			"gline predicted input",
+			zap.Int("stateId", msg.stateId),
+			zap.String("prediction", prediction),
+			zap.String("inputContext", inputContext),
+		)
+		return setPredictionMsg{stateId: msg.stateId, prediction: prediction, inputContext: inputContext}
+	})
 }
