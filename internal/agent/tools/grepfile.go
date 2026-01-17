@@ -52,10 +52,6 @@ func GrepFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 		if !ok {
 			logger.Error("The grep_file tool failed to parse parameter 'context_lines'")
 			return failedToolResponse("The grep_file tool failed to parse parameter 'context_lines'")
-		contextLines = int(contextLinesFloat)
-		if contextLines < 0 {
-			logger.Error("grep_file tool received negative context_lines")
-			return failedToolResponse("context_lines must be non-negative")
 		}
 		contextLines = int(contextLinesFloat)
 	}
@@ -84,20 +80,6 @@ func GrepFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 
 	// Read all lines
 	var lines []string
-	// Check file size before reading
-	fileInfo, err := file.Stat()
-	if err != nil {
-		logger.Error("grep_file tool error getting file info", zap.Error(err))
-		return failedToolResponse(fmt.Sprintf("Error reading file info: %s", err))
-	}
-	
-	const maxFileSize = 100 * 1024 * 1024 // 100MB limit
-	if fileInfo.Size() > maxFileSize {
-		return failedToolResponse(fmt.Sprintf("File too large (%d bytes). Maximum size is %d bytes", fileInfo.Size(), maxFileSize))
-	}
-	
-	// Read all lines
-	var lines []string
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
@@ -122,33 +104,7 @@ func GrepFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 
 	// Build output with context lines
 	var result strings.Builder
-	// Build output with context lines
-	var result strings.Builder
-	
-	// Collect and sort all lines to output
-	lineNums := make([]int, 0, len(matchedLines)*(2*contextLines+1))
-	for lineNum := range matchedLines {
-		for i := lineNum - contextLines; i <= lineNum+contextLines; i++ {
-			if i >= 0 && i < len(lines) {
-				lineNums = append(lineNums, i)
-			}
-		}
-	}
-	
-	// Remove duplicates and sort
-	seen := make(map[int]bool)
-	uniqueLines := make([]int, 0, len(lineNums))
-	for _, num := range lineNums {
-		if !seen[num] {
-			seen[num] = true
-			uniqueLines = append(uniqueLines, num)
-		}
-	}
-	sort.Ints(uniqueLines)
-	
-	// Generate output
-	previousLine := -2
-	for _, i := range uniqueLines {
+	outputLines := make(map[int]bool)
 
 	// Add matched lines and their context
 	for lineNum := range matchedLines {
