@@ -80,6 +80,20 @@ func GrepFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 
 	// Read all lines
 	var lines []string
+	// Check file size before reading
+	fileInfo, err := file.Stat()
+	if err != nil {
+		logger.Error("grep_file tool error getting file info", zap.Error(err))
+		return failedToolResponse(fmt.Sprintf("Error reading file info: %s", err))
+	}
+	
+	const maxFileSize = 100 * 1024 * 1024 // 100MB limit
+	if fileInfo.Size() > maxFileSize {
+		return failedToolResponse(fmt.Sprintf("File too large (%d bytes). Maximum size is %d bytes", fileInfo.Size(), maxFileSize))
+	}
+	
+	// Read all lines
+	var lines []string
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
