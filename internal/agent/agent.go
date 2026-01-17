@@ -203,6 +203,7 @@ func (agent *Agent) Chat(prompt string) (<-chan string, error) {
 					tools.ViewDirectoryToolDefinition,
 					tools.CreateFileToolDefinition,
 					tools.EditFileToolDefinition,
+					tools.GrepFileToolDefinition,
 				},
 			}
 			if agent.llmModelConfig.Temperature != nil {
@@ -318,6 +319,9 @@ func (agent *Agent) handleToolCall(toolCall openai.ToolCall, responseChannel cha
 	case tools.EditFileToolDefinition.Function.Name:
 		// edit_file
 		toolResponse = tools.EditFileTool(agent.runner, agent.logger, params)
+	case tools.GrepFileToolDefinition.Function.Name:
+		// grep_file
+		toolResponse = tools.GrepFileTool(agent.runner, agent.logger, params)
 	}
 
 	agent.messages = append(agent.messages, openai.ChatCompletionMessage{
