@@ -118,7 +118,33 @@ func GrepFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 
 	// Build output with context lines
 	var result strings.Builder
-	outputLines := make(map[int]bool)
+	// Build output with context lines
+	var result strings.Builder
+	
+	// Collect and sort all lines to output
+	lineNums := make([]int, 0, len(matchedLines)*(2*contextLines+1))
+	for lineNum := range matchedLines {
+		for i := lineNum - contextLines; i <= lineNum+contextLines; i++ {
+			if i >= 0 && i < len(lines) {
+				lineNums = append(lineNums, i)
+			}
+		}
+	}
+	
+	// Remove duplicates and sort
+	seen := make(map[int]bool)
+	uniqueLines := make([]int, 0, len(lineNums))
+	for _, num := range lineNums {
+		if !seen[num] {
+			seen[num] = true
+			uniqueLines = append(uniqueLines, num)
+		}
+	}
+	sort.Ints(uniqueLines)
+	
+	// Generate output
+	previousLine := -2
+	for _, i := range uniqueLines {
 
 	// Add matched lines and their context
 	for lineNum := range matchedLines {
