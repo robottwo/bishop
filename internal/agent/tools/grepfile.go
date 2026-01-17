@@ -52,6 +52,10 @@ func GrepFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 		if !ok {
 			logger.Error("The grep_file tool failed to parse parameter 'context_lines'")
 			return failedToolResponse("The grep_file tool failed to parse parameter 'context_lines'")
+		contextLines = int(contextLinesFloat)
+		if contextLines < 0 {
+			logger.Error("grep_file tool received negative context_lines")
+			return failedToolResponse("context_lines must be non-negative")
 		}
 		contextLines = int(contextLinesFloat)
 	}
