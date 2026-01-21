@@ -87,12 +87,22 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize history manager: %v", err))
 	}
+	defer func() {
+		if err := historyManager.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to close history manager: %v\n", err)
+		}
+	}()
 
 	// Initialize the analytics manager
 	analyticsManager, err := initializeAnalyticsManager()
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize analytics manager: %v", err))
 	}
+	defer func() {
+		if err := analyticsManager.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to close analytics manager: %v\n", err)
+		}
+	}()
 
 	// Initialize the completion manager
 	completionManager := initializeCompletionManager()

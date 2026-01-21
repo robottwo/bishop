@@ -59,6 +59,11 @@ func NewAnalyticsManager(dbFilePath string) (*AnalyticsManager, error) {
 	// Reasonable connection lifetime
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
+	// Enable WAL mode for better NFS performance and concurrent readers
+	if err := db.Exec("PRAGMA journal_mode=WAL").Error; err != nil {
+		return nil, fmt.Errorf("failed to set WAL mode: %w", err)
+	}
+
 	return &AnalyticsManager{
 		db: db,
 	}, nil
@@ -68,6 +73,9 @@ func NewAnalyticsManager(dbFilePath string) (*AnalyticsManager, error) {
 // AnalyticsManager is no longer needed, especially in tests to allow cleanup
 // of temporary database files on Windows.
 func (analyticsManager *AnalyticsManager) Close() error {
+	if analyticsManager.db == nil {
+		return nil
+	}
 	sqlDB, err := analyticsManager.db.DB()
 	if err != nil {
 		return err

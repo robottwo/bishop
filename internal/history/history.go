@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/robottwo/bishop/pkg/reverse"
 	"github.com/glebarez/sqlite"
+	"github.com/robottwo/bishop/pkg/reverse"
 	"gorm.io/gorm"
 )
 
@@ -58,6 +58,11 @@ func NewHistoryManager(dbFilePath string) (*HistoryManager, error) {
 	// Reasonable connection lifetime
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
+	// Enable WAL mode for better NFS performance and concurrent readers
+	if err := db.Exec("PRAGMA journal_mode=WAL").Error; err != nil {
+		return nil, fmt.Errorf("failed to set WAL mode: %w", err)
+	}
+
 	return &HistoryManager{
 		db: db,
 	}, nil
@@ -67,6 +72,9 @@ func NewHistoryManager(dbFilePath string) (*HistoryManager, error) {
 // HistoryManager is no longer needed, especially in tests to allow cleanup
 // of temporary database files on Windows.
 func (historyManager *HistoryManager) Close() error {
+	if historyManager.db == nil {
+		return nil
+	}
 	sqlDB, err := historyManager.db.DB()
 	if err != nil {
 		return err
