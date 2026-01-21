@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robottwo/bishop/pkg/shellinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -210,14 +210,14 @@ func TestApp_PredictionFlow_Integration(t *testing.T) {
 			model.predictionStateId++
 			predictionMsg := attemptPredictionMsg{stateId: model.predictionStateId}
 			updatedModel, cmd := model.attemptPrediction(predictionMsg)
-			model = updatedModel.(appModel)
+			model = updatedModel
 
 			// Execute the prediction command
 			if cmd != nil {
 				msg := cmd()
 				if setPredMsg, ok := msg.(setPredictionMsg); ok {
-					updatedModel, _ := model.setPrediction(setPredMsg.stateId, setPredMsg.prediction, setPredMsg.inputContext)
-					model = updatedModel
+					result, _ := model.setPrediction(setPredMsg.stateId, setPredMsg.prediction, setPredMsg.inputContext)
+					model = result
 				}
 			}
 
@@ -232,14 +232,14 @@ func TestApp_PredictionFlow_Integration(t *testing.T) {
 					prediction: model.prediction,
 				}
 				updatedModel, cmd := model.attemptExplanation(explanationMsg)
-				model = updatedModel.(appModel)
+				model = updatedModel
 
 				// Execute the explanation command
 				if cmd != nil {
 					msg := cmd()
 					if setExplMsg, ok := msg.(setExplanationMsg); ok {
-						updatedModel, _ := model.setExplanation(setExplMsg)
-						model = updatedModel.(appModel)
+						result, _ := model.setExplanation(setExplMsg)
+						model = result
 					}
 				}
 			}
@@ -271,7 +271,8 @@ func TestCtrlKClearsPredictionAndExplanation(t *testing.T) {
 	model.textInput.SetValue("git")
 	model.textInput.SetCursor(len("git"))
 
-	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
+	result, _ := model.setPrediction(model.predictionStateId, "git status", "git")
+	model = result
 	assert.NotEmpty(t, model.textInput.MatchedSuggestions())
 
 	updatedModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
@@ -302,7 +303,8 @@ func TestCtrlKRerequestsPredictionWhenTextRemains(t *testing.T) {
 	model.textInput.SetValue("git status")
 	model.textInput.SetCursor(len("git"))
 
-	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
+	result, _ := model.setPrediction(model.predictionStateId, "git status", "git")
+	model = result
 	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Prediction-backed suggestions should be visible before trimming")
 
 	updatedModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
@@ -335,7 +337,8 @@ func TestCtrlKRefreshesPredictionWhenTextUnchanged(t *testing.T) {
 	model.textInput.SetValue("git")
 	model.textInput.SetCursor(len("git"))
 
-	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
+	result, _ := model.setPrediction(model.predictionStateId, "git status", "git")
+	model = result
 	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Prediction-backed suggestions should be visible before trimming")
 
 	updatedModel, cmd := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
@@ -349,21 +352,22 @@ func TestCtrlKRefreshesPredictionWhenTextUnchanged(t *testing.T) {
 	if cmd != nil {
 		if attemptMsg, ok := cmd().(attemptPredictionMsg); ok {
 			predictionModel, predictionCmd := model.attemptPrediction(attemptMsg)
-			model = predictionModel.(appModel)
+			model = predictionModel
 
 			if predictionCmd != nil {
 				if predMsg, ok := predictionCmd().(setPredictionMsg); ok {
-					model, predictionCmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					result, predictionCmd := model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					model = result
 
 					if predictionCmd != nil {
 						if attemptExplMsg, ok := predictionCmd().(attemptExplanationMsg); ok {
 							explanationModel, ecmd := model.attemptExplanation(attemptExplMsg)
-							model = explanationModel.(appModel)
+							model = explanationModel
 
 							if ecmd != nil {
 								if explMsg, ok := ecmd().(setExplanationMsg); ok {
 									explanationModel, _ = model.setExplanation(explMsg)
-									model = explanationModel.(appModel)
+									model = explanationModel
 								}
 							}
 						}
@@ -383,19 +387,20 @@ func TestCtrlKRefreshesPredictionWhenTextUnchanged(t *testing.T) {
 	if predictionCmd != nil {
 		if attemptMsg, ok := predictionCmd().(attemptPredictionMsg); ok {
 			predictionModel, pcmd := model.attemptPrediction(attemptMsg)
-			model = predictionModel.(appModel)
+			model = predictionModel
 
 			if pcmd != nil {
 				if predMsg, ok := pcmd().(setPredictionMsg); ok {
-					model, pcmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					result, pcmd := model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					model = result
 					if pcmd != nil {
 						if attemptExplMsg, ok := pcmd().(attemptExplanationMsg); ok {
 							explanationModel, ecmd := model.attemptExplanation(attemptExplMsg)
-							model = explanationModel.(appModel)
+							model = explanationModel
 							if ecmd != nil {
 								if explMsg, ok := ecmd().(setExplanationMsg); ok {
 									explanationModel, _ = model.setExplanation(explMsg)
-									model = explanationModel.(appModel)
+									model = explanationModel
 								}
 							}
 						}
@@ -429,7 +434,8 @@ func TestCtrlKRestoresSuggestionsWithoutNewInput(t *testing.T) {
 	model.textInput.SetValue("ls -la")
 	model.textInput.SetCursor(len("ls"))
 
-	model, _ = model.setPrediction(model.predictionStateId, "ls -la", "ls")
+	result, _ := model.setPrediction(model.predictionStateId, "ls -la", "ls")
+	model = result
 	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Prediction-backed suggestions should be visible before trimming user text")
 
 	updatedModel, cmd := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
@@ -444,21 +450,22 @@ func TestCtrlKRestoresSuggestionsWithoutNewInput(t *testing.T) {
 		// Prediction attempts should refresh help text without re-enabling suggestions while suppression is active
 		if attemptMsg, ok := cmd().(attemptPredictionMsg); ok {
 			predictionModel, predictionCmd := model.attemptPrediction(attemptMsg)
-			model = predictionModel.(appModel)
+			model = predictionModel
 
 			if predictionCmd != nil {
 				if predMsg, ok := predictionCmd().(setPredictionMsg); ok {
-					model, predictionCmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					result, predictionCmd := model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					model = result
 
 					if predictionCmd != nil {
 						if attemptExplMsg, ok := predictionCmd().(attemptExplanationMsg); ok {
 							explanationModel, ecmd := model.attemptExplanation(attemptExplMsg)
-							model = explanationModel.(appModel)
+							model = explanationModel
 
 							if ecmd != nil {
 								if explMsg, ok := ecmd().(setExplanationMsg); ok {
 									explanationModel, _ = model.setExplanation(explMsg)
-									model = explanationModel.(appModel)
+									model = explanationModel
 								}
 							}
 						}
@@ -478,21 +485,22 @@ func TestCtrlKRestoresSuggestionsWithoutNewInput(t *testing.T) {
 	if predictionCmd != nil {
 		if attemptMsg, ok := predictionCmd().(attemptPredictionMsg); ok {
 			predictionModel, pcmd := model.attemptPrediction(attemptMsg)
-			model = predictionModel.(appModel)
+			model = predictionModel
 
 			if pcmd != nil {
 				if predMsg, ok := pcmd().(setPredictionMsg); ok {
-					model, pcmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					result, pcmd := model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					model = result
 
 					if pcmd != nil {
 						if attemptExplMsg, ok := pcmd().(attemptExplanationMsg); ok {
 							explanationModel, ecmd := model.attemptExplanation(attemptExplMsg)
-							model = explanationModel.(appModel)
+							model = explanationModel
 
 							if ecmd != nil {
 								if explMsg, ok := ecmd().(setExplanationMsg); ok {
 									explanationModel, _ = model.setExplanation(explMsg)
-									model = explanationModel.(appModel)
+									model = explanationModel
 								}
 							}
 						}
