@@ -35,3 +35,4 @@ dist/
 .DS_Store
 .auto-claude-status
 .claude_settings.json
+.auto-claude-security.json
