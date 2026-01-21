@@ -186,7 +186,7 @@ func (m *appModel) clearPredictionAndRestoreDefault() {
 	m.textInput.SetSuggestions([]string{})
 }
 
-func (m *appModel) setPrediction(stateId int, prediction string, inputContext string) (*appModel, tea.Cmd) {
+func (m appModel) setPrediction(stateId int, prediction string, inputContext string) (appModel, tea.Cmd) {
 	if stateId != m.predictionStateId {
 		m.logger.Debug(
 			"gline discarding prediction",
@@ -227,7 +227,7 @@ const predictionTimeout = 10 * time.Second
 // LLM call timeout for explanations
 const explanationTimeout = 10 * time.Second
 
-func (m *appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.Cmd) {
+func (m appModel) attemptExplanation(msg attemptExplanationMsg) (appModel, tea.Cmd) {
 	if m.explainer == nil {
 		return m, nil
 	}
@@ -254,7 +254,7 @@ func (m *appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea
 	})
 }
 
-func (m *appModel) setExplanation(msg setExplanationMsg) (*appModel, tea.Cmd) {
+func (m appModel) setExplanation(msg setExplanationMsg) (appModel, tea.Cmd) {
 	if msg.stateId != m.predictionStateId {
 		m.logger.Debug(
 			"gline discarding explanation",
@@ -270,7 +270,7 @@ func (m *appModel) setExplanation(msg setExplanationMsg) (*appModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m *appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cmd) {
+func (m appModel) attemptPrediction(msg attemptPredictionMsg) (appModel, tea.Cmd) {
 	if m.predictor == nil {
 		return m, nil
 	}
@@ -439,7 +439,6 @@ func (m appModel) handleIdleCheck(msg idleCheckMsg) (tea.Model, tea.Cmd) {
 
 	// User is idle, trigger summary generation
 	m.idleSummaryPending = true
-	stateId := m.idleSummaryStateId
 	m.logger.Debug("user idle, generating summary",
 		zap.Duration("idle_duration", time.Since(m.lastInputTime)))
 	return m, tea.Cmd(func() tea.Msg {
@@ -449,10 +448,10 @@ func (m appModel) handleIdleCheck(msg idleCheckMsg) (tea.Model, tea.Cmd) {
 		summary, err := m.options.IdleSummaryGenerator(ctx)
 		if err != nil {
 			m.logger.Debug("idle summary generation failed", zap.Error(err))
-			return setIdleSummaryMsg{stateId: stateId, summary: ""}
+			return setIdleSummaryMsg{stateId: m.idleSummaryStateId, summary: ""}
 		}
 
-		return setIdleSummaryMsg{stateId: stateId, summary: summary}
+		return setIdleSummaryMsg{stateId: m.idleSummaryStateId, summary: summary}
 	})
 }
 
