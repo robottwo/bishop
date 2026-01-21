@@ -186,7 +186,7 @@ func (m *appModel) clearPredictionAndRestoreDefault() {
 	m.textInput.SetSuggestions([]string{})
 }
 
-func (m appModel) setPrediction(stateId int, prediction string, inputContext string) (appModel, tea.Cmd) {
+func (m *appModel) setPrediction(stateId int, prediction string, inputContext string) (*appModel, tea.Cmd) {
 	if stateId != m.predictionStateId {
 		m.logger.Debug(
 			"gline discarding prediction",
@@ -227,7 +227,7 @@ const predictionTimeout = 10 * time.Second
 // LLM call timeout for explanations
 const explanationTimeout = 10 * time.Second
 
-func (m appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.Cmd) {
+func (m *appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.Cmd) {
 	if m.explainer == nil {
 		return m, nil
 	}
@@ -254,7 +254,7 @@ func (m appModel) attemptExplanation(msg attemptExplanationMsg) (tea.Model, tea.
 	})
 }
 
-func (m appModel) setExplanation(msg setExplanationMsg) (tea.Model, tea.Cmd) {
+func (m *appModel) setExplanation(msg setExplanationMsg) (*appModel, tea.Cmd) {
 	if msg.stateId != m.predictionStateId {
 		m.logger.Debug(
 			"gline discarding explanation",
@@ -270,7 +270,7 @@ func (m appModel) setExplanation(msg setExplanationMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cmd) {
+func (m *appModel) attemptPrediction(msg attemptPredictionMsg) (tea.Model, tea.Cmd) {
 	if m.predictor == nil {
 		return m, nil
 	}
