@@ -45,6 +45,19 @@ func NewHistoryManager(dbFilePath string) (*HistoryManager, error) {
 		return nil, err
 	}
 
+	// Configure connection pool for SQLite optimization
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	// SQLite serializes writes anyway, so multiple connections add overhead
+	sqlDB.SetMaxOpenConns(1)
+	// Minimal pooling for file-based DB
+	sqlDB.SetMaxIdleConns(1)
+	// Reasonable connection lifetime
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
 	return &HistoryManager{
 		db: db,
 	}, nil
