@@ -439,11 +439,9 @@ func (m appModel) handleIdleCheck(msg idleCheckMsg) (tea.Model, tea.Cmd) {
 
 	// User is idle, trigger summary generation
 	m.idleSummaryPending = true
-	m.logger.Debug("user idle, generating summary",
-		zap.Duration("idle_duration", time.Since(m.lastInputTime)),
-	)
-
 	stateId := m.idleSummaryStateId
+	m.logger.Debug("user idle, generating summary",
+		zap.Duration("idle_duration", time.Since(m.lastInputTime)))
 	return m, tea.Cmd(func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
