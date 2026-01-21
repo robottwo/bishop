@@ -27,7 +27,15 @@ type HistoryEntry struct {
 }
 
 func NewHistoryManager(dbFilePath string) (*HistoryManager, error) {
-	db, err := gorm.Open(sqlite.Open(dbFilePath), &gorm.Config{})
+	// NFS-optimized connection string with PRAGMA settings
+	// - foreign_keys(1): Enable foreign key constraints (disabled by default)
+	// - busy_timeout(5000): 5 second timeout for NFS network latency
+	// - synchronous(1): NORMAL mode for durability/performance balance
+	// - cache_size(-20000): 20MB cache to reduce NFS I/O operations
+	// - temp_store(2): MEMORY - keeps temp files out of NFS
+	connectionString := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_pragma=synchronous(1)&_pragma=cache_size(-20000)&_pragma=temp_store(2)", dbFilePath)
+
+	db, err := gorm.Open(sqlite.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening database")
 		return nil, err
