@@ -28,17 +28,51 @@ type AnalyticsEntry struct {
 }
 
 func NewAnalyticsManager(dbFilePath string) (*AnalyticsManager, error) {
-	db, err := gorm.Open(sqlite.Open(dbFilePath), &gorm.Config{})
+	// NFS-optimized connection string with PRAGMA settings
+	// - foreign_keys(1): Enable foreign key constraints (disabled by default)
+	// - busy_timeout(5000): 5 second timeout for NFS network latency
+	// - synchronous(1): NORMAL mode for durability/performance balance
+	// - cache_size(-20000): 20MB cache to reduce NFS I/O operations
+	// - temp_store(2): MEMORY - keeps temp files out of NFS
+	connectionString := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_pragma=synchronous(1)&_pragma=cache_size(-20000)&_pragma=temp_store(2)", dbFilePath)
+
+	db, err := gorm.Open(sqlite.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening database")
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&AnalyticsEntry{}); err != nil { return nil, err }
+	if err := db.AutoMigrate(&AnalyticsEntry{}); err != nil {
+		return nil, err
+	}
+
+	// Configure connection pool for SQLite optimization
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	// SQLite serializes writes anyway, so multiple connections add overhead
+	sqlDB.SetMaxOpenConns(1)
+	// Minimal pooling for file-based DB
+	sqlDB.SetMaxIdleConns(1)
+	// Reasonable connection lifetime
+	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	return &AnalyticsManager{
 		db: db,
 	}, nil
+}
+
+// Close closes the database connection. This should be called when the
+// AnalyticsManager is no longer needed, especially in tests to allow cleanup
+// of temporary database files on Windows.
+func (analyticsManager *AnalyticsManager) Close() error {
+	sqlDB, err := analyticsManager.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
 
 func (analyticsManager *AnalyticsManager) NewEntry(input string, prediction string, actual string) error {
