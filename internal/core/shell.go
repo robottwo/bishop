@@ -89,7 +89,7 @@ func RunInteractiveShell(
 	}()
 
 	// Initialize cached prompt before entering the loop
-	cachedPrompt := environment.GetPrompt(runner, logger)
+	cachedPrompt := environment.GetPrompt(context.Background(), runner, logger)
 	logger.Debug("initial prompt cached", zap.String("prompt", cachedPrompt))
 
 	for {
@@ -148,6 +148,11 @@ func RunInteractiveShell(
 		options.IdleSummaryTimeout = idleTimeout
 		if idleTimeout > 0 {
 			options.IdleSummaryGenerator = idleSummaryGenerator.GenerateSummary
+		}
+
+		// Configure async prompt generation (follows IdleSummaryGenerator pattern above)
+		options.PromptGenerator = func(ctx context.Context) string {
+			return environment.GetPrompt(ctx, runner, logger)
 		}
 
 		// Get coach startup content for the Assistant Box
@@ -356,7 +361,7 @@ func RunInteractiveShell(
 							editOptions.Host, _ = os.Hostname()
 							editOptions.InitialValue = fixedCmd
 
-							shellPrompt := environment.GetPrompt(runner, logger)
+							shellPrompt := environment.GetPrompt(context.Background(), runner, logger)
 							editedLine, _, editErr := gline.Gline(shellPrompt, historyCommands, "", predictor, explainer, analyticsManager, logger, editOptions)
 							if editErr != nil {
 								if editErr == gline.ErrInterrupted {
