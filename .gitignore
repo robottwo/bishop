@@ -36,3 +36,8 @@ dist/
 .auto-claude-status
 .claude_settings.json
 .auto-claude-security.json
+
+# Auto Claude generated files
+.worktrees/
+.security-key
+logs/security/
