@@ -64,9 +64,9 @@ func (m *MockPrompter) Prompt(
 	analytics gline.PredictionAnalytics,
 	logger *zap.Logger,
 	options gline.Options,
-) (string, error) {
+) (string, string, error) {
 	args := m.Called(prompt, historyValues, explanation, predictor, explainer, logger, options)
-	return args.String(0), args.Error(1)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
 type MockUpdater struct {
@@ -213,7 +213,7 @@ func TestHandleSelfUpdate_UpdateNeeded(t *testing.T) {
 
 	mockPrompter.
 		On("Prompt", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return("y", nil)
+		Return("y", "", nil)
 
 	resultChannel := HandleSelfUpdate("0.1.0", logger, mockFS, mockPrompter, mockUpdater)
 

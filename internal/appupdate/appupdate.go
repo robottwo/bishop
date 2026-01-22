@@ -88,7 +88,7 @@ func updateToLatestVersion(repoSlug string, currentSemVer *semver.Version, logge
 		promptText = "New version of bish available. Update now? (Y/n) "
 	}
 
-	confirm, _ := prompter.Prompt(
+	confirm, _, _ := prompter.Prompt(
 		styles.AGENT_QUESTION(promptText),
 		[]string{},
 		latestVersion,

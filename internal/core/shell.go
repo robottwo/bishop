@@ -168,7 +168,7 @@ func RunInteractiveShell(
 			}
 		}
 
-		line, err := gline.Gline(cachedPrompt, historyCommands, coachContent, predictor, explainer, analyticsManager, logger, options)
+		line, updatedPrompt, err := gline.Gline(cachedPrompt, historyCommands, coachContent, predictor, explainer, analyticsManager, logger, options)
 
 		logger.Debug("received command", zap.String("line", line))
 
@@ -176,11 +176,16 @@ func RunInteractiveShell(
 			if err == gline.ErrInterrupted {
 				// User pressed Ctrl+C, restart loop with fresh prompt
 				logger.Debug("input interrupted by user")
+				// Store the returned prompt for next iteration
+				cachedPrompt = updatedPrompt
 				continue
 			}
 			logger.Error("error reading input through gline", zap.Error(err))
 			return err
 		}
+
+		// Store the returned prompt for next iteration
+		cachedPrompt = updatedPrompt
 
 		// Handle agent chat and macros
 		if strings.HasPrefix(line, "#") {
@@ -356,7 +361,7 @@ func RunInteractiveShell(
 							editOptions.InitialValue = fixedCmd
 
 							shellPrompt := environment.GetPrompt(runner, logger)
-							editedLine, editErr := gline.Gline(shellPrompt, historyCommands, "", predictor, explainer, analyticsManager, logger, editOptions)
+							editedLine, _, editErr := gline.Gline(shellPrompt, historyCommands, "", predictor, explainer, analyticsManager, logger, editOptions)
 							if editErr != nil {
 								if editErr == gline.ErrInterrupted {
 									fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit cancelled\n") + gline.RESET_CURSOR_COLUMN)

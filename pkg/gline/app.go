@@ -303,14 +303,14 @@ func Gline(
 	analytics PredictionAnalytics,
 	logger *zap.Logger,
 	options Options,
-) (string, error) {
+) (string, string, error) {
 	p := tea.NewProgram(
 		initialModel(prompt, historyValues, explanation, predictor, explainer, analytics, logger, options),
 	)
 
 	m, err := p.Run()
 	if err != nil {
-		return "", err
+		return "", prompt, err
 	}
 
 	appModel, ok := m.(appModel)
@@ -337,7 +337,7 @@ func Gline(
 		inputStr += appModel.textInput.Prompt + appModel.textInput.Value() + "^C\n"
 
 		fmt.Print(RESET_CURSOR_COLUMN + inputStr)
-		return "", ErrInterrupted
+		return "", appModel.cachedPrompt, ErrInterrupted
 	}
 
 	fmt.Print(RESET_CURSOR_COLUMN + appModel.getFinalOutput() + "\n")
@@ -349,5 +349,5 @@ func Gline(
 		}
 	}
 
-	return appModel.result, nil
+	return appModel.result, appModel.cachedPrompt, nil
 }

@@ -84,7 +84,7 @@ var defaultUserConfirmation = func(logger *zap.Logger, runner *interp.Runner, qu
 	}
 	prompt := styles.AGENT_QUESTION(question) + promptSuffix
 
-	line, err := gline.Gline(prompt, []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
+	line, _, err := gline.Gline(prompt, []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
 	if err != nil {
 		// Check if the error is specifically from Ctrl+C interruption
 		if err == gline.ErrInterrupted {
