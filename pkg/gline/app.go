@@ -235,6 +235,7 @@ func (m appModel) Init() tea.Cmd {
 			}
 		},
 		m.fetchGitStatus(),
+		m.fetchPrompt(),
 	}
 
 	// Only start resource monitoring if enabled (interval > 0)
