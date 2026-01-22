@@ -275,6 +275,20 @@ func (m appModel) fetchGitStatus() tea.Cmd {
 	}
 }
 
+func (m appModel) fetchPrompt() tea.Cmd {
+	return func() tea.Msg {
+		if m.options.PromptGenerator == nil {
+			return nil
+		}
+		// Create a context with timeout for prompt generation
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		prompt := m.options.PromptGenerator(ctx)
+		return promptMsg{stateId: m.promptStateId, prompt: prompt}
+	}
+}
+
 func Gline(
 	prompt string,
 	historyValues []string,

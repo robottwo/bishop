@@ -1,6 +1,7 @@
 package gline
 
 import (
+	"context"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -279,4 +280,44 @@ func TestHandleClearScreen(t *testing.T) {
 	// ClearScreen() returns a clearScreenMsg (unexported), so we can't type assert
 	// We just verify that the command returns something non-nil
 	assert.NotNil(t, msg, "handleClearScreen should return tea.ClearScreen command")
+}
+
+// Test fetchPrompt
+func TestFetchPrompt(t *testing.T) {
+	logger := zap.NewNop()
+
+	t.Run("with PromptGenerator", func(t *testing.T) {
+		expectedPrompt := "test-prompt> "
+		opts := NewOptions()
+		opts.PromptGenerator = func(ctx context.Context) string {
+			return expectedPrompt
+		}
+
+		model := initialModel("$ ", []string{}, "", nil, nil, nil, logger, opts)
+		cmd := model.fetchPrompt()
+		assert.NotNil(t, cmd)
+
+		// Execute the command
+		msg := cmd()
+		assert.NotNil(t, msg)
+
+		// Verify it returns a promptMsg with the expected prompt
+		promptMessage, ok := msg.(promptMsg)
+		assert.True(t, ok, "fetchPrompt should return promptMsg")
+		assert.Equal(t, expectedPrompt, promptMessage.prompt)
+		assert.Equal(t, model.promptStateId, promptMessage.stateId)
+	})
+
+	t.Run("without PromptGenerator", func(t *testing.T) {
+		opts := NewOptions()
+		opts.PromptGenerator = nil
+
+		model := initialModel("$ ", []string{}, "", nil, nil, nil, logger, opts)
+		cmd := model.fetchPrompt()
+		assert.NotNil(t, cmd)
+
+		// Execute the command
+		msg := cmd()
+		assert.Nil(t, msg, "fetchPrompt should return nil when PromptGenerator is nil")
+	})
 }

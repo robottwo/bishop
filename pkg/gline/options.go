@@ -9,6 +9,9 @@ import (
 // IdleSummaryGenerator is a function that generates an idle summary
 type IdleSummaryGenerator func(ctx context.Context) (string, error)
 
+// PromptGenerator is a function that generates the prompt string
+type PromptGenerator func(ctx context.Context) string
+
 type Options struct {
 	// Deprecated: use AssistantHeight instead
 	MinHeight          int
@@ -34,6 +37,10 @@ type Options struct {
 	// Higher values reduce energy consumption. Default is 5 seconds.
 	// Set to 0 to disable resource monitoring.
 	ResourceUpdateInterval int
+
+	// PromptGenerator is called asynchronously to generate the prompt string.
+	// If nil, prompt fetching is disabled.
+	PromptGenerator PromptGenerator
 }
 
 func NewOptions() Options {
