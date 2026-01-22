@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.34.0](https://github.com/robottwo/bishop/compare/v0.33.0...v0.34.0) (2026-01-22)
+
+
+### Features
+
+* Add a dedicated grep/search tool  ([#94](https://github.com/robottwo/bishop/issues/94)) ([1fcb7a7](https://github.com/robottwo/bishop/commit/1fcb7a7f40b2e911414de41490e6ba62e4b98f6c))
+* Optimize history queries with database indexes ([#82](https://github.com/robottwo/bishop/issues/82)) ([1939b2f](https://github.com/robottwo/bishop/commit/1939b2f347a2e2879ae707fa4260fab2b2dd0a36))
+* Redesign the permission confirmation prompt ([#90](https://github.com/robottwo/bishop/issues/90)) ([412384f](https://github.com/robottwo/bishop/commit/412384f165e61276addc9af42a7d4528e2824d7d))
+* Speed up sqlite operations, especially on NFS ([#97](https://github.com/robottwo/bishop/issues/97)) ([2c3007c](https://github.com/robottwo/bishop/commit/2c3007c79635ebda75a4b243f22e2563b003da40))
+
 ## [0.33.0](https://github.com/robottwo/bishop/compare/v0.32.0...v0.33.0) (2026-01-06)
 
 
