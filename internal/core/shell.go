@@ -88,9 +88,14 @@ func RunInteractiveShell(
 		}
 	}()
 
+	// Initialize cached prompt before entering the loop
+	cachedPrompt := environment.GetPrompt(runner, logger)
+	logger.Debug("initial prompt cached", zap.String("prompt", cachedPrompt))
+
 	for {
-		prompt := environment.GetPrompt(runner, logger)
-		logger.Debug("prompt updated", zap.String("prompt", prompt))
+		// Update cached prompt for this iteration
+		cachedPrompt = environment.GetPrompt(runner, logger)
+		logger.Debug("prompt updated", zap.String("prompt", cachedPrompt))
 
 		ragContext := contextProvider.GetContext()
 		logger.Debug("context updated", zap.Any("context", ragContext))
@@ -163,7 +168,7 @@ func RunInteractiveShell(
 			}
 		}
 
-		line, err := gline.Gline(prompt, historyCommands, coachContent, predictor, explainer, analyticsManager, logger, options)
+		line, err := gline.Gline(cachedPrompt, historyCommands, coachContent, predictor, explainer, analyticsManager, logger, options)
 
 		logger.Debug("received command", zap.String("line", line))
 

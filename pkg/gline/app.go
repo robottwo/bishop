@@ -193,6 +193,10 @@ func initialModel(
 
 		predictionStateId: 0,
 
+		// Initialize async prompt support with cached value
+		cachedPrompt:  prompt,
+		promptStateId: 0,
+
 		explanationStyle: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("12")),
