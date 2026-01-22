@@ -151,6 +151,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+			m.promptStateId++
 			m.result = result
 			return m, tea.Sequence(terminate, tea.Quit)
 
@@ -162,6 +163,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Handle Ctrl-C: cancel current line, preserve input with "^C" appended, and present fresh prompt
 
 			// Set result to empty string so shell doesn't try to execute it
+			m.promptStateId++
 			m.result = ""
 			// Use interrupt message to indicate Ctrl+C was pressed
 			// We do not reset multiline state here so that Gline() can reconstruct the full input
@@ -171,6 +173,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			currentInput := m.textInput.Value()
 			if strings.TrimSpace(currentInput) == "" {
 				// On blank line, exit the shell
+				m.promptStateId++
 				m.result = "exit"
 				return m, tea.Sequence(terminate, tea.Quit)
 			}
