@@ -47,6 +47,10 @@ type appModel struct {
 	originalPrompt string
 	height         int
 
+	// Async prompt support
+	cachedPrompt  string //nolint:unused // Will be used in subtask-1-2 (fetchPrompt) and subtask-1-3 (prompt message handler)
+	promptStateId int    //nolint:unused // Will be used in subtask-4-1 (state tracking) and subtask-4-2 (cancellation)
+
 	// LLM status indicator
 	llmIndicator LLMIndicator
 
@@ -85,6 +89,11 @@ type resourceMsg struct {
 
 type gitStatusMsg struct {
 	status *git.RepoStatus
+}
+
+type promptMsg struct { //nolint:unused // Will be used in subtask-1-2 (fetchPrompt) and subtask-1-3 (prompt message handler)
+	stateId int
+	prompt  string
 }
 
 // errorMsg wraps an error that occurred during prediction or explanation
