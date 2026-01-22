@@ -41,8 +41,16 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case promptMsg:
+		// Discard stale prompt updates (similar to prediction state tracking)
+		if msg.stateId != m.promptStateId {
+			m.logger.Debug(
+				"gline discarding prompt",
+				zap.Int("startStateId", msg.stateId),
+				zap.Int("newStateId", m.promptStateId),
+			)
+			return m, nil
+		}
 		// Update cached prompt value for async rendering
-		// stateId checking will be added in subtask-4-1
 		m.cachedPrompt = msg.prompt
 		return m, nil
 
