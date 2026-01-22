@@ -281,7 +281,7 @@ func newCompressedSink(u *url.URL) (zap.Sink, error) {
 	// Create zstd encoder with default compression level
 	encoder, err := zstd.NewWriter(file, zstd.WithEncoderLevel(zstd.SpeedDefault))
 	if err != nil {
-		file.Close()
+		_ = file.Close()
 		return nil, err
 	}
 
