@@ -994,3 +994,233 @@ func TestApp_View_Integration(t *testing.T) {
 		})
 	}
 }
+
+func TestAsyncPrompt_Integration(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	predictor := newMockPredictor()
+	explainer := newMockExplainer()
+	analytics := newMockAnalytics()
+	completionProvider := newAppCompletionProvider()
+
+	t.Run("full async prompt flow", func(t *testing.T) {
+		options := NewOptions()
+		options.CompletionProvider = completionProvider
+
+		// Mock prompt generator that simulates async prompt generation
+		promptCallCount := 0
+		options.PromptGenerator = func(ctx context.Context) string {
+			promptCallCount++
+			// Simulate some work
+			select {
+			case <-ctx.Done():
+				return "" // Context cancelled
+			case <-time.After(10 * time.Millisecond):
+				return "bish> " // Generated prompt
+			}
+		}
+
+		// Create initial model with cached prompt
+		model := initialModel(
+			"cached> ",
+			[]string{},
+			"",
+			predictor,
+			explainer,
+			analytics,
+			logger,
+			options,
+		)
+
+		// Verify initial state uses cached prompt
+		assert.Equal(t, "cached> ", model.cachedPrompt,
+			"Expected cached prompt to be initialized")
+		assert.Equal(t, 0, model.promptStateId,
+			"Expected initial prompt state ID to be 0")
+
+		// Trigger async prompt fetch
+		cmd := model.fetchPrompt()
+		require.NotNil(t, cmd, "Expected fetchPrompt to return a command")
+
+		// Execute the async command
+		msg := cmd()
+		require.NotNil(t, msg, "Expected command to return a message")
+
+		// Verify message type
+		promptMessage, ok := msg.(promptMsg)
+		require.True(t, ok, "Expected message to be promptMsg type")
+		assert.Equal(t, 0, promptMessage.stateId,
+			"Expected prompt message state ID to match model state ID")
+		assert.Equal(t, "bish> ", promptMessage.prompt,
+			"Expected prompt message to contain generated prompt")
+
+		// Process the prompt message through Update
+		updatedModel, updateCmd := model.Update(promptMessage)
+		model = updatedModel.(appModel)
+
+		// Verify cached prompt was updated
+		assert.Equal(t, "bish> ", model.cachedPrompt,
+			"Expected cached prompt to be updated with new value")
+		assert.Nil(t, updateCmd, "Expected no additional commands")
+		assert.Equal(t, 1, promptCallCount,
+			"Expected prompt generator to be called once")
+	})
+
+	t.Run("stale prompt updates are discarded", func(t *testing.T) {
+		options := NewOptions()
+		options.CompletionProvider = completionProvider
+
+		// Mock prompt generator
+		options.PromptGenerator = func(ctx context.Context) string {
+			return "new-prompt> "
+		}
+
+		model := initialModel(
+			"cached> ",
+			[]string{},
+			"",
+			predictor,
+			explainer,
+			analytics,
+			logger,
+			options,
+		)
+
+		// Simulate command submission by incrementing promptStateId
+		model.promptStateId = 1
+
+		// Create a stale prompt message with old state ID
+		stalePromptMsg := promptMsg{
+			stateId: 0,
+			prompt:  "stale-prompt> ",
+		}
+
+		// Process the stale message
+		updatedModel, _ := model.Update(stalePromptMsg)
+		model = updatedModel.(appModel)
+
+		// Verify cached prompt was NOT updated (stale message discarded)
+		assert.Equal(t, "cached> ", model.cachedPrompt,
+			"Expected cached prompt to remain unchanged when stale message received")
+		assert.Equal(t, 1, model.promptStateId,
+			"Expected prompt state ID to remain at 1")
+	})
+
+	t.Run("current prompt updates are accepted", func(t *testing.T) {
+		options := NewOptions()
+		options.CompletionProvider = completionProvider
+
+		// Mock prompt generator
+		options.PromptGenerator = func(ctx context.Context) string {
+			return "fresh-prompt> "
+		}
+
+		model := initialModel(
+			"cached> ",
+			[]string{},
+			"",
+			predictor,
+			explainer,
+			analytics,
+			logger,
+			options,
+		)
+
+		// Set prompt state ID to 5
+		model.promptStateId = 5
+
+		// Create a fresh prompt message with matching state ID
+		freshPromptMsg := promptMsg{
+			stateId: 5,
+			prompt:  "fresh-prompt> ",
+		}
+
+		// Process the fresh message
+		updatedModel, _ := model.Update(freshPromptMsg)
+		model = updatedModel.(appModel)
+
+		// Verify cached prompt WAS updated (current message accepted)
+		assert.Equal(t, "fresh-prompt> ", model.cachedPrompt,
+			"Expected cached prompt to be updated with fresh value")
+		assert.Equal(t, 5, model.promptStateId,
+			"Expected prompt state ID to remain at 5")
+	})
+
+	t.Run("cancellation on command submission", func(t *testing.T) {
+		options := NewOptions()
+		options.CompletionProvider = completionProvider
+
+		// Mock prompt generator
+		options.PromptGenerator = func(ctx context.Context) string {
+			return "generated-prompt> "
+		}
+
+		model := initialModel(
+			"cached> ",
+			[]string{},
+			"",
+			predictor,
+			explainer,
+			analytics,
+			logger,
+			options,
+		)
+
+		initialStateId := model.promptStateId
+
+		// Trigger async prompt fetch
+		cmd := model.fetchPrompt()
+		require.NotNil(t, cmd, "Expected fetchPrompt to return a command")
+
+		// Simulate user submitting command before prompt fetch completes
+		model.textInput.SetValue("echo test")
+		updatedModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+		model = updatedModel.(appModel)
+
+		// Verify promptStateId was incremented (invalidating in-flight fetch)
+		assert.Greater(t, model.promptStateId, initialStateId,
+			"Expected prompt state ID to be incremented on command submission")
+
+		// Now execute the prompt fetch that was in-flight
+		msg := cmd()
+		promptMessage, ok := msg.(promptMsg)
+		require.True(t, ok, "Expected message to be promptMsg type")
+
+		// The message will have the old state ID
+		assert.Equal(t, initialStateId, promptMessage.stateId,
+			"Expected in-flight prompt message to have old state ID")
+
+		// Process the now-stale message
+		cachedPromptBefore := model.cachedPrompt
+		updatedModel, _ = model.Update(promptMessage)
+		model = updatedModel.(appModel)
+
+		// Verify cached prompt was NOT updated (message was stale)
+		assert.Equal(t, cachedPromptBefore, model.cachedPrompt,
+			"Expected cached prompt to remain unchanged after stale in-flight message")
+	})
+
+	t.Run("no prompt generator returns nil", func(t *testing.T) {
+		options := NewOptions()
+		options.CompletionProvider = completionProvider
+		// Don't set PromptGenerator - it should be nil
+
+		model := initialModel(
+			"cached> ",
+			[]string{},
+			"",
+			predictor,
+			explainer,
+			analytics,
+			logger,
+			options,
+		)
+
+		// Trigger async prompt fetch without a generator
+		cmd := model.fetchPrompt()
+		require.NotNil(t, cmd, "Expected fetchPrompt to return a command even without generator")
+
+		// Execute the command
+		msg := cmd()
+		assert.Nil(t, msg, "Expected nil message when no prompt generator is set")
+	})
+}
