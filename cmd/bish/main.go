@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,6 +50,11 @@ func init() {
 	flag.BoolVar(&versionFlag, "v", false, "display build version")
 	flag.BoolVar(&versionFlag, "ver", false, "display build version")
 	flag.BoolVar(&versionFlag, "version", false, "display build version")
+
+	// Register custom zstd sink for compressed logging
+	if err := zap.RegisterSink("zstd", newCompressedSink); err != nil {
+		panic(fmt.Sprintf("failed to register zstd sink: %v", err))
+	}
 }
 
 // main is the entry point of the bish shell program.
@@ -260,6 +266,32 @@ func printUsage() {
 	fmt.Printf("  %-28s %s\n", "#/<macro>", "Run a chat macro (e.g., #/gitdiff)")
 }
 
+// newCompressedSink creates a new compressed sink from a URL.
+// The URL path should point to the log file location.
+func newCompressedSink(u *url.URL) (zap.Sink, error) {
+	// Extract the file path from the URL
+	filePath := u.Path
+
+	// Open the file for writing (create if not exists, append mode)
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create zstd encoder with default compression level
+	encoder, err := zstd.NewWriter(file, zstd.WithEncoderLevel(zstd.SpeedDefault))
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+
+	// Return the custom compressed sink
+	return &compressedSink{
+		file:    file,
+		encoder: encoder,
+	}, nil
+}
+
 // compressedSink wraps a zstd encoder to provide compressed log file writing.
 // It implements the WriteSyncer interface required by zap's custom sinks.
 type compressedSink struct {
@@ -302,7 +334,7 @@ func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {
 	loggerConfig := zap.NewProductionConfig()
 	loggerConfig.Level = logLevel
 	loggerConfig.OutputPaths = []string{
-		core.LogFile(),
+		"zstd://" + core.LogFile(),
 	}
 	logger, err := loggerConfig.Build()
 	if err != nil {
