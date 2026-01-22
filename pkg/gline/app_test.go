@@ -321,3 +321,107 @@ func TestFetchPrompt(t *testing.T) {
 		assert.Nil(t, msg, "fetchPrompt should return nil when PromptGenerator is nil")
 	})
 }
+
+// Test prompt caching initialization
+func TestPromptCachingInitialization(t *testing.T) {
+	logger := zap.NewNop()
+
+	t.Run("cachedPrompt initialized with initial prompt", func(t *testing.T) {
+		initialPrompt := "user@host:~$ "
+		opts := NewOptions()
+
+		model := initialModel(initialPrompt, []string{}, "", nil, nil, nil, logger, opts)
+
+		assert.Equal(t, initialPrompt, model.cachedPrompt, "cachedPrompt should be initialized with initial prompt")
+	})
+
+	t.Run("promptStateId initialized to zero", func(t *testing.T) {
+		opts := NewOptions()
+
+		model := initialModel("$ ", []string{}, "", nil, nil, nil, logger, opts)
+
+		assert.Equal(t, 0, model.promptStateId, "promptStateId should be initialized to 0")
+	})
+}
+
+// Test promptMsg handling in Update
+func TestPromptMessageHandling(t *testing.T) {
+	logger := zap.NewNop()
+
+	t.Run("promptMsg with matching stateId updates cachedPrompt", func(t *testing.T) {
+		initialPrompt := "$ "
+		updatedPrompt := "user@host:~$ "
+		opts := NewOptions()
+
+		model := initialModel(initialPrompt, []string{}, "", nil, nil, nil, logger, opts)
+		model.promptStateId = 5
+
+		// Create a promptMsg with matching stateId
+		msg := promptMsg{
+			stateId: 5,
+			prompt:  updatedPrompt,
+		}
+
+		// Process the message
+		updatedModel, cmd := model.Update(msg)
+		assert.NotNil(t, updatedModel)
+		assert.Nil(t, cmd)
+
+		// Verify cachedPrompt was updated
+		modelAfterUpdate, ok := updatedModel.(appModel)
+		assert.True(t, ok)
+		assert.Equal(t, updatedPrompt, modelAfterUpdate.cachedPrompt, "cachedPrompt should be updated with new prompt")
+	})
+
+	t.Run("promptMsg with stale stateId is discarded", func(t *testing.T) {
+		initialPrompt := "$ "
+		stalePrompt := "stale-prompt> "
+		opts := NewOptions()
+
+		model := initialModel(initialPrompt, []string{}, "", nil, nil, nil, logger, opts)
+		model.promptStateId = 10
+		model.cachedPrompt = initialPrompt
+
+		// Create a promptMsg with stale stateId (lower than current)
+		msg := promptMsg{
+			stateId: 5,
+			prompt:  stalePrompt,
+		}
+
+		// Process the message
+		updatedModel, cmd := model.Update(msg)
+		assert.NotNil(t, updatedModel)
+		assert.Nil(t, cmd)
+
+		// Verify cachedPrompt was NOT updated
+		modelAfterUpdate, ok := updatedModel.(appModel)
+		assert.True(t, ok)
+		assert.Equal(t, initialPrompt, modelAfterUpdate.cachedPrompt, "cachedPrompt should not be updated by stale promptMsg")
+	})
+
+	t.Run("promptMsg updates only cachedPrompt, not textInput.Prompt", func(t *testing.T) {
+		initialPrompt := "$ "
+		updatedPrompt := "user@host:~$ "
+		opts := NewOptions()
+
+		model := initialModel(initialPrompt, []string{}, "", nil, nil, nil, logger, opts)
+		model.promptStateId = 3
+
+		// Create a promptMsg with matching stateId
+		msg := promptMsg{
+			stateId: 3,
+			prompt:  updatedPrompt,
+		}
+
+		// Process the message
+		updatedModel, cmd := model.Update(msg)
+		assert.NotNil(t, updatedModel)
+		assert.Nil(t, cmd)
+
+		// Verify cachedPrompt was updated but textInput.Prompt remains unchanged
+		modelAfterUpdate, ok := updatedModel.(appModel)
+		assert.True(t, ok)
+		assert.Equal(t, updatedPrompt, modelAfterUpdate.cachedPrompt, "cachedPrompt should be updated")
+		assert.Equal(t, initialPrompt, modelAfterUpdate.textInput.Prompt, "textInput.Prompt should remain unchanged")
+	})
+}

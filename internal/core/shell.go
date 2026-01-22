@@ -93,10 +93,6 @@ func RunInteractiveShell(
 	logger.Debug("initial prompt cached", zap.String("prompt", cachedPrompt))
 
 	for {
-		// Update cached prompt for this iteration
-		cachedPrompt = environment.GetPrompt(runner, logger)
-		logger.Debug("prompt updated", zap.String("prompt", cachedPrompt))
-
 		ragContext := contextProvider.GetContext()
 		logger.Debug("context updated", zap.Any("context", ragContext))
 
@@ -168,7 +164,7 @@ func RunInteractiveShell(
 			}
 		}
 
-		line, updatedPrompt, err := gline.Gline(cachedPrompt, historyCommands, coachContent, predictor, explainer, analyticsManager, logger, options)
+		line, newPrompt, err := gline.Gline(cachedPrompt, historyCommands, coachContent, predictor, explainer, analyticsManager, logger, options)
 
 		logger.Debug("received command", zap.String("line", line))
 
@@ -177,7 +173,7 @@ func RunInteractiveShell(
 				// User pressed Ctrl+C, restart loop with fresh prompt
 				logger.Debug("input interrupted by user")
 				// Store the returned prompt for next iteration
-				cachedPrompt = updatedPrompt
+				cachedPrompt = newPrompt
 				continue
 			}
 			logger.Error("error reading input through gline", zap.Error(err))
@@ -185,7 +181,7 @@ func RunInteractiveShell(
 		}
 
 		// Store the returned prompt for next iteration
-		cachedPrompt = updatedPrompt
+		cachedPrompt = newPrompt
 
 		// Handle agent chat and macros
 		if strings.HasPrefix(line, "#") {
