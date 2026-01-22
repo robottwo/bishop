@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/robottwo/bishop/internal/analytics"
 	"github.com/robottwo/bishop/internal/bash"
 	"github.com/robottwo/bishop/internal/coach"
@@ -257,6 +258,34 @@ func printUsage() {
 	fmt.Printf("  %-28s %s\n", "#!<control>", "Agent controls (e.g., #!config, #!new)")
 	fmt.Printf("  %-28s %s\n", "#?", "Magic Fix: Analyze and fix the last error")
 	fmt.Printf("  %-28s %s\n", "#/<macro>", "Run a chat macro (e.g., #/gitdiff)")
+}
+
+// compressedSink wraps a zstd encoder to provide compressed log file writing.
+// It implements the WriteSyncer interface required by zap's custom sinks.
+type compressedSink struct {
+	file    *os.File
+	encoder *zstd.Encoder
+}
+
+// Write writes compressed data to the underlying file via the zstd encoder.
+func (s *compressedSink) Write(p []byte) (int, error) {
+	return s.encoder.Write(p)
+}
+
+// Sync flushes the encoder buffer and syncs the file to disk.
+func (s *compressedSink) Sync() error {
+	if err := s.encoder.Flush(); err != nil {
+		return err
+	}
+	return s.file.Sync()
+}
+
+// Close closes the encoder and then closes the underlying file.
+func (s *compressedSink) Close() error {
+	if err := s.encoder.Close(); err != nil {
+		return err
+	}
+	return s.file.Close()
 }
 
 func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {
