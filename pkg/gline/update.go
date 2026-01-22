@@ -40,6 +40,12 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case promptMsg:
+		// Update cached prompt value for async rendering
+		// stateId checking will be added in subtask-4-1
+		m.cachedPrompt = msg.prompt
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.textInput.Width = msg.Width
