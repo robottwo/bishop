@@ -268,28 +268,57 @@ func printUsage() {
 
 // newCompressedSink creates a new compressed sink from a URL.
 // The URL path should point to the log file location.
+// Implements proper zstd frame continuation by checking if the existing file
+// contains valid zstd frames and appending new frames appropriately.
 func newCompressedSink(u *url.URL) (zap.Sink, error) {
-	// Extract the file path from the URL
 	filePath := u.Path
 
-	// Open the file for writing (create if not exists, append mode)
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	flags := os.O_CREATE | os.O_WRONLY
+
+	fileInfo, err := os.Stat(filePath)
+	if err == nil && fileInfo.Size() > 0 {
+		if isValidZstdFile(filePath) {
+			flags |= os.O_APPEND
+		} else {
+			flags |= os.O_TRUNC
+		}
+	}
+
+	file, err := os.OpenFile(filePath, flags, 0644)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create zstd encoder with default compression level
 	encoder, err := zstd.NewWriter(file, zstd.WithEncoderLevel(zstd.SpeedDefault))
 	if err != nil {
 		_ = file.Close()
 		return nil, err
 	}
 
-	// Return the custom compressed sink
 	return &compressedSink{
 		file:    file,
 		encoder: encoder,
 	}, nil
+}
+
+// isValidZstdFile checks if a file starts with a valid zstd magic number.
+// Returns false if file doesn't exist, is empty, or has invalid header.
+func isValidZstdFile(filePath string) bool {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return false
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	buf := make([]byte, 4)
+	n, err := file.Read(buf)
+	if err != nil || n < 4 {
+		return false
+	}
+
+	return buf[0] == 0x28 && buf[1] == 0xB5 && buf[2] == 0x2F && buf[3] == 0xFD
 }
 
 // compressedSink wraps a zstd encoder to provide compressed log file writing.
