@@ -66,7 +66,7 @@ vulncheck:
 	@govulncheck ./...
 
 .PHONY: ci
-ci: lint vulncheck test build go-mod-verify
+ci: lint go-mod-verify vulncheck test build
 
 .PHONY: tools
 tools:
