@@ -129,7 +129,7 @@ func TestNewCompressedSink(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			fileURL, err := url.Parse("zstd://" + testFile)
+			fileURL, err := url.Parse("zstd://" + filepath.ToSlash(testFile))
 			require.NoError(t, err)
 
 			sink, err := newCompressedSink(fileURL)
@@ -168,7 +168,7 @@ func TestCompressedSinkWrite(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "test.log")
 
-		fileURL, err := url.Parse("zstd://" + testFile)
+		fileURL, err := url.Parse("zstd://" + filepath.ToSlash(testFile))
 		require.NoError(t, err)
 
 		sink, err := newCompressedSink(fileURL)
@@ -225,7 +225,7 @@ func TestCompressedSinkMultiFrame(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "test.log")
 
-		fileURL, err := url.Parse("zstd://" + testFile)
+		fileURL, err := url.Parse("zstd://" + filepath.ToSlash(testFile))
 		require.NoError(t, err)
 
 		firstLog := "first session log entry"
@@ -265,7 +265,7 @@ func TestCompressedSinkSync(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "test.log")
 
-		fileURL, err := url.Parse("zstd://" + testFile)
+		fileURL, err := url.Parse("zstd://" + filepath.ToSlash(testFile))
 		require.NoError(t, err)
 
 		sink, err := newCompressedSink(fileURL)
@@ -293,7 +293,7 @@ func TestCompressedSinkClose(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "test.log")
 
-		fileURL, err := url.Parse("zstd://" + testFile)
+		fileURL, err := url.Parse("zstd://" + filepath.ToSlash(testFile))
 		require.NoError(t, err)
 
 		sink, err := newCompressedSink(fileURL)
@@ -346,7 +346,7 @@ func TestCompressedSinkIntegration(t *testing.T) {
 		// Using zstd:// scheme which is already available
 
 		config := zap.NewProductionConfig()
-		config.OutputPaths = []string{"zstd://" + logFile}
+		config.OutputPaths = []string{"zstd://" + filepath.ToSlash(logFile)}
 		config.EncoderConfig.TimeKey = ""
 
 		logger, err := config.Build()
