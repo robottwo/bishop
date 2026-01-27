@@ -348,11 +348,16 @@ func (s *compressedSink) Sync() error {
 }
 
 // Close closes the encoder and then closes the underlying file.
+// Always closes the file to prevent file descriptor leaks, even if
+// encoder close fails.
 func (s *compressedSink) Close() error {
-	if err := s.encoder.Close(); err != nil {
-		return err
+	encErr := s.encoder.Close()
+	fileErr := s.file.Close()
+
+	if encErr != nil {
+		return encErr
 	}
-	return s.file.Close()
+	return fileErr
 }
 
 func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {

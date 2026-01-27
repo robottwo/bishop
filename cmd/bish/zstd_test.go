@@ -288,6 +288,55 @@ func TestCompressedSinkSync(t *testing.T) {
 	})
 }
 
+func TestCompressedSinkClose(t *testing.T) {
+	t.Run("Close properly cleans up resources", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		testFile := filepath.Join(tmpDir, "test.log")
+
+		fileURL, err := url.Parse("zstd://" + testFile)
+		require.NoError(t, err)
+
+		sink, err := newCompressedSink(fileURL)
+		require.NoError(t, err)
+
+		// Write some data
+		testData := []byte("test data")
+		_, err = sink.Write(testData)
+		assert.NoError(t, err)
+
+		// Close the sink
+		err = sink.Close()
+		assert.NoError(t, err)
+
+		// Verify we can reopen the file (file descriptor was properly closed)
+		newSink, err := newCompressedSink(fileURL)
+		assert.NoError(t, err, "Should be able to create new sink after closing previous one")
+		defer func() {
+			_ = newSink.Close()
+		}()
+
+		// Verify we can write to the reopened file
+		_, err = newSink.Write([]byte("more data"))
+		assert.NoError(t, err)
+
+		// Verify both sets of data are present
+		err = newSink.Close()
+		assert.NoError(t, err)
+
+		content, err := os.ReadFile(testFile)
+		require.NoError(t, err)
+
+		dec, err := zstd.NewReader(bytes.NewReader(content))
+		require.NoError(t, err)
+		defer dec.Close()
+
+		result, err := io.ReadAll(dec)
+		assert.NoError(t, err)
+		assert.Contains(t, string(result), "test data")
+		assert.Contains(t, string(result), "more data")
+	})
+}
+
 func TestCompressedSinkIntegration(t *testing.T) {
 	t.Run("Integration with zap logger", func(t *testing.T) {
 		tmpDir := t.TempDir()
