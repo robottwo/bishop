@@ -273,6 +273,13 @@ func printUsage() {
 func newCompressedSink(u *url.URL) (zap.Sink, error) {
 	filePath := u.Path
 
+	// On Windows, the drive letter is stored in the host component
+	// For zstd://C:/Users/..., Host="C:" and Path="/Users/..."
+	// We need to combine them to get the full Windows path
+	if u.Host != "" {
+		filePath = u.Host + u.Path
+	}
+
 	flags := os.O_CREATE | os.O_WRONLY
 
 	fileInfo, err := os.Stat(filePath)
