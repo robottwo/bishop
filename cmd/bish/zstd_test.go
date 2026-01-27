@@ -196,6 +196,28 @@ func TestCompressedSinkWrite(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, testData, result)
 	})
+
+	t.Run("Write returns input byte count (io.Writer contract)", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		testFile := filepath.Join(tmpDir, "test.log")
+
+		fileURL, err := url.Parse("zstd://" + testFile)
+		require.NoError(t, err)
+
+		sink, err := newCompressedSink(fileURL)
+		require.NoError(t, err)
+		defer func() {
+			_ = sink.Close()
+		}()
+
+		testData := []byte("test message that will be compressed")
+		n, err := sink.Write(testData)
+		assert.NoError(t, err)
+
+		// io.Writer contract: return number of input bytes written,
+		// NOT compressed bytes (which would be different)
+		assert.Equal(t, len(testData), n, "Write should return len(p), not compressed byte count")
+	})
 }
 
 func TestCompressedSinkMultiFrame(t *testing.T) {

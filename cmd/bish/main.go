@@ -329,8 +329,14 @@ type compressedSink struct {
 }
 
 // Write writes compressed data to the underlying file via the zstd encoder.
+// Returns len(p) on success to satisfy io.Writer contract, regardless of
+// how many compressed bytes were written.
 func (s *compressedSink) Write(p []byte) (int, error) {
-	return s.encoder.Write(p)
+	_, err := s.encoder.Write(p)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 // Sync flushes the encoder buffer and syncs the file to disk.
