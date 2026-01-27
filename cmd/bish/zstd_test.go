@@ -201,7 +201,7 @@ func TestCompressedSinkWrite(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "test.log")
 
-		fileURL, err := url.Parse("zstd://" + testFile)
+		fileURL, err := url.Parse("zstd://" + filepath.ToSlash(testFile))
 		require.NoError(t, err)
 
 		sink, err := newCompressedSink(fileURL)
