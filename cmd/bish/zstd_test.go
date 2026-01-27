@@ -370,6 +370,9 @@ func TestCompressedSinkIntegration(t *testing.T) {
 		content, err := os.ReadFile(logFile)
 		require.NoError(t, err)
 		assert.Greater(t, len(content), 0)
+
+		// Close logger to release file handles (important on Windows)
+		_ = logger.Sync()
 	})
 }
 
