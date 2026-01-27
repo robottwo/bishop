@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestIsValidZstdFile(t *testing.T) {
@@ -342,37 +343,37 @@ func TestCompressedSinkIntegration(t *testing.T) {
 		tmpDir := t.TempDir()
 		logFile := filepath.Join(tmpDir, "bish.log")
 
-		// Note: The sink is already registered in init(), so we don't need to register it again
-		// Using zstd:// scheme which is already available
-
-		config := zap.NewProductionConfig()
-		config.OutputPaths = []string{"zstd://" + filepath.ToSlash(logFile)}
-		config.EncoderConfig.TimeKey = ""
-
-		logger, err := config.Build()
+		fileURL, err := url.Parse("zstd://" + filepath.ToSlash(logFile))
 		require.NoError(t, err)
+
+		sink, err := newCompressedSink(fileURL)
+		require.NoError(t, err)
+
+		encoderConfig := zap.NewProductionEncoderConfig()
+		encoderConfig.TimeKey = ""
+		encoder := zapcore.NewJSONEncoder(encoderConfig)
+		core := zapcore.NewCore(encoder, zapcore.AddSync(sink), zap.InfoLevel)
+		logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
 		logger.Info("test message 1")
 		logger.Info("test message 2")
 
-		// Sync to ensure all data is written
 		err = logger.Sync()
 		assert.NoError(t, err)
 
-		// Check if file exists
 		_, err = os.Stat(logFile)
 		assert.NoError(t, err, "Log file should exist")
 
-		// Verify file was created and is valid
 		assert.True(t, isValidZstdFile(logFile))
 
-		// Read and verify content
 		content, err := os.ReadFile(logFile)
 		require.NoError(t, err)
 		assert.Greater(t, len(content), 0)
 
-		// Close logger to release file handles (important on Windows)
-		_ = logger.Sync()
+		err = sink.Close()
+		if err != nil {
+			t.Logf("Warning: failed to close sink on cleanup: %v", err)
+		}
 	})
 }
 
