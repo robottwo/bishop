@@ -3,6 +3,7 @@ package core
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Paths struct {
@@ -67,4 +68,36 @@ func AnalyticsFile() string {
 func LatestVersionFile() string {
 	ensureDefaultPaths()
 	return defaultPaths.LatestVersionFile
+}
+
+func LogDir() string {
+	ensureDefaultPaths()
+	return defaultPaths.DataDir
+}
+
+func CleanLogFiles() error {
+	ensureDefaultPaths()
+
+	// Find all files matching pattern bish.*.zst
+	entries, err := os.ReadDir(defaultPaths.DataDir)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		// Match pattern: bish.<anything>.zst
+		if strings.HasPrefix(name, "bish.") && strings.HasSuffix(name, ".zst") {
+			filePath := filepath.Join(defaultPaths.DataDir, name)
+			if err := os.Remove(filePath); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

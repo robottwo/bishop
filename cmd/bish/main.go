@@ -269,17 +269,25 @@ func printUsage() {
 
 // newCompressedSink creates a new compressed sink from a URL.
 // The URL path should point to the log file location.
-// Implements proper zstd frame continuation by checking if the existing file
-// contains valid zstd frames and appending new frames appropriately.
+// Each process gets its own log file (bish.<pid>.zst) to avoid corruption
+// when multiple bish instances run concurrently.
 func newCompressedSink(u *url.URL) (zap.Sink, error) {
 	filePath := u.Path
 
-	// On Windows, the drive letter is stored in the host component
+	// On Windows, drive letter is stored in the host component
 	// For zstd://C:/Users/..., Host="C:" and Path="/Users/..."
 	// We need to combine them to get the full Windows path
 	if u.Host != "" {
 		filePath = u.Host + u.Path
 	}
+
+	// Add PID to filename to support concurrent processes without corruption
+	dir := filepath.Dir(filePath)
+	base := filepath.Base(filePath)
+	ext := filepath.Ext(base)
+	name := strings.TrimSuffix(base, ext)
+	pid := os.Getpid()
+	filePath = filepath.Join(dir, fmt.Sprintf("%s.%d%s", name, pid, ext))
 
 	flags := os.O_CREATE | os.O_WRONLY
 
@@ -378,7 +386,7 @@ func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {
 	}
 
 	if environment.ShouldCleanLogFile(runner) {
-		_ = os.Remove(core.LogFile())
+		_ = core.CleanLogFiles()
 	}
 
 	// Initialize the logger

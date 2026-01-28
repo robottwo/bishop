@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
@@ -148,7 +149,20 @@ func TestNewCompressedSink(t *testing.T) {
 			assert.NoError(t, err)
 
 			if tt.expectTruncate {
-				content, err := os.ReadFile(testFile)
+				// Find the actual file (now includes PID suffix)
+				entries, err := os.ReadDir(tmpDir)
+				require.NoError(t, err)
+
+				var actualFile string
+				for _, entry := range entries {
+					if strings.HasPrefix(entry.Name(), "test.") && strings.HasSuffix(entry.Name(), ".log") {
+						actualFile = filepath.Join(tmpDir, entry.Name())
+						break
+					}
+				}
+				require.NotEmpty(t, actualFile, "Should find test file with PID suffix")
+
+				content, err := os.ReadFile(actualFile)
 				require.NoError(t, err)
 
 				dec, err := zstd.NewReader(bytes.NewReader(content))
@@ -186,7 +200,20 @@ func TestCompressedSinkWrite(t *testing.T) {
 		err = sink.Close()
 		assert.NoError(t, err)
 
-		content, err := os.ReadFile(testFile)
+		// Find actual test file (now includes PID)
+		entries, err := os.ReadDir(tmpDir)
+		require.NoError(t, err)
+
+		var actualTestFile string
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), "test.") && strings.HasSuffix(entry.Name(), ".log") {
+				actualTestFile = filepath.Join(tmpDir, entry.Name())
+				break
+			}
+		}
+		require.NotEmpty(t, actualTestFile, "Should find test file with PID suffix")
+
+		content, err := os.ReadFile(actualTestFile)
 		require.NoError(t, err)
 
 		dec, err := zstd.NewReader(bytes.NewReader(content))
@@ -221,31 +248,56 @@ func TestCompressedSinkWrite(t *testing.T) {
 	})
 }
 
-func TestCompressedSinkMultiFrame(t *testing.T) {
-	t.Run("Multiple sessions create readable multi-frame file", func(t *testing.T) {
+func TestCompressedSinkClose(t *testing.T) {
+	t.Run("Close properly cleans up resources", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "test.log")
 
 		fileURL, err := url.Parse("zstd://" + filepath.ToSlash(testFile))
 		require.NoError(t, err)
 
-		firstLog := "first session log entry"
-		sink1, err := newCompressedSink(fileURL)
+		sink, err := newCompressedSink(fileURL)
 		require.NoError(t, err)
-		_, err = sink1.Write([]byte(firstLog))
-		assert.NoError(t, err)
-		err = sink1.Close()
+
+		// Write some data
+		testData := []byte("test data")
+		_, err = sink.Write(testData)
 		assert.NoError(t, err)
 
-		secondLog := "second session log entry"
-		sink2, err := newCompressedSink(fileURL)
-		require.NoError(t, err)
-		_, err = sink2.Write([]byte(secondLog))
-		assert.NoError(t, err)
-		err = sink2.Close()
+		// Close sink
+		err = sink.Close()
 		assert.NoError(t, err)
 
-		content, err := os.ReadFile(testFile)
+		// Find the actual test file (now includes PID)
+		entries, err := os.ReadDir(tmpDir)
+		require.NoError(t, err)
+
+		var actualTestFile string
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), "test.") && strings.HasSuffix(entry.Name(), ".log") {
+				actualTestFile = filepath.Join(tmpDir, entry.Name())
+				break
+			}
+		}
+		require.NotEmpty(t, actualTestFile, "Should find test file with PID suffix")
+
+		// Verify we can reopen the file (file descriptor was properly closed)
+		// Since we use same process, PID is same, so we write to same file
+		newSink, err := newCompressedSink(fileURL)
+		assert.NoError(t, err, "Should be able to create new sink after closing previous one")
+		defer func() {
+			_ = newSink.Close()
+		}()
+
+		// Verify we can write to reopened file (will append new zstd frame)
+		_, err = newSink.Write([]byte("more data"))
+		assert.NoError(t, err)
+
+		// Close and verify both sets of data are present
+		err = newSink.Close()
+		assert.NoError(t, err)
+
+		content, err := os.ReadFile(actualTestFile)
 		require.NoError(t, err)
 
 		dec, err := zstd.NewReader(bytes.NewReader(content))
@@ -254,10 +306,8 @@ func TestCompressedSinkMultiFrame(t *testing.T) {
 
 		result, err := io.ReadAll(dec)
 		assert.NoError(t, err)
-
-		// zstd decoder should handle multiple frames and concatenate them
-		assert.Contains(t, string(result), firstLog)
-		assert.Contains(t, string(result), secondLog)
+		assert.Contains(t, string(result), "test data")
+		assert.Contains(t, string(result), "more data")
 	})
 }
 
@@ -282,59 +332,23 @@ func TestCompressedSinkSync(t *testing.T) {
 		err = sink.Sync()
 		assert.NoError(t, err)
 
+		// Find actual test file (now includes PID)
+		entries, err := os.ReadDir(tmpDir)
+		require.NoError(t, err)
+
+		var actualTestFile string
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), "test.") && strings.HasSuffix(entry.Name(), ".log") {
+				actualTestFile = filepath.Join(tmpDir, entry.Name())
+				break
+			}
+		}
+		require.NotEmpty(t, actualTestFile, "Should find test file with PID suffix")
+
 		// Verify data was written
-		content, err := os.ReadFile(testFile)
+		content, err := os.ReadFile(actualTestFile)
 		require.NoError(t, err)
 		assert.Greater(t, len(content), 0)
-	})
-}
-
-func TestCompressedSinkClose(t *testing.T) {
-	t.Run("Close properly cleans up resources", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		testFile := filepath.Join(tmpDir, "test.log")
-
-		fileURL, err := url.Parse("zstd://" + filepath.ToSlash(testFile))
-		require.NoError(t, err)
-
-		sink, err := newCompressedSink(fileURL)
-		require.NoError(t, err)
-
-		// Write some data
-		testData := []byte("test data")
-		_, err = sink.Write(testData)
-		assert.NoError(t, err)
-
-		// Close the sink
-		err = sink.Close()
-		assert.NoError(t, err)
-
-		// Verify we can reopen the file (file descriptor was properly closed)
-		newSink, err := newCompressedSink(fileURL)
-		assert.NoError(t, err, "Should be able to create new sink after closing previous one")
-		defer func() {
-			_ = newSink.Close()
-		}()
-
-		// Verify we can write to the reopened file
-		_, err = newSink.Write([]byte("more data"))
-		assert.NoError(t, err)
-
-		// Verify both sets of data are present
-		err = newSink.Close()
-		assert.NoError(t, err)
-
-		content, err := os.ReadFile(testFile)
-		require.NoError(t, err)
-
-		dec, err := zstd.NewReader(bytes.NewReader(content))
-		require.NoError(t, err)
-		defer dec.Close()
-
-		result, err := io.ReadAll(dec)
-		assert.NoError(t, err)
-		assert.Contains(t, string(result), "test data")
-		assert.Contains(t, string(result), "more data")
 	})
 }
 
@@ -361,12 +375,25 @@ func TestCompressedSinkIntegration(t *testing.T) {
 		err = logger.Sync()
 		assert.NoError(t, err)
 
-		_, err = os.Stat(logFile)
+		// Find the actual log file (now includes PID)
+		entries, err := os.ReadDir(tmpDir)
+		require.NoError(t, err)
+
+		var actualLogFile string
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), "bish.") && strings.HasSuffix(entry.Name(), ".log") {
+				actualLogFile = filepath.Join(tmpDir, entry.Name())
+				break
+			}
+		}
+		require.NotEmpty(t, actualLogFile, "Should find log file with PID suffix")
+
+		_, err = os.Stat(actualLogFile)
 		assert.NoError(t, err, "Log file should exist")
 
-		assert.True(t, isValidZstdFile(logFile))
+		assert.True(t, isValidZstdFile(actualLogFile))
 
-		content, err := os.ReadFile(logFile)
+		content, err := os.ReadFile(actualLogFile)
 		require.NoError(t, err)
 		assert.Greater(t, len(content), 0)
 
