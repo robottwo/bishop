@@ -289,6 +289,11 @@ func newCompressedSink(u *url.URL) (zap.Sink, error) {
 	pid := os.Getpid()
 	filePath = filepath.Join(dir, fmt.Sprintf("%s.%d%s", name, pid, ext))
 
+	// Rotate old log files to prevent unbounded growth
+	if err := core.RotateLogFiles(); err != nil {
+		return nil, fmt.Errorf("failed to rotate log files: %w", err)
+	}
+
 	flags := os.O_CREATE | os.O_WRONLY
 
 	fileInfo, err := os.Stat(filePath)
