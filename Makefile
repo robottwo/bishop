@@ -46,6 +46,11 @@ build:
 	echo "✓ Compilation completed successfully!" && \
 	echo "Binary created: ./bin/bish"
 
+.PHONY: go-mod-verify
+go-mod-verify:
+	@echo "Verifying go mod tidy..."
+	@go mod tidy
+
 .PHONY: test
 test:
 	@go test -coverprofile=coverage.txt ./...
@@ -61,7 +66,7 @@ vulncheck:
 	@govulncheck ./...
 
 .PHONY: ci
-ci: lint vulncheck test build
+ci: lint go-mod-verify vulncheck test build
 
 .PHONY: tools
 tools:
