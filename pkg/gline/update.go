@@ -50,8 +50,11 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 			return m, nil
 		}
-		// Update cached prompt value for async rendering
-		m.cachedPrompt = msg.prompt
+		// Only update if non-empty prompt was generated
+		if msg.prompt != "" {
+			m.cachedPrompt = msg.prompt
+			m.textInput.Prompt = msg.prompt + " "
+		}
 		return m, nil
 
 	case tea.WindowSizeMsg:

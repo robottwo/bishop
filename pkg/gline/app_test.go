@@ -204,7 +204,6 @@ func TestAppModelView(t *testing.T) {
 	}
 }
 
-
 // Test getFinalOutput
 func TestGetFinalOutput(t *testing.T) {
 	logger := zap.NewNop()
@@ -399,7 +398,7 @@ func TestPromptMessageHandling(t *testing.T) {
 		assert.Equal(t, initialPrompt, modelAfterUpdate.cachedPrompt, "cachedPrompt should not be updated by stale promptMsg")
 	})
 
-	t.Run("promptMsg updates only cachedPrompt, not textInput.Prompt", func(t *testing.T) {
+	t.Run("promptMsg updates both cachedPrompt and textInput.Prompt", func(t *testing.T) {
 		initialPrompt := "$ "
 		updatedPrompt := "user@host:~$ "
 		opts := NewOptions()
@@ -418,10 +417,10 @@ func TestPromptMessageHandling(t *testing.T) {
 		assert.NotNil(t, updatedModel)
 		assert.Nil(t, cmd)
 
-		// Verify cachedPrompt was updated but textInput.Prompt remains unchanged
+		// Verify both cachedPrompt and textInput.Prompt were updated
 		modelAfterUpdate, ok := updatedModel.(appModel)
 		assert.True(t, ok)
 		assert.Equal(t, updatedPrompt, modelAfterUpdate.cachedPrompt, "cachedPrompt should be updated")
-		assert.Equal(t, initialPrompt, modelAfterUpdate.textInput.Prompt, "textInput.Prompt should remain unchanged")
+		assert.Equal(t, updatedPrompt+" ", modelAfterUpdate.textInput.Prompt, "textInput.Prompt should be updated with trailing space")
 	})
 }

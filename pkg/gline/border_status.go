@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/robottwo/bishop/internal/git"
 	"github.com/robottwo/bishop/internal/system"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // Command Classification
@@ -328,6 +328,27 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 				dir = ".../" + dir
 			}
 		}
+	}
+
+	// Truncate directory if it's too long for available space
+	// Calculate max width for directory text (excluding styling, leading space, and git status)
+	maxDirWidth := maxWidth - 1 // leading space
+	if m.gitStatus != nil {
+		// Reserve rough estimate for git status: " ●" (3) + " ⬆12" (5) = ~8 chars
+		maxDirWidth -= 8
+	}
+	if maxDirWidth < 5 {
+		maxDirWidth = 5 // minimum
+	}
+
+	// Truncate with "..." prefix if too long
+	// Truncate from LEFT side to keep directory name visible
+	if lipgloss.Width(dir) > maxDirWidth {
+		// Remove characters from beginning until it fits
+		for lipgloss.Width(dir) > maxDirWidth-3 && len(dir) > 3 {
+			dir = dir[1:] // Remove first character
+		}
+		dir = "..." + dir
 	}
 
 	// If we have a valid dir, prepare it with git status icons appended.
