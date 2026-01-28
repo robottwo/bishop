@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"errors"
 	"flag"
 	"fmt"
 	"net/url"
@@ -361,6 +362,9 @@ func (s *compressedSink) Close() error {
 	encErr := s.encoder.Close()
 	fileErr := s.file.Close()
 
+	if encErr != nil && fileErr != nil {
+		return errors.Join(encErr, fileErr)
+	}
 	if encErr != nil {
 		return encErr
 	}
