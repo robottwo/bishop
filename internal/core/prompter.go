@@ -15,7 +15,7 @@ type UserPrompter interface {
 		analytics gline.PredictionAnalytics,
 		logger *zap.Logger,
 		options gline.Options,
-	) (string, error)
+	) (string, string, error)
 }
 
 type DefaultUserPrompter struct{}
@@ -29,6 +29,6 @@ func (p DefaultUserPrompter) Prompt(
 	analytics gline.PredictionAnalytics,
 	logger *zap.Logger,
 	options gline.Options,
-) (string, error) {
+) (string, string, error) {
 	return gline.Gline(prompt, historyValues, explanation, predictor, explainer, analytics, logger, options)
 }

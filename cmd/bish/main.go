@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"errors"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/robottwo/bishop/internal/analytics"
 	"github.com/robottwo/bishop/internal/bash"
 	"github.com/robottwo/bishop/internal/coach"
@@ -48,6 +51,11 @@ func init() {
 	flag.BoolVar(&versionFlag, "v", false, "display build version")
 	flag.BoolVar(&versionFlag, "ver", false, "display build version")
 	flag.BoolVar(&versionFlag, "version", false, "display build version")
+
+	// Register custom zstd sink for compressed logging
+	if err := zap.RegisterSink("zstd", newCompressedSink); err != nil {
+		panic(fmt.Sprintf("failed to register zstd sink: %v", err))
+	}
 }
 
 // main is the entry point of the bish shell program.
@@ -87,12 +95,22 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize history manager: %v", err))
 	}
+	defer func() {
+		if err := historyManager.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to close history manager: %v\n", err)
+		}
+	}()
 
 	// Initialize the analytics manager
 	analyticsManager, err := initializeAnalyticsManager()
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize analytics manager: %v", err))
 	}
+	defer func() {
+		if err := analyticsManager.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to close analytics manager: %v\n", err)
+		}
+	}()
 
 	// Initialize the completion manager
 	completionManager := initializeCompletionManager()
@@ -249,6 +267,123 @@ func printUsage() {
 	fmt.Printf("  %-28s %s\n", "#/<macro>", "Run a chat macro (e.g., #/gitdiff)")
 }
 
+// newCompressedSink creates a new compressed sink from a URL.
+// The URL path should point to the log file location.
+// Each process gets its own log file (bish.<pid>.zst) to avoid corruption
+// when multiple bish instances run concurrently.
+func newCompressedSink(u *url.URL) (zap.Sink, error) {
+	filePath := u.Path
+
+	// On Windows, drive letter is stored in the host component
+	// For zstd://C:/Users/..., Host="C:" and Path="/Users/..."
+	// We need to combine them to get the full Windows path
+	if u.Host != "" {
+		filePath = u.Host + u.Path
+	}
+
+	// Add PID to filename to support concurrent processes without corruption
+	dir := filepath.Dir(filePath)
+	base := filepath.Base(filePath)
+	ext := filepath.Ext(base)
+	name := strings.TrimSuffix(base, ext)
+	pid := os.Getpid()
+	filePath = filepath.Join(dir, fmt.Sprintf("%s.%d%s", name, pid, ext))
+
+	// Rotate old log files to prevent unbounded growth
+	if err := core.RotateLogFiles(); err != nil {
+		return nil, fmt.Errorf("failed to rotate log files: %w", err)
+	}
+
+	flags := os.O_CREATE | os.O_WRONLY
+
+	fileInfo, err := os.Stat(filePath)
+	if err == nil && fileInfo.Size() > 0 {
+		if isValidZstdFile(filePath) {
+			flags |= os.O_APPEND
+		} else {
+			flags |= os.O_TRUNC
+		}
+	}
+
+	file, err := os.OpenFile(filePath, flags, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	encoder, err := zstd.NewWriter(file, zstd.WithEncoderLevel(zstd.SpeedDefault))
+	if err != nil {
+		_ = file.Close()
+		return nil, err
+	}
+
+	return &compressedSink{
+		file:    file,
+		encoder: encoder,
+	}, nil
+}
+
+// isValidZstdFile checks if a file starts with a valid zstd magic number.
+// Returns false if file doesn't exist, is empty, or has invalid header.
+func isValidZstdFile(filePath string) bool {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return false
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	buf := make([]byte, 4)
+	n, err := file.Read(buf)
+	if err != nil || n < 4 {
+		return false
+	}
+
+	return buf[0] == 0x28 && buf[1] == 0xB5 && buf[2] == 0x2F && buf[3] == 0xFD
+}
+
+// compressedSink wraps a zstd encoder to provide compressed log file writing.
+// It implements the WriteSyncer interface required by zap's custom sinks.
+type compressedSink struct {
+	file    *os.File
+	encoder *zstd.Encoder
+}
+
+// Write writes compressed data to the underlying file via the zstd encoder.
+// Returns len(p) on success to satisfy io.Writer contract, regardless of
+// how many compressed bytes were written.
+func (s *compressedSink) Write(p []byte) (int, error) {
+	_, err := s.encoder.Write(p)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
+
+// Sync flushes the encoder buffer and syncs the file to disk.
+func (s *compressedSink) Sync() error {
+	if err := s.encoder.Flush(); err != nil {
+		return err
+	}
+	return s.file.Sync()
+}
+
+// Close closes the encoder and then closes the underlying file.
+// Always closes the file to prevent file descriptor leaks, even if
+// encoder close fails.
+func (s *compressedSink) Close() error {
+	encErr := s.encoder.Close()
+	fileErr := s.file.Close()
+
+	if encErr != nil && fileErr != nil {
+		return errors.Join(encErr, fileErr)
+	}
+	if encErr != nil {
+		return encErr
+	}
+	return fileErr
+}
+
 func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {
 	logLevel := environment.GetLogLevel(runner)
 	if BUILD_VERSION == "dev" {
@@ -256,14 +391,14 @@ func initializeLogger(runner *interp.Runner) (*zap.Logger, error) {
 	}
 
 	if environment.ShouldCleanLogFile(runner) {
-		_ = os.Remove(core.LogFile())
+		_ = core.CleanLogFiles()
 	}
 
 	// Initialize the logger
 	loggerConfig := zap.NewProductionConfig()
 	loggerConfig.Level = logLevel
 	loggerConfig.OutputPaths = []string{
-		core.LogFile(),
+		"zstd://" + core.LogFile(),
 	}
 	logger, err := loggerConfig.Build()
 	if err != nil {

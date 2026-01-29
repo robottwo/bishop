@@ -32,13 +32,13 @@ func (m *MockPrompter) Prompt(
 	analytics gline.PredictionAnalytics,
 	logger *zap.Logger,
 	options gline.Options,
-) (string, error) {
+) (string, string, error) {
 	if m.callCount >= len(m.responses) {
-		return "n", nil // Default to no if we run out of responses
+		return "n", "", nil // Default to no if we run out of responses
 	}
 	response := m.responses[m.callCount]
 	m.callCount++
-	return response, nil
+	return response, "", nil
 }
 
 // TestIntegration tests the complete "always allow" permission workflow
@@ -109,7 +109,7 @@ func TestPreApproval(t *testing.T) {
 
 	oldUserConfirmation := userConfirmation
 	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
-		response, _ := mockPrompter.Prompt("", []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
+		response, _, _ := mockPrompter.Prompt("", []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
 		return response
 	}
 	defer func() {
@@ -388,7 +388,7 @@ func TestInvalidRegexHandling(t *testing.T) {
 
 	oldUserConfirmation := userConfirmation
 	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
-		response, _ := mockPrompter.Prompt("", []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
+		response, _, _ := mockPrompter.Prompt("", []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
 		return response
 	}
 	defer func() {
@@ -598,7 +598,7 @@ func TestEdgeCases(t *testing.T) {
 	}
 	oldUserConfirmation := userConfirmation
 	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string, showManage bool) string {
-		response, _ := mockPrompter.Prompt("", []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
+		response, _, _ := mockPrompter.Prompt("", []string{}, explanation, nil, nil, nil, logger, gline.NewOptions())
 		return response
 	}
 	defer func() {

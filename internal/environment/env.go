@@ -222,10 +222,10 @@ func GetUser(runner *interp.Runner) string {
 	return u
 }
 
-func GetPrompt(runner *interp.Runner, logger *zap.Logger) string {
+func GetPrompt(ctx context.Context, runner *interp.Runner, logger *zap.Logger) string {
 	promptUpdater := runner.Funcs["BISH_UPDATE_PROMPT"]
 	if promptUpdater != nil {
-		err := runner.Run(context.Background(), promptUpdater)
+		err := runner.Run(ctx, promptUpdater)
 		if err != nil {
 			logger.Warn("error updating prompt", zap.Error(err))
 		}

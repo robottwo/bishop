@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/robottwo/bishop/pkg/reverse"
 	"github.com/glebarez/sqlite"
+	"github.com/robottwo/bishop/pkg/reverse"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +27,15 @@ type HistoryEntry struct {
 }
 
 func NewHistoryManager(dbFilePath string) (*HistoryManager, error) {
-	db, err := gorm.Open(sqlite.Open(dbFilePath), &gorm.Config{})
+	// NFS-optimized connection string with PRAGMA settings
+	// - foreign_keys(1): Enable foreign key constraints (disabled by default)
+	// - busy_timeout(5000): 5 second timeout for NFS network latency
+	// - synchronous(1): NORMAL mode for durability/performance balance
+	// - cache_size(-20000): 20MB cache to reduce NFS I/O operations
+	// - temp_store(2): MEMORY - keeps temp files out of NFS
+	connectionString := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_pragma=synchronous(1)&_pragma=cache_size(-20000)&_pragma=temp_store(2)", dbFilePath)
+
+	db, err := gorm.Open(sqlite.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening database")
 		return nil, err
@@ -35,6 +43,24 @@ func NewHistoryManager(dbFilePath string) (*HistoryManager, error) {
 
 	if err := db.AutoMigrate(&HistoryEntry{}); err != nil {
 		return nil, err
+	}
+
+	// Configure connection pool for SQLite optimization
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	// SQLite serializes writes anyway, so multiple connections add overhead
+	sqlDB.SetMaxOpenConns(1)
+	// Minimal pooling for file-based DB
+	sqlDB.SetMaxIdleConns(1)
+	// Reasonable connection lifetime
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	// Enable WAL mode for better NFS performance and concurrent readers
+	if err := db.Exec("PRAGMA journal_mode=WAL").Error; err != nil {
+		return nil, fmt.Errorf("failed to set WAL mode: %w", err)
 	}
 
 	return &HistoryManager{
@@ -46,6 +72,9 @@ func NewHistoryManager(dbFilePath string) (*HistoryManager, error) {
 // HistoryManager is no longer needed, especially in tests to allow cleanup
 // of temporary database files on Windows.
 func (historyManager *HistoryManager) Close() error {
+	if historyManager.db == nil {
+		return nil
+	}
 	sqlDB, err := historyManager.db.DB()
 	if err != nil {
 		return err

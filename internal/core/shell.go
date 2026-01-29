@@ -88,10 +88,11 @@ func RunInteractiveShell(
 		}
 	}()
 
-	for {
-		prompt := environment.GetPrompt(runner, logger)
-		logger.Debug("prompt updated", zap.String("prompt", prompt))
+	// Initialize cached prompt before entering the loop
+	cachedPrompt := environment.GetPrompt(context.Background(), runner, logger)
+	logger.Debug("initial prompt cached", zap.String("prompt", cachedPrompt))
 
+	for {
 		ragContext := contextProvider.GetContext()
 		logger.Debug("context updated", zap.Any("context", ragContext))
 
@@ -149,6 +150,11 @@ func RunInteractiveShell(
 			options.IdleSummaryGenerator = idleSummaryGenerator.GenerateSummary
 		}
 
+		// Configure async prompt generation (follows IdleSummaryGenerator pattern above)
+		options.PromptGenerator = func(ctx context.Context) string {
+			return environment.GetPrompt(ctx, runner, logger)
+		}
+
 		// Get coach startup content for the Assistant Box
 		var coachContent string
 		if coachManager != nil {
@@ -163,7 +169,7 @@ func RunInteractiveShell(
 			}
 		}
 
-		line, err := gline.Gline(prompt, historyCommands, coachContent, predictor, explainer, analyticsManager, logger, options)
+		line, newPrompt, err := gline.Gline(cachedPrompt, historyCommands, coachContent, predictor, explainer, analyticsManager, logger, options)
 
 		logger.Debug("received command", zap.String("line", line))
 
@@ -171,11 +177,16 @@ func RunInteractiveShell(
 			if err == gline.ErrInterrupted {
 				// User pressed Ctrl+C, restart loop with fresh prompt
 				logger.Debug("input interrupted by user")
+				// Store the returned prompt for next iteration
+				cachedPrompt = newPrompt
 				continue
 			}
 			logger.Error("error reading input through gline", zap.Error(err))
 			return err
 		}
+
+		// Store the returned prompt for next iteration
+		cachedPrompt = newPrompt
 
 		// Handle agent chat and macros
 		if strings.HasPrefix(line, "#") {
@@ -350,8 +361,8 @@ func RunInteractiveShell(
 							editOptions.Host, _ = os.Hostname()
 							editOptions.InitialValue = fixedCmd
 
-							shellPrompt := environment.GetPrompt(runner, logger)
-							editedLine, editErr := gline.Gline(shellPrompt, historyCommands, "", predictor, explainer, analyticsManager, logger, editOptions)
+							shellPrompt := environment.GetPrompt(context.Background(), runner, logger)
+							editedLine, _, editErr := gline.Gline(shellPrompt, historyCommands, "", predictor, explainer, analyticsManager, logger, editOptions)
 							if editErr != nil {
 								if editErr == gline.ErrInterrupted {
 									fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Edit cancelled\n") + gline.RESET_CURSOR_COLUMN)
