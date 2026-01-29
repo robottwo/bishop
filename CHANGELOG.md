@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.35.0](https://github.com/robottwo/bishop/compare/v0.34.0...v0.35.0) (2026-01-29)
+
+
+### Features
+
+* Add zstd compressed logging with automatic rotation ([#99](https://github.com/robottwo/bishop/issues/99)) ([103c9de](https://github.com/robottwo/bishop/commit/103c9dec4c4d0948f1023b379909e5094f8deeae))
+
+
+### Bug Fixes
+
+* prompt realtime update and left-side directory truncation ([#101](https://github.com/robottwo/bishop/issues/101)) ([c5791fa](https://github.com/robottwo/bishop/commit/c5791fa477296441c94fdaf269ec241ea91fea14))
+
 ## [0.34.0](https://github.com/robottwo/bishop/compare/v0.33.0...v0.34.0) (2026-01-22)
 
 
