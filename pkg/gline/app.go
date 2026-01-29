@@ -47,6 +47,10 @@ type appModel struct {
 	originalPrompt string
 	height         int
 
+	// Async prompt support
+	cachedPrompt  string //nolint:unused // Will be used in subtask-1-2 (fetchPrompt) and subtask-1-3 (prompt message handler)
+	promptStateId int    //nolint:unused // Will be used in subtask-4-1 (state tracking) and subtask-4-2 (cancellation)
+
 	// LLM status indicator
 	llmIndicator LLMIndicator
 
@@ -85,6 +89,11 @@ type resourceMsg struct {
 
 type gitStatusMsg struct {
 	status *git.RepoStatus
+}
+
+type promptMsg struct { //nolint:unused // Will be used in subtask-1-2 (fetchPrompt) and subtask-1-3 (prompt message handler)
+	stateId int
+	prompt  string
 }
 
 // errorMsg wraps an error that occurred during prediction or explanation
@@ -184,6 +193,10 @@ func initialModel(
 
 		predictionStateId: 0,
 
+		// Initialize async prompt support with cached value
+		cachedPrompt:  prompt,
+		promptStateId: 0,
+
 		explanationStyle: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("12")),
@@ -222,6 +235,7 @@ func (m appModel) Init() tea.Cmd {
 			}
 		},
 		m.fetchGitStatus(),
+		m.fetchPrompt(),
 	}
 
 	// Only start resource monitoring if enabled (interval > 0)
@@ -266,6 +280,20 @@ func (m appModel) fetchGitStatus() tea.Cmd {
 	}
 }
 
+func (m appModel) fetchPrompt() tea.Cmd {
+	return func() tea.Msg {
+		if m.options.PromptGenerator == nil {
+			return nil
+		}
+		// Create a context with timeout for prompt generation
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		prompt := m.options.PromptGenerator(ctx)
+		return promptMsg{stateId: m.promptStateId, prompt: prompt}
+	}
+}
+
 func Gline(
 	prompt string,
 	historyValues []string,
@@ -275,14 +303,14 @@ func Gline(
 	analytics PredictionAnalytics,
 	logger *zap.Logger,
 	options Options,
-) (string, error) {
+) (string, string, error) {
 	p := tea.NewProgram(
 		initialModel(prompt, historyValues, explanation, predictor, explainer, analytics, logger, options),
 	)
 
 	m, err := p.Run()
 	if err != nil {
-		return "", err
+		return "", prompt, err
 	}
 
 	appModel, ok := m.(appModel)
@@ -309,7 +337,7 @@ func Gline(
 		inputStr += appModel.textInput.Prompt + appModel.textInput.Value() + "^C\n"
 
 		fmt.Print(RESET_CURSOR_COLUMN + inputStr)
-		return "", ErrInterrupted
+		return "", appModel.cachedPrompt, ErrInterrupted
 	}
 
 	fmt.Print(RESET_CURSOR_COLUMN + appModel.getFinalOutput() + "\n")
@@ -321,5 +349,5 @@ func Gline(
 		}
 	}
 
-	return appModel.result, nil
+	return appModel.result, appModel.cachedPrompt, nil
 }

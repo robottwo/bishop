@@ -1,6 +1,7 @@
 package environment
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -648,7 +649,7 @@ func TestEnvironmentHelperFunctions(t *testing.T) {
 	// PWD may be empty in test environment without shell initialization
 	assert.IsType(t, "", pwd)
 
-	prompt := GetPrompt(runner, logger)
+	prompt := GetPrompt(context.Background(), runner, logger)
 	assert.Equal(t, "bish> ", prompt) // DEFAULT_PROMPT value
 
 	contextWindow := GetAgentContextWindowTokens(runner, logger)
@@ -718,7 +719,7 @@ func TestEnvironmentHelperFunctionsWithCustomValues(t *testing.T) {
 	cleanLog := ShouldCleanLogFile(runner)
 	assert.True(t, cleanLog)
 
-	prompt := GetPrompt(runner, logger)
+	prompt := GetPrompt(context.Background(), runner, logger)
 	assert.Equal(t, "[dev] custom> ", prompt)
 
 	contextWindow := GetAgentContextWindowTokens(runner, logger)

@@ -40,6 +40,23 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case promptMsg:
+		// Discard stale prompt updates (similar to prediction state tracking)
+		if msg.stateId != m.promptStateId {
+			m.logger.Debug(
+				"gline discarding prompt",
+				zap.Int("startStateId", msg.stateId),
+				zap.Int("newStateId", m.promptStateId),
+			)
+			return m, nil
+		}
+		// Only update if non-empty prompt was generated
+		if msg.prompt != "" {
+			m.cachedPrompt = msg.prompt
+			m.textInput.Prompt = msg.prompt + " "
+		}
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.textInput.Width = msg.Width
@@ -137,6 +154,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+			m.promptStateId++
 			m.result = result
 			return m, tea.Sequence(terminate, tea.Quit)
 
@@ -148,6 +166,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Handle Ctrl-C: cancel current line, preserve input with "^C" appended, and present fresh prompt
 
 			// Set result to empty string so shell doesn't try to execute it
+			m.promptStateId++
 			m.result = ""
 			// Use interrupt message to indicate Ctrl+C was pressed
 			// We do not reset multiline state here so that Gline() can reconstruct the full input
@@ -157,6 +176,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			currentInput := m.textInput.Value()
 			if strings.TrimSpace(currentInput) == "" {
 				// On blank line, exit the shell
+				m.promptStateId++
 				m.result = "exit"
 				return m, tea.Sequence(terminate, tea.Quit)
 			}
