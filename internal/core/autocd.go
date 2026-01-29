@@ -159,7 +159,7 @@ func isExternalCommand(word string, runner *interp.Runner) bool {
 func expandPath(path string, runner *interp.Runner) string {
 	// Handle tilde expansion
 	if strings.HasPrefix(path, "~/") {
-		home := runner.Vars["HOME"].String()
+		home := runner.Env.Get("HOME").String()
 		if home == "" {
 			if usr, err := user.Current(); err == nil {
 				home = usr.HomeDir
@@ -169,7 +169,7 @@ func expandPath(path string, runner *interp.Runner) string {
 			path = filepath.Join(home, path[2:])
 		}
 	} else if path == "~" {
-		home := runner.Vars["HOME"].String()
+		home := runner.Env.Get("HOME").String()
 		if home == "" {
 			if usr, err := user.Current(); err == nil {
 				home = usr.HomeDir
