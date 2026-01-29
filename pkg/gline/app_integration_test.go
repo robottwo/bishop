@@ -1199,6 +1199,60 @@ func TestAsyncPrompt_Integration(t *testing.T) {
 			"Expected cached prompt to remain unchanged after stale in-flight message")
 	})
 
+	t.Run("interrupt increments promptStateId and discards in-flight prompts", func(t *testing.T) {
+		options := NewOptions()
+		options.CompletionProvider = completionProvider
+
+		// Mock prompt generator
+		options.PromptGenerator = func(ctx context.Context) string {
+			return "new-prompt> "
+		}
+
+		model := initialModel(
+			"cached> ",
+			[]string{},
+			"",
+			predictor,
+			explainer,
+			analytics,
+			logger,
+			options,
+		)
+
+		initialStateId := model.promptStateId
+
+		// Trigger async prompt fetch (returns command but hasn't executed yet)
+		cmd := model.fetchPrompt()
+		require.NotNil(t, cmd, "Expected fetchPrompt to return a command")
+
+		// Simulate user pressing Ctrl+C (which sends Ctrl+C key, then interruptMsg)
+		// First, simulate Ctrl+C key press - this increments promptStateId
+		updatedModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+		model = updatedModel.(appModel)
+
+		// Verify promptStateId was incremented
+		assert.Greater(t, model.promptStateId, initialStateId,
+			"Expected promptStateId to be incremented on Ctrl+C")
+
+		// Now execute the in-flight prompt fetch
+		msg := cmd()
+		promptMessage, ok := msg.(promptMsg)
+		require.True(t, ok, "Expected message to be promptMsg type")
+
+		// The message will have the old state ID (before Ctrl+C)
+		assert.Equal(t, initialStateId, promptMessage.stateId,
+			"Expected in-flight prompt message to have old state ID")
+
+		// Process the stale prompt message
+		cachedPromptBefore := model.cachedPrompt
+		updatedModel, _ = model.Update(promptMessage)
+		model = updatedModel.(appModel)
+
+		// Verify cached prompt was NOT updated (message had stale state ID)
+		assert.Equal(t, cachedPromptBefore, model.cachedPrompt,
+			"Expected cached prompt to remain unchanged when stale message is received")
+	})
+
 	t.Run("no prompt generator returns nil", func(t *testing.T) {
 		options := NewOptions()
 		options.CompletionProvider = completionProvider
