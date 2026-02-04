@@ -41,3 +41,4 @@ dist/
 .worktrees/
 .security-key
 logs/security/
+bish
