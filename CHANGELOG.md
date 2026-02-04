@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Features
+
+* **wizard**: Add first-time configuration wizard with 20 LLM providers ([#103](https://github.com/robottwo/bishop/issues/103))
+  - Interactive Bubble Tea UI for guided provider setup
+  - Supports 20 providers: AWS Bedrock, Anthropic (Claude), Azure OpenAI, Cohere, DeepInfra, DeepSeek, Fireworks AI, Google (Gemini), Grok (xAI), Groq, Hugging Face Inference, Mistral AI, Moonshot AI (Kimi), Ollama, OpenAI, OpenRouter, Perplexity, Replicate, Together AI, ZAI
+  - Auto-runs on first launch (no ~/.bishrc) or via `--wizard` flag
+  - Provider validation with connectivity checks
+  - Custom base URL support for enterprise/self-hosted deployments
+  - Comprehensive test coverage (30 tests)
+
 ## [0.35.0](https://github.com/robottwo/bishop/compare/v0.34.0...v0.35.0) (2026-01-29)
 
 

@@ -5,6 +5,42 @@ bishop is configurable via simple dotfiles and environment variables. This guide
 Upstream project: https://github.com/atinylittleshell/gsh  
 Fork repository: https://github.com/robottwo/bishop
 
+## Configuration Wizard (Recommended)
+
+The easiest way to configure bishop is via the **Configuration Wizard**, which runs automatically on first launch (when `~/.bishrc` doesn't exist).
+
+To run the wizard manually at any time:
+
+```bash
+bish --wizard
+```
+
+The wizard guides you through:
+1. **Provider Selection** - Choose from 20 supported LLM providers
+2. **Fast Model Setup** - Configure the model for auto-suggestions and predictions
+3. **Slow Model Setup** - Configure the model for chat and agentic operations
+4. **Validation** - Test connectivity to your provider
+5. **Save** - Generate/update your `~/.bishrc` automatically
+
+### Supported Providers
+
+The wizard supports 20 providers (alphabetically):
+- AWS Bedrock, Anthropic (Claude), Azure OpenAI
+- Cohere, DeepInfra, DeepSeek
+- Fireworks AI, Google (Gemini), Grok (xAI), Groq
+- Hugging Face Inference, Mistral AI, Moonshot AI (Kimi)
+- Ollama (local), OpenAI, OpenRouter
+- Perplexity, Replicate, Together AI, ZAI
+
+Each provider includes sensible defaults for API endpoints and model names. Custom base URLs are supported for enterprise and self-hosted deployments.
+
+### Wizard vs Manual Configuration
+
+- **Wizard**: Guided setup with validation and pre-filled defaults
+- **Manual**: Direct editing of `~/.bishrc` for advanced customization
+
+Most users should start with the wizard and only manually edit `~/.bishrc` for fine-tuning.
+
 ## Files and Load Order
 
 The shell loads configuration in this order:

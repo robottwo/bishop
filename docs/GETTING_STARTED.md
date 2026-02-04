@@ -33,6 +33,51 @@ sudo install -m 0755 bin/bish /usr/local/bin/bish
 
 Bishop includes self-update support. When a new version is available, it can automatically detect and offer to update.
 
+## First-Time Configuration
+
+When you run bishop for the first time, it will automatically launch the **Configuration Wizard** to help you set up your LLM providers.
+
+The wizard will guide you through:
+1. Selecting a provider for the **fast model** (auto-suggestions and predictions)
+2. Configuring API keys, model names, and endpoints
+3. Selecting a provider for the **slow model** (chat and agentic operations)
+
+### Supported Providers (20 total)
+
+The wizard supports the following providers (alphabetically):
+- AWS Bedrock
+- Anthropic (Claude)
+- Azure OpenAI
+- Cohere
+- DeepInfra
+- DeepSeek
+- Fireworks AI
+- Google (Gemini)
+- Grok (xAI)
+- Groq
+- Hugging Face Inference
+- Mistral AI
+- Moonshot AI (Kimi)
+- Ollama (local)
+- OpenAI
+- OpenRouter
+- Perplexity
+- Replicate
+- Together AI
+- ZAI
+
+Each provider includes sensible defaults for base URLs and model IDs, with support for custom endpoints (enterprise/self-hosted setups).
+
+### Running the Wizard Manually
+
+If you want to reconfigure your providers later, run:
+
+```bash
+bish --wizard
+```
+
+The wizard will guide you through the same setup process and update your `~/.bishrc` configuration file.
+
 ## Launching bishop
 
 ### Manual
