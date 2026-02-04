@@ -508,10 +508,10 @@ func (m model) saveConfig() error {
 	// Generate new configuration
 	newConfig := m.generateBishrcSection()
 	
-	// If file exists, append; otherwise create new
+	// If file exists, replace the relevant section; otherwise create new
 	var content string
 	if len(existing) > 0 {
-		content = string(existing) + "\n\n" + newConfig
+		content = m.replaceBishrcSection(string(existing), newConfig)
 	} else {
 		// Use default .bishrc as template
 		content = getDefaultBishrc()

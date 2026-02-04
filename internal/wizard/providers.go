@@ -34,20 +34,20 @@ type ProviderConfig struct {
 // AllProviders returns the complete list of supported providers (alphabetically sorted)
 var AllProviders = []Provider{
 	{
-		ID:                "anthropic",
-		Name:              "Anthropic (Claude)",
-		Desc:       "Claude models from Anthropic",
-		DefaultBaseURL:    "https://api.anthropic.com/v1",
-		DefaultModel:      "claude-3-5-sonnet-20241022",
-		RequiresAPIKey:    true,
-		SupportsStreaming: true,
-	},
-	{
 		ID:                "bedrock",
 		Name:              "AWS Bedrock",
 		Desc:       "AWS Bedrock managed AI service",
 		DefaultBaseURL:    "https://bedrock-runtime.us-east-1.amazonaws.com",
 		DefaultModel:      "anthropic.claude-3-sonnet-20240229-v1:0",
+		RequiresAPIKey:    true,
+		SupportsStreaming: true,
+	},
+	{
+		ID:                "anthropic",
+		Name:              "Anthropic (Claude)",
+		Desc:       "Claude models from Anthropic",
+		DefaultBaseURL:    "https://api.anthropic.com/v1",
+		DefaultModel:      "claude-3-5-sonnet-20241022",
 		RequiresAPIKey:    true,
 		SupportsStreaming: true,
 	},
