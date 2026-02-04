@@ -24,7 +24,7 @@
         pname = "bish";
         version = version;
         src = ./.;
-        vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        vendorHash = "sha256-hhCKENp1lVxePhg5SE79V+Gy+1FYV7O8qEu1vchX08Y=";
 
         ldflags = [
           "-s"
