@@ -218,6 +218,48 @@ jobs:
           dmg="bish_${version}_macos_arm64.dmg"
           gh release upload "v${version}" "$dmg" --clobber
 
+  # Build Linux AppImage
+  appimage:
+    needs: [release-please, goreleaser]
+    if: ${{ needs.release-please.outputs.release_created }}
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Linux release asset
+        run: |
+          version="${{ needs.release-please.outputs.version }}"
+          if [ "${{ matrix.arch }}" == "x86_64" ]; then
+            url="https://github.com/robottwo/bishop/releases/download/v${version}/bish_Linux_x86_64.tar.gz"
+          else
+            url="https://github.com/robottwo/bishop/releases/download/v${version}/bish_Linux_arm64.tar.gz"
+          fi
+          curl -L -o bish_Linux.tar.gz "$url"
+          mkdir -p installer_files
+          tar -xzf bish_Linux.tar.gz -C installer_files
+
+      - name: Prepare AppImage structure
+        run: |
+          cp LICENSE installer_files/
+          cp README.md installer_files/
+
+      - name: Build AppImage
+        run: |
+          version="${{ needs.release-please.outputs.version }}"
+          chmod +x packaging/linux/create-appimage.sh
+          ./packaging/linux/create-appimage.sh "$version" "${{ matrix.arch }}" "installer_files" "."
+
+      - name: Upload AppImage to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${{ needs.release-please.outputs.version }}"
+          appimage="bish-${version}-${{ matrix.arch }}.AppImage"
+          gh release upload "v${version}" "$appimage" --clobber
+
   # Build and verify Nix package
   nix:
     needs: [release-please, goreleaser]
