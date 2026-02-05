@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.36.0](https://github.com/robottwo/bishop/compare/v0.35.0...v0.36.0) (2026-02-05)
+
+
+### Features
+
+* Add --version flag ([#105](https://github.com/robottwo/bishop/issues/105)) ([6147c31](https://github.com/robottwo/bishop/commit/6147c316c0ec001ac1cf07cc65aacb43b2021f3a))
+* Add Linux AppImage distribution target ([#104](https://github.com/robottwo/bishop/issues/104)) ([4a2f738](https://github.com/robottwo/bishop/commit/4a2f7382c8b969893f7238b5ab004f45c9cc23d2))
+
+
+### Bug Fixes
+
+* Add QEMU support for ARM64 AppImage builds ([#107](https://github.com/robottwo/bishop/issues/107)) ([5ba88a5](https://github.com/robottwo/bishop/commit/5ba88a59761001048f02244df5d16068ebec66fb))
+
 ## [0.35.0](https://github.com/robottwo/bishop/compare/v0.34.0...v0.35.0) (2026-01-29)
 
 
