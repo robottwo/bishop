@@ -81,7 +81,7 @@ func main() {
 	flag.Parse()
 
 	if versionFlag {
-		fmt.Println(BUILD_VERSION)
+		fmt.Printf("bish version %s\n", BUILD_VERSION)
 		return
 	}
 
@@ -200,7 +200,7 @@ func run(
 func printUsage() {
 	// Header
 	fmt.Println(styles.AGENT_QUESTION("Usage:") + " bish [flags] [script]")
-	fmt.Println("\nA modern, POSIX-compatible, Generative Shell.")
+	fmt.Printf("\nA modern, POSIX-compatible, Generative Shell. Version: %s\n", BUILD_VERSION)
 	fmt.Println()
 
 	// Flags
