@@ -24,6 +24,8 @@ git clone https://github.com/robottwo/bishop.git
 cd bishop
 make build
 ./bin/bish
+# First run launches the configuration wizard
+# to set up your LLM provider (20 providers supported)
 ```
 
 ## Installation

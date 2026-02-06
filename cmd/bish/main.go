@@ -23,6 +23,7 @@ import (
 	"github.com/robottwo/bishop/internal/evaluate"
 	"github.com/robottwo/bishop/internal/history"
 	"github.com/robottwo/bishop/internal/styles"
+	"github.com/robottwo/bishop/internal/wizard"
 	"go.uber.org/zap"
 	"golang.org/x/term"
 	"mvdan.cc/sh/v3/expand"
@@ -41,6 +42,7 @@ var strictConfig = flag.Bool("strict-config", false, "fail fast if configuration
 
 var helpFlag bool
 var versionFlag bool
+var wizardFlag bool
 
 func init() {
 	// Register help flags: -h and --help
@@ -51,6 +53,9 @@ func init() {
 	flag.BoolVar(&versionFlag, "v", false, "display build version")
 	flag.BoolVar(&versionFlag, "ver", false, "display build version")
 	flag.BoolVar(&versionFlag, "version", false, "display build version")
+
+	// Register wizard flag
+	flag.BoolVar(&wizardFlag, "wizard", false, "run the configuration wizard")
 
 	// Register custom zstd sink for compressed logging
 	if err := zap.RegisterSink("zstd", newCompressedSink); err != nil {
@@ -88,6 +93,31 @@ func main() {
 	if helpFlag {
 		printUsage()
 		return
+	}
+
+	// Check if wizard flag is set
+	if wizardFlag {
+		if err := runWizard(); err != nil {
+			fmt.Fprintf(os.Stderr, "Wizard failed: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Check if .bishrc exists, run wizard if not (first-time setup)
+	homeDir, err := os.UserHomeDir()
+	if err == nil {
+		bishrcPath := filepath.Join(homeDir, ".bishrc")
+		if _, err := os.Stat(bishrcPath); os.IsNotExist(err) {
+			fmt.Println("Welcome to Bishop! Let's set up your configuration.")
+			fmt.Println()
+			if err := runWizard(); err != nil {
+				fmt.Fprintf(os.Stderr, "Setup wizard failed: %v\n", err)
+				fmt.Fprintf(os.Stderr, "You can run the wizard later with: bish --wizard\n")
+				os.Exit(1)
+			}
+			return
+		}
 	}
 
 	// Initialize the history manager
@@ -540,4 +570,31 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 	bash.SetCdRunner(runner)
 
 	return runner, nil
+}
+
+// runWizard runs the configuration wizard for first-time setup
+func runWizard() error {
+	fmt.Println("Bishop Configuration Wizard")
+	fmt.Println("===========================")
+	fmt.Println()
+	
+	// Configure fast model (for suggestions/predictions)
+	fmt.Println("Step 1: Configure Fast Model (for auto-suggestions)")
+	fmt.Println()
+	if err := wizard.Start("fast"); err != nil {
+		return fmt.Errorf("fast model configuration failed: %w", err)
+	}
+	
+	fmt.Println()
+	fmt.Println("Step 2: Configure Slow Model (for chat and agentic operations)")
+	fmt.Println()
+	if err := wizard.Start("slow"); err != nil {
+		return fmt.Errorf("slow model configuration failed: %w", err)
+	}
+	
+	fmt.Println()
+	fmt.Println("Configuration complete! You can now start using Bishop.")
+	fmt.Println("Run 'bish' to start the shell.")
+	
+	return nil
 }
