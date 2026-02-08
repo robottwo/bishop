@@ -32,8 +32,8 @@ func NeedsSetup() bool {
 		return false
 	}
 
-	configUIPath := homeDir + "/.bish_config_ui"
-	if _, err := os.Stat(configUIPath); !os.IsNotExist(err) {
+	configUIFile := homeDir + "/.config/bish/config_ui"
+	if _, err := os.Stat(configUIFile); !os.IsNotExist(err) {
 		return false
 	}
 

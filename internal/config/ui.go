@@ -646,12 +646,12 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 	environment.SyncVariableToEnv(runner, key)
 
 	// Persist to file for future sessions (deduplicating entries)
-	configPath := filepath.Join(homeDir(), ".bish_config_ui")
+	configPath := filepath.Join(homeDir(), ".config", "bish", "config_ui")
 	configDir := filepath.Dir(configPath)
 
 	// Acquire exclusive lock on a lock file to prevent concurrent writes
 	lockPath := configPath + ".lock"
-	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return "", fmt.Errorf("failed to open lock file: %w", err)
 	}
@@ -706,7 +706,11 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 	}
 
 	// Atomic write: write to temp file, fsync, rename over original
-	tmpFile, err := os.CreateTemp(configDir, ".bish_config_ui.*.tmp")
+	if err := os.MkdirAll(configDir, 0700); err != nil {
+		return "", fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	tmpFile, err := os.CreateTemp(configDir, "config_ui.*.tmp")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -730,7 +734,7 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 		return "", fmt.Errorf("failed to fsync temp file: %w", err)
 	}
 
-	if err := tmpFile.Chmod(0644); err != nil {
+	if err := tmpFile.Chmod(0600); err != nil {
 		_ = tmpFile.Close()
 		return "", fmt.Errorf("failed to set permissions on temp file: %w", err)
 	}
@@ -753,7 +757,7 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 
 	// Ensure sourced in .bishrc
 	gshrcPath := filepath.Join(homeDir(), ".bishrc")
-	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.bish_config_ui ] && source ~/.bish_config_ui\n"
+	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
 
 	content, err := os.ReadFile(gshrcPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -761,7 +765,7 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 	}
 
 	// Check if already contains the source snippet
-	if err == nil && strings.Contains(string(content), ".bish_config_ui") {
+	if err == nil && strings.Contains(string(content), "config/bish/config_ui") {
 		return configPath, nil // Already configured
 	}
 

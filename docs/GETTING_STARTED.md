@@ -10,7 +10,7 @@ If you're new, start here to install, build, and run bishop quickly.
 ## Requirements
 
 - macOS or Linux
-- Go 1.24+ installed and in your PATH
+- Go 1.24.13+ installed and in your PATH
 
 ## Install and Build
 
@@ -57,7 +57,7 @@ The wizard will help you:
 
 4. **Test connections** to verify your setup works
 
-5. **Save configuration** to `~/.bish_config_ui`
+5. **Save configuration** to `~/.config/bish/config_ui`
 
 ### Running the Wizard Later
 
@@ -70,7 +70,7 @@ You can run the setup wizard anytime:
 
 Your configuration is stored in:
 
-- `~/.bish_config_ui`: UI-generated configuration (wizard and #!config)
+- `~/.config/bish/config_ui`: UI-generated configuration (wizard and #!config)
 - `~/.bishrc`: Main runtime configuration
 - `~/.bishenv`: Environment-only overrides (recommended for secrets)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 )
@@ -54,7 +55,8 @@ func testConnection(config modelConfig) (bool, error) {
 
 	client := openai.NewClientWithConfig(clientConfig)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	_, err := client.ListModels(ctx)
 	if err != nil {

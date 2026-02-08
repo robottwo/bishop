@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+// configUIPath returns the path to the UI-generated config file.
+func configUIPath() string {
+	return filepath.Join(homeDir(), ".config", "bish", "config_ui")
+}
+
 // wizardManagedKeys are the env var names the wizard writes.
 var wizardManagedKeys = map[string]bool{
 	"BISH_FAST_MODEL_PROVIDER": true,
@@ -34,7 +39,7 @@ func extractExportKey(line string) (string, bool) {
 }
 
 func saveConfigToFile(config wizardConfig) error {
-	configPath := filepath.Join(homeDir(), ".bish_config_ui")
+	configPath := configUIPath()
 	configDir := filepath.Dir(configPath)
 
 	newEntries := make(map[string]string)
@@ -101,7 +106,11 @@ func saveConfigToFile(config wizardConfig) error {
 		}
 	}
 
-	tmpFile, err := os.CreateTemp(configDir, ".bish_config_ui.*.tmp")
+	if err := os.MkdirAll(configDir, 0700); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	tmpFile, err := os.CreateTemp(configDir, "config_ui.*.tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -136,23 +145,24 @@ func saveConfigToFile(config wizardConfig) error {
 	if err := os.Rename(tmpPath, configPath); err != nil {
 		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
+	// Rename succeeded; temp path no longer exists, nothing to clean up.
+	success = true
 
+	// Sync the directory to ensure the rename is durable on disk.
 	if dir, err := os.Open(configDir); err == nil {
 		_ = dir.Sync()
 		_ = dir.Close()
 	}
 
-	success = true
-
 	gshrcPath := filepath.Join(homeDir(), ".bishrc")
-	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.bish_config_ui ] && source ~/.bish_config_ui\n"
+	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
 
 	content, err := os.ReadFile(gshrcPath)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to read %s: %w", gshrcPath, err)
 	}
 
-	if err == nil && strings.Contains(string(content), ".bish_config_ui") {
+	if err == nil && strings.Contains(string(content), "config/bish/config_ui") {
 		return nil
 	}
 

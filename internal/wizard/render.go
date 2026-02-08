@@ -69,7 +69,7 @@ func (m wizardModel) renderAPIKeyEntry() string {
 	b.WriteString("\n")
 	b.WriteString(lipgloss.NewStyle().Bold(true).Render("Enter your "+cases.Title(language.English).String(provider)+" API key") + "\n\n")
 
-	b.WriteString("Your API key will be stored in ~/.bish_config_ui.\n")
+	b.WriteString("Your API key will be stored in ~/.config/bish/config_ui.\n")
 	b.WriteString("For security, this file should only be readable by you.\n\n")
 
 	switch provider {
@@ -179,7 +179,7 @@ func (m wizardModel) renderSummary() string {
 		b.WriteString("\n")
 	}
 
-	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("Configuration will be saved to: ~/.bish_config_ui"))
+	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("Configuration will be saved to: ~/.config/bish/config_ui"))
 
 	return b.String()
 }

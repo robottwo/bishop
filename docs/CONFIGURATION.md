@@ -91,7 +91,7 @@ The configuration menu allows you to:
 - Set the assistant box height
 - Toggle safety checks for command approval
 
-Changes made through the configuration menu are persisted to `~/.bish_config_ui` and automatically sourced in your shell.
+Changes made through the configuration menu are persisted to `~/.config/bish/config_ui` and automatically sourced in your shell.
 
 ## Autocd
 
