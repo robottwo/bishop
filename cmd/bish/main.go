@@ -23,6 +23,7 @@ import (
 	"github.com/robottwo/bishop/internal/evaluate"
 	"github.com/robottwo/bishop/internal/history"
 	"github.com/robottwo/bishop/internal/styles"
+	"github.com/robottwo/bishop/internal/wizard"
 	"go.uber.org/zap"
 	"golang.org/x/term"
 	"mvdan.cc/sh/v3/expand"
@@ -38,6 +39,7 @@ var command = flag.String("c", "", "run a command")
 var loginShell = flag.Bool("l", false, "run as a login shell")
 var rcFile = flag.String("rcfile", "", "use a custom rc file instead of ~/.bishrc")
 var strictConfig = flag.Bool("strict-config", false, "fail fast if configuration files contain errors (like bash 'set -e')")
+var setupFlag = flag.Bool("setup", false, "run the setup wizard")
 
 var helpFlag bool
 var versionFlag bool
@@ -126,6 +128,13 @@ func main() {
 
 	// Register session config override getter so environment package can access config overrides
 	environment.SetSessionConfigOverrideGetter(config.GetSessionOverride)
+
+	// Run setup wizard if needed or requested
+	if *setupFlag || (term.IsTerminal(int(os.Stdin.Fd())) && *command == "" && flag.NArg() == 0 && wizard.NeedsSetup()) {
+		if err := wizard.RunWizard(runner); err != nil {
+			fmt.Fprintf(os.Stderr, "Setup wizard failed: %v\n", err)
+		}
+	}
 
 	// Initialize the logger
 	logger, err := initializeLogger(runner)
