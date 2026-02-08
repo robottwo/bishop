@@ -38,6 +38,12 @@ func extractExportKey(line string) (string, bool) {
 	return "", false
 }
 
+// shellEscape escapes a value for safe inclusion inside single quotes.
+// The standard POSIX technique: replace ' with '\''.
+func shellEscape(s string) string {
+	return strings.ReplaceAll(s, "'", "'\\''")
+}
+
 func saveConfigToFile(config wizardConfig) error {
 	configPath := configUIPath()
 	configDir := filepath.Dir(configPath)
@@ -45,31 +51,29 @@ func saveConfigToFile(config wizardConfig) error {
 	newEntries := make(map[string]string)
 
 	if config.fastModel.provider != "" {
-		newEntries["BISH_FAST_MODEL_PROVIDER"] = fmt.Sprintf("export BISH_FAST_MODEL_PROVIDER='%s'", config.fastModel.provider)
+		newEntries["BISH_FAST_MODEL_PROVIDER"] = fmt.Sprintf("export BISH_FAST_MODEL_PROVIDER='%s'", shellEscape(config.fastModel.provider))
 	}
 	if config.fastModel.apiKey != "" {
-		safeKey := strings.ReplaceAll(config.fastModel.apiKey, "'", "'\\''")
-		newEntries["BISH_FAST_MODEL_API_KEY"] = fmt.Sprintf("export BISH_FAST_MODEL_API_KEY='%s'", safeKey)
+		newEntries["BISH_FAST_MODEL_API_KEY"] = fmt.Sprintf("export BISH_FAST_MODEL_API_KEY='%s'", shellEscape(config.fastModel.apiKey))
 	}
 	if config.fastModel.baseURL != "" {
-		newEntries["BISH_FAST_MODEL_BASE_URL"] = fmt.Sprintf("export BISH_FAST_MODEL_BASE_URL='%s'", config.fastModel.baseURL)
+		newEntries["BISH_FAST_MODEL_BASE_URL"] = fmt.Sprintf("export BISH_FAST_MODEL_BASE_URL='%s'", shellEscape(config.fastModel.baseURL))
 	}
 	if config.fastModel.modelID != "" {
-		newEntries["BISH_FAST_MODEL_ID"] = fmt.Sprintf("export BISH_FAST_MODEL_ID='%s'", config.fastModel.modelID)
+		newEntries["BISH_FAST_MODEL_ID"] = fmt.Sprintf("export BISH_FAST_MODEL_ID='%s'", shellEscape(config.fastModel.modelID))
 	}
 
 	if config.slowModel.provider != "" {
-		newEntries["BISH_SLOW_MODEL_PROVIDER"] = fmt.Sprintf("export BISH_SLOW_MODEL_PROVIDER='%s'", config.slowModel.provider)
+		newEntries["BISH_SLOW_MODEL_PROVIDER"] = fmt.Sprintf("export BISH_SLOW_MODEL_PROVIDER='%s'", shellEscape(config.slowModel.provider))
 	}
 	if config.slowModel.apiKey != "" {
-		safeKey := strings.ReplaceAll(config.slowModel.apiKey, "'", "'\\''")
-		newEntries["BISH_SLOW_MODEL_API_KEY"] = fmt.Sprintf("export BISH_SLOW_MODEL_API_KEY='%s'", safeKey)
+		newEntries["BISH_SLOW_MODEL_API_KEY"] = fmt.Sprintf("export BISH_SLOW_MODEL_API_KEY='%s'", shellEscape(config.slowModel.apiKey))
 	}
 	if config.slowModel.baseURL != "" {
-		newEntries["BISH_SLOW_MODEL_BASE_URL"] = fmt.Sprintf("export BISH_SLOW_MODEL_BASE_URL='%s'", config.slowModel.baseURL)
+		newEntries["BISH_SLOW_MODEL_BASE_URL"] = fmt.Sprintf("export BISH_SLOW_MODEL_BASE_URL='%s'", shellEscape(config.slowModel.baseURL))
 	}
 	if config.slowModel.modelID != "" {
-		newEntries["BISH_SLOW_MODEL_ID"] = fmt.Sprintf("export BISH_SLOW_MODEL_ID='%s'", config.slowModel.modelID)
+		newEntries["BISH_SLOW_MODEL_ID"] = fmt.Sprintf("export BISH_SLOW_MODEL_ID='%s'", shellEscape(config.slowModel.modelID))
 	}
 
 	if len(newEntries) == 0 {

@@ -3,6 +3,7 @@ package wizard
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -52,6 +53,7 @@ func testConnection(config modelConfig) (bool, error) {
 
 	clientConfig := openai.DefaultConfig(config.apiKey)
 	clientConfig.BaseURL = config.baseURL
+	clientConfig.HTTPClient = &http.Client{Timeout: 10 * time.Second}
 
 	client := openai.NewClientWithConfig(clientConfig)
 
