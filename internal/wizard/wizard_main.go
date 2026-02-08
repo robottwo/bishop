@@ -23,18 +23,21 @@ func RunWizard(runner *interp.Runner) error {
 
 func NeedsSetup() bool {
 	homeDir := getHomeDir()
-	configPath := homeDir + "/.bishrc"
 
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return true
+	// Only auto-launch for true first-run: neither config file exists.
+	// Users with an existing ~/.bishrc have already configured bishop
+	// (possibly manually) and should not be interrupted.
+	configPath := homeDir + "/.bishrc"
+	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+		return false
 	}
 
 	configUIPath := homeDir + "/.bish_config_ui"
-	if _, err := os.Stat(configUIPath); os.IsNotExist(err) {
-		return true
+	if _, err := os.Stat(configUIPath); !os.IsNotExist(err) {
+		return false
 	}
 
-	return false
+	return true
 }
 
 func getHomeDir() string {

@@ -7,47 +7,98 @@ import (
 	"strings"
 )
 
+// wizardManagedKeys are the env var names the wizard writes.
+var wizardManagedKeys = map[string]bool{
+	"BISH_FAST_MODEL_PROVIDER": true,
+	"BISH_FAST_MODEL_API_KEY":  true,
+	"BISH_FAST_MODEL_BASE_URL": true,
+	"BISH_FAST_MODEL_ID":       true,
+	"BISH_SLOW_MODEL_PROVIDER": true,
+	"BISH_SLOW_MODEL_API_KEY":  true,
+	"BISH_SLOW_MODEL_BASE_URL": true,
+	"BISH_SLOW_MODEL_ID":       true,
+}
+
+// extractExportKey returns the variable name from a line like
+// "export FOO='bar'" or "", false if the line is not an export.
+func extractExportKey(line string) (string, bool) {
+	trimmed := strings.TrimSpace(line)
+	if !strings.HasPrefix(trimmed, "export ") {
+		return "", false
+	}
+	rest := strings.TrimPrefix(trimmed, "export ")
+	if idx := strings.IndexByte(rest, '='); idx > 0 {
+		return rest[:idx], true
+	}
+	return "", false
+}
+
 func saveConfigToFile(config wizardConfig) error {
 	configPath := filepath.Join(homeDir(), ".bish_config_ui")
 	configDir := filepath.Dir(configPath)
 
-	var configEntries []string
+	newEntries := make(map[string]string)
 
 	if config.fastModel.provider != "" {
-		configEntries = append(configEntries, fmt.Sprintf("export BISH_FAST_MODEL_PROVIDER='%s'", config.fastModel.provider))
+		newEntries["BISH_FAST_MODEL_PROVIDER"] = fmt.Sprintf("export BISH_FAST_MODEL_PROVIDER='%s'", config.fastModel.provider)
 	}
 	if config.fastModel.apiKey != "" {
 		safeKey := strings.ReplaceAll(config.fastModel.apiKey, "'", "'\\''")
-		configEntries = append(configEntries, fmt.Sprintf("export BISH_FAST_MODEL_API_KEY='%s'", safeKey))
+		newEntries["BISH_FAST_MODEL_API_KEY"] = fmt.Sprintf("export BISH_FAST_MODEL_API_KEY='%s'", safeKey)
 	}
 	if config.fastModel.baseURL != "" {
-		configEntries = append(configEntries, fmt.Sprintf("export BISH_FAST_MODEL_BASE_URL='%s'", config.fastModel.baseURL))
+		newEntries["BISH_FAST_MODEL_BASE_URL"] = fmt.Sprintf("export BISH_FAST_MODEL_BASE_URL='%s'", config.fastModel.baseURL)
 	}
 	if config.fastModel.modelID != "" {
-		configEntries = append(configEntries, fmt.Sprintf("export BISH_FAST_MODEL_ID='%s'", config.fastModel.modelID))
+		newEntries["BISH_FAST_MODEL_ID"] = fmt.Sprintf("export BISH_FAST_MODEL_ID='%s'", config.fastModel.modelID)
 	}
 
 	if config.slowModel.provider != "" {
-		configEntries = append(configEntries, fmt.Sprintf("export BISH_SLOW_MODEL_PROVIDER='%s'", config.slowModel.provider))
+		newEntries["BISH_SLOW_MODEL_PROVIDER"] = fmt.Sprintf("export BISH_SLOW_MODEL_PROVIDER='%s'", config.slowModel.provider)
 	}
 	if config.slowModel.apiKey != "" {
 		safeKey := strings.ReplaceAll(config.slowModel.apiKey, "'", "'\\''")
-		configEntries = append(configEntries, fmt.Sprintf("export BISH_SLOW_MODEL_API_KEY='%s'", safeKey))
+		newEntries["BISH_SLOW_MODEL_API_KEY"] = fmt.Sprintf("export BISH_SLOW_MODEL_API_KEY='%s'", safeKey)
 	}
 	if config.slowModel.baseURL != "" {
-		configEntries = append(configEntries, fmt.Sprintf("export BISH_SLOW_MODEL_BASE_URL='%s'", config.slowModel.baseURL))
+		newEntries["BISH_SLOW_MODEL_BASE_URL"] = fmt.Sprintf("export BISH_SLOW_MODEL_BASE_URL='%s'", config.slowModel.baseURL)
 	}
 	if config.slowModel.modelID != "" {
-		configEntries = append(configEntries, fmt.Sprintf("export BISH_SLOW_MODEL_ID='%s'", config.slowModel.modelID))
+		newEntries["BISH_SLOW_MODEL_ID"] = fmt.Sprintf("export BISH_SLOW_MODEL_ID='%s'", config.slowModel.modelID)
 	}
 
-	if len(configEntries) == 0 {
+	if len(newEntries) == 0 {
 		return fmt.Errorf("no configuration to save")
 	}
 
+	// Read existing config and preserve non-wizard lines
+	var preserved []string
+	if existing, err := os.ReadFile(configPath); err == nil {
+		for _, line := range strings.Split(string(existing), "\n") {
+			if key, ok := extractExportKey(line); ok && wizardManagedKeys[key] {
+				continue // drop old wizard entries; they'll be replaced
+			}
+			preserved = append(preserved, line)
+		}
+	}
+
+	// Build output: preserved lines first, then new wizard entries
 	var buf strings.Builder
-	for _, entry := range configEntries {
-		buf.WriteString(entry + "\n")
+	for _, line := range preserved {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		buf.WriteString(line + "\n")
+	}
+	for _, key := range []string{
+		"BISH_FAST_MODEL_PROVIDER", "BISH_FAST_MODEL_API_KEY",
+		"BISH_FAST_MODEL_BASE_URL", "BISH_FAST_MODEL_ID",
+		"BISH_SLOW_MODEL_PROVIDER", "BISH_SLOW_MODEL_API_KEY",
+		"BISH_SLOW_MODEL_BASE_URL", "BISH_SLOW_MODEL_ID",
+	} {
+		if entry, ok := newEntries[key]; ok {
+			buf.WriteString(entry + "\n")
+		}
 	}
 
 	tmpFile, err := os.CreateTemp(configDir, ".bish_config_ui.*.tmp")

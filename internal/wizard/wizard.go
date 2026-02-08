@@ -235,6 +235,12 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.config.slowModel.testError = msg.err.Error()
 			}
+		} else {
+			if m.step == stepFastTest {
+				m.config.fastModel.testError = ""
+			} else {
+				m.config.slowModel.testError = ""
+			}
 		}
 		return m, nil
 
