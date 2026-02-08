@@ -19,6 +19,9 @@ bish is a modern shell that combines the familiarity of POSIX shell syntax with 
     <packageSourceUrl>https://github.com/robottwo/bishop</packageSourceUrl>
     <docsUrl>https://github.com/robottwo/bishop/blob/main/docs/GETTING_STARTED.md</docsUrl>
     <bugTrackerUrl>https://github.com/robottwo/bishop/issues</bugTrackerUrl>
+    <dependencies>
+      <dependency id="starship" />
+    </dependencies>
   </metadata>
   <files>
     <file src="tools\**" target="tools" />

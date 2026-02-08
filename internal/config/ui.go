@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/wizard"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 )
@@ -757,7 +758,6 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 
 	// Ensure sourced in .bishrc
 	gshrcPath := filepath.Join(homeDir(), ".bishrc")
-	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
 
 	content, err := os.ReadFile(gshrcPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -769,18 +769,19 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 		return configPath, nil // Already configured
 	}
 
-	// Need to add the source snippet - either append to existing or create new
-	var f2 *os.File
 	if os.IsNotExist(err) {
-		f2, err = os.Create(gshrcPath)
-		if err != nil {
-			return "", fmt.Errorf("failed to create %s: %w", gshrcPath, err)
+		// Fresh install: write the full template (includes starship + config_ui source)
+		if writeErr := os.WriteFile(gshrcPath, wizard.BishrcTemplate(), 0644); writeErr != nil {
+			return "", fmt.Errorf("failed to create %s: %w", gshrcPath, writeErr)
 		}
-	} else {
-		f2, err = os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			return "", fmt.Errorf("failed to open %s for appending: %w", gshrcPath, err)
-		}
+		return configPath, nil
+	}
+
+	// Existing file without config_ui source: append the snippet
+	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
+	f2, err := os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to open %s for appending: %w", gshrcPath, err)
 	}
 
 	var writeErr error

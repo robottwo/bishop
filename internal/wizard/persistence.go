@@ -159,7 +159,6 @@ func saveConfigToFile(config wizardConfig) error {
 	}
 
 	gshrcPath := filepath.Join(homeDir(), ".bishrc")
-	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
 
 	content, err := os.ReadFile(gshrcPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -172,15 +171,18 @@ func saveConfigToFile(config wizardConfig) error {
 
 	var f *os.File
 	if os.IsNotExist(err) {
-		f, err = os.Create(gshrcPath)
-		if err != nil {
-			return fmt.Errorf("failed to create %s: %w", gshrcPath, err)
+		// Fresh install: write the full template (includes starship + config_ui source)
+		if writeErr := os.WriteFile(gshrcPath, bishrcTemplate, 0644); writeErr != nil {
+			return fmt.Errorf("failed to create %s: %w", gshrcPath, writeErr)
 		}
-	} else {
-		f, err = os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			return fmt.Errorf("failed to open %s: %w", gshrcPath, err)
-		}
+		return nil
+	}
+
+	// Existing file without config_ui source: append the snippet
+	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
+	f, err = os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open %s: %w", gshrcPath, err)
 	}
 
 	defer func() {

@@ -1,0 +1,24 @@
+# ~/.bishrc - Bishop shell user configuration
+# Sourced after built-in defaults on every bish startup.
+# Only add customizations here; built-in defaults live in .bishrc.default.
+
+# -------- Starship Prompt --------
+# If starship is installed, use it for a rich prompt.
+# Install starship: https://starship.rs
+# Customize via ~/.config/starship.toml
+if command -v starship >/dev/null 2>&1; then
+  function BISH_UPDATE_PROMPT() {
+    BISH_PROMPT="$(starship prompt --status=$BISH_LAST_COMMAND_EXIT_CODE --cmd-duration=$BISH_LAST_COMMAND_DURATION_MS)"
+  }
+  STARSHIP_SHELL="bish"
+  STARSHIP_SESSION_KEY="$(starship session)"
+  STARSHIP_START_TIME="$(starship time)"
+  BISH_PROMPT="$(starship prompt --status=$BISH_LAST_COMMAND_EXIT_CODE --cmd-duration=$BISH_LAST_COMMAND_DURATION_MS)"
+fi
+
+# -------- Custom Settings --------
+# Add your own environment variable overrides below.
+# See available options: bish --help or docs/CONFIGURATION.md
+
+# Source UI configuration (managed by setup wizard)
+[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui
