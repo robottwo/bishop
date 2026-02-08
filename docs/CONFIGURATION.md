@@ -2,8 +2,25 @@
 
 bishop is configurable via simple dotfiles and environment variables. This guide explains where configuration lives, default values, and common customization tips.
 
-Upstream project: https://github.com/atinylittleshell/gsh  
+Upstream project: https://github.com/atinylittleshell/gsh
 Fork repository: https://github.com/robottwo/bishop
+
+## Quick Start: Setup Wizard
+
+The easiest way to configure bishop is using the interactive setup wizard:
+
+- **First time launch**: The wizard runs automatically if no configuration exists
+- **Manual launch**: Run `bish --setup` from command line
+- **From within bishop**: Type `#!setup` and press Enter
+
+The wizard guides you through:
+- Choosing providers (Ollama, OpenAI, OpenRouter)
+- Entering API keys (with validation)
+- Selecting models for fast and slow operations
+- Testing connections
+- Saving configuration securely
+
+See [GETTING_STARTED.md](./GETTING_STARTED.md) for more details about the setup wizard.
 
 ## Files and Load Order
 
@@ -74,7 +91,7 @@ The configuration menu allows you to:
 - Set the assistant box height
 - Toggle safety checks for command approval
 
-Changes made through the configuration menu are persisted to `~/.bish_config_ui` and automatically sourced in your shell.
+Changes made through the configuration menu are persisted to `~/.config/bish/config_ui` and automatically sourced in your shell.
 
 ## Autocd
 

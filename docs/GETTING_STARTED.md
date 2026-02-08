@@ -10,7 +10,7 @@ If you're new, start here to install, build, and run bishop quickly.
 ## Requirements
 
 - macOS or Linux
-- Go 1.24+ installed and in your PATH
+- Go 1.24.13+ installed and in your PATH
 
 ## Install and Build
 
@@ -32,6 +32,47 @@ sudo install -m 0755 bin/bish /usr/local/bin/bish
 ### Upgrading
 
 Bishop includes self-update support. When a new version is available, it can automatically detect and offer to update.
+
+## Setup Wizard
+
+When you launch bishop for the first time, you'll be greeted by a setup wizard that guides you through configuring your AI models.
+
+### What to Expect
+
+The wizard will help you:
+
+1. **Choose providers** for fast and slow models
+   - **Ollama**: Local LLM (recommended for privacy, no API key needed)
+   - **OpenAI**: GPT models (requires API key)
+   - **OpenRouter**: Access many LLM providers (requires API key)
+
+2. **Enter API keys** (if using cloud providers)
+   - Keys are validated for format before proceeding
+   - OpenAI keys must start with `sk-`
+   - OpenRouter keys must start with `sk-or-`
+
+3. **Select models** for fast and slow operations
+   - **Fast model**: Used for auto-completion and suggestions
+   - **Slow model**: Used for chat and agent operations
+
+4. **Test connections** to verify your setup works
+
+5. **Save configuration** to `~/.config/bish/config_ui`
+
+### Running the Wizard Later
+
+You can run the setup wizard anytime:
+
+- From command line: `bish --setup`
+- From within bishop: Type `#!setup` and press Enter
+
+### Configuration Files
+
+Your configuration is stored in:
+
+- `~/.config/bish/config_ui`: UI-generated configuration (wizard and #!config)
+- `~/.bishrc`: Main runtime configuration
+- `~/.bishenv`: Environment-only overrides (recommended for secrets)
 
 ## Launching bishop
 

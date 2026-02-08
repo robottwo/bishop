@@ -26,6 +26,7 @@ import (
 	"github.com/robottwo/bishop/internal/styles"
 	"github.com/robottwo/bishop/internal/subagent"
 	"github.com/robottwo/bishop/internal/termtitle"
+	"github.com/robottwo/bishop/internal/wizard"
 	"github.com/robottwo/bishop/pkg/gline"
 	"github.com/robottwo/bishop/pkg/shellinput"
 	"go.uber.org/zap"
@@ -220,6 +221,14 @@ func RunInteractiveShell(
 					continue
 				case "tokens":
 					agent.PrintTokenStats()
+					continue
+				case "setup":
+					if err := wizard.RunWizard(runner); err != nil {
+						logger.Error("error running setup wizard", zap.Error(err))
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("bish: Error running setup: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
+					}
+					// Sync any gsh variables that were changed in the setup wizard
+					environment.SyncVariablesToEnv(runner)
 					continue
 				case "config":
 					if err := config.RunConfigUI(runner); err != nil {
@@ -764,11 +773,12 @@ AGENT COMMANDS
   #? or #!fix       Ask AI to explain and fix the last failed command
   #/<macro>         Invoke a predefined agent macro
 
-AGENT CONTROLS
-  #!help            Show this help message
-  #!new             Reset the current chat session
-  #!tokens          Display token usage statistics
-  #!config          Open interactive configuration menu
+ AGENT CONTROLS
+   #!help            Show this help message
+   #!new             Reset the current chat session
+   #!setup           Run the setup wizard to configure API keys
+   #!tokens          Display token usage statistics
+   #!config          Open interactive configuration menu
   #!coach           Open the coaching dashboard
     #!coach stats        View your command statistics
     #!coach achievements View your achievements

@@ -51,7 +51,7 @@ Tips for upstreamable changes:
 ## Development setup
 
 Requirements:
-- Go 1.24+ on macOS or Linux
+- Go 1.24.13+ on macOS or Linux
 - Make
 - pre-commit (optional, but recommended)
 
