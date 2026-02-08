@@ -22,18 +22,14 @@ func RunWizard(runner *interp.Runner) error {
 }
 
 func NeedsSetup() bool {
-	homeDir := getHomeDir()
-
-	// Only auto-launch for true first-run: neither config file exists.
-	// Users with an existing ~/.bishrc have already configured bishop
-	// (possibly manually) and should not be interrupted.
-	configPath := homeDir + "/.bishrc"
-	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+	// Already configured via the wizard/config TUI.
+	configUIFile := getHomeDir() + "/.config/bish/config_ui"
+	if _, err := os.Stat(configUIFile); !os.IsNotExist(err) {
 		return false
 	}
 
-	configUIFile := homeDir + "/.config/bish/config_ui"
-	if _, err := os.Stat(configUIFile); !os.IsNotExist(err) {
+	// Already configured manually via environment variables.
+	if os.Getenv("BISH_FAST_MODEL_PROVIDER") != "" || os.Getenv("BISH_SLOW_MODEL_PROVIDER") != "" {
 		return false
 	}
 
