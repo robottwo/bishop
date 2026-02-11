@@ -1,6 +1,7 @@
 package wizard
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,15 +46,16 @@ func EnsureBishrcConfigured() error {
 		return fmt.Errorf("failed to open %s: %w", gshrcPath, err)
 	}
 
-	defer func() {
-		if closeErr := f.Close(); closeErr != nil && err == nil {
-			err = closeErr
-		}
-	}()
-
-	if _, err := f.WriteString(sourceSnippet); err != nil {
-		return fmt.Errorf("failed to write to %s: %w", gshrcPath, err)
+	var writeErr error
+	if _, writeErr = f.WriteString(sourceSnippet); writeErr != nil {
+		writeErr = fmt.Errorf("failed to write to %s: %w", gshrcPath, writeErr)
 	}
 
-	return nil
+	closeErr := f.Close()
+	if closeErr != nil {
+		closeErr = fmt.Errorf("failed to close %s: %w", gshrcPath, closeErr)
+	}
+
+	// Combine both errors if both occurred
+	return errors.Join(writeErr, closeErr)
 }
