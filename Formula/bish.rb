@@ -8,8 +8,6 @@ class Bish < Formula
   version "0.22.2"
   license "GPL-3.0-or-later"
 
-  depends_on "starship"
-
   on_macos do
     if Hardware::CPU.intel?
       url "https://github.com/robottwo/bishop/releases/download/v0.22.2/bish_Darwin_x86_64.tar.gz"

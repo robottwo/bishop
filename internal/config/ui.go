@@ -756,45 +756,9 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 
 	success = true
 
-	// Ensure sourced in .bishrc
-	gshrcPath := filepath.Join(homeDir(), ".bishrc")
-
-	content, err := os.ReadFile(gshrcPath)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read %s: %w", gshrcPath, err)
+	if err := wizard.EnsureBishrcConfigured(); err != nil {
+		return "", err
 	}
 
-	// Check if already contains the source snippet
-	if err == nil && strings.Contains(string(content), "config/bish/config_ui") {
-		return configPath, nil // Already configured
-	}
-
-	if os.IsNotExist(err) {
-		// Fresh install: write the full template (includes starship + config_ui source)
-		if writeErr := os.WriteFile(gshrcPath, wizard.BishrcTemplate(), 0644); writeErr != nil {
-			return "", fmt.Errorf("failed to create %s: %w", gshrcPath, writeErr)
-		}
-		return configPath, nil
-	}
-
-	// Existing file without config_ui source: append the snippet
-	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
-	f2, err := os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to open %s for appending: %w", gshrcPath, err)
-	}
-
-	var writeErr error
-	defer func() {
-		if closeErr := f2.Close(); closeErr != nil && writeErr == nil {
-			writeErr = fmt.Errorf("failed to close %s: %w", gshrcPath, closeErr)
-		}
-	}()
-
-	if _, err := f2.WriteString(sourceSnippet); err != nil {
-		writeErr = fmt.Errorf("failed to write to %s: %w", gshrcPath, err)
-		return "", writeErr
-	}
-
-	return configPath, writeErr
+	return configPath, nil
 }
