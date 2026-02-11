@@ -39,7 +39,7 @@ func extractExportKey(line string) (string, bool) {
 }
 
 // shellEscape escapes a value for safe inclusion inside single quotes.
-// The standard POSIX technique: replace ' with '\”.
+// The standard POSIX technique: replace ' with '\” (end quote, escaped quote, start quote).
 func shellEscape(s string) string {
 	return strings.ReplaceAll(s, "'", "'\\''")
 }

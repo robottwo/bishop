@@ -757,7 +757,7 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 	success = true
 
 	if err := wizard.EnsureBishrcConfigured(); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to ensure .bishrc configuration: %w", err)
 	}
 
 	return configPath, nil
