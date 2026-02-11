@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/wizard"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 )
@@ -755,45 +756,9 @@ func saveConfig(key, value string, runner *interp.Runner) (savedPath string, err
 
 	success = true
 
-	// Ensure sourced in .bishrc
-	gshrcPath := filepath.Join(homeDir(), ".bishrc")
-	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
-
-	content, err := os.ReadFile(gshrcPath)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read %s: %w", gshrcPath, err)
+	if err := wizard.EnsureBishrcConfigured(); err != nil {
+		return "", fmt.Errorf("failed to ensure .bishrc configuration: %w", err)
 	}
 
-	// Check if already contains the source snippet
-	if err == nil && strings.Contains(string(content), "config/bish/config_ui") {
-		return configPath, nil // Already configured
-	}
-
-	// Need to add the source snippet - either append to existing or create new
-	var f2 *os.File
-	if os.IsNotExist(err) {
-		f2, err = os.Create(gshrcPath)
-		if err != nil {
-			return "", fmt.Errorf("failed to create %s: %w", gshrcPath, err)
-		}
-	} else {
-		f2, err = os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			return "", fmt.Errorf("failed to open %s for appending: %w", gshrcPath, err)
-		}
-	}
-
-	var writeErr error
-	defer func() {
-		if closeErr := f2.Close(); closeErr != nil && writeErr == nil {
-			writeErr = fmt.Errorf("failed to close %s: %w", gshrcPath, closeErr)
-		}
-	}()
-
-	if _, err := f2.WriteString(sourceSnippet); err != nil {
-		writeErr = fmt.Errorf("failed to write to %s: %w", gshrcPath, err)
-		return "", writeErr
-	}
-
-	return configPath, writeErr
+	return configPath, nil
 }

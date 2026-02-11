@@ -54,6 +54,8 @@ nfpms:
     rpm:
       group: System Environment/Shells
       compression: xz
+    recommends:
+      - starship
     deb:
       lintian_overrides:
         - statically-linked-binary
@@ -80,6 +82,8 @@ homebrew_casks:
     homepage: https://github.com/robottwo/bishop
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
+    # starship provides an enhanced prompt experience (optional)
+    # The default .bishrc template gracefully handles its absence
     commit_author:
       name: robottwo
       email: robottwo@users.noreply.github.com
@@ -94,6 +98,8 @@ scoops:
     homepage: https://github.com/robottwo/bishop
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
+    # starship provides an enhanced prompt experience (optional)
+    # The default .bishrc template gracefully handles its absence
     repository:
       owner: robottwo
       name: scoop-bucket
@@ -105,6 +111,8 @@ aurs:
     homepage: https://github.com/robottwo/bishop
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
+    optdepends:
+      - "starship: cross-shell prompt"
     maintainers:
       - "robottwo <robottwo@users.noreply.github.com>"
     private_key: "{{ .Env.AUR_PRIVATE_KEY }}"
@@ -125,6 +133,8 @@ aur_sources:
     homepage: https://github.com/robottwo/bishop
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
+    optdepends:
+      - "starship: cross-shell prompt"
     maintainers:
       - "robottwo <robottwo@users.noreply.github.com>"
     private_key: "{{ .Env.AUR_PRIVATE_KEY }}"

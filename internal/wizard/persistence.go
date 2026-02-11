@@ -39,7 +39,7 @@ func extractExportKey(line string) (string, bool) {
 }
 
 // shellEscape escapes a value for safe inclusion inside single quotes.
-// The standard POSIX technique: replace ' with '\''.
+// The standard POSIX technique: replace ' with '\” (end quote, escaped quote, start quote).
 func shellEscape(s string) string {
 	return strings.ReplaceAll(s, "'", "'\\''")
 }
@@ -158,40 +158,5 @@ func saveConfigToFile(config wizardConfig) error {
 		_ = dir.Close()
 	}
 
-	gshrcPath := filepath.Join(homeDir(), ".bishrc")
-	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.config/bish/config_ui ] && source ~/.config/bish/config_ui\n"
-
-	content, err := os.ReadFile(gshrcPath)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to read %s: %w", gshrcPath, err)
-	}
-
-	if err == nil && strings.Contains(string(content), "config/bish/config_ui") {
-		return nil
-	}
-
-	var f *os.File
-	if os.IsNotExist(err) {
-		f, err = os.Create(gshrcPath)
-		if err != nil {
-			return fmt.Errorf("failed to create %s: %w", gshrcPath, err)
-		}
-	} else {
-		f, err = os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			return fmt.Errorf("failed to open %s: %w", gshrcPath, err)
-		}
-	}
-
-	defer func() {
-		if closeErr := f.Close(); closeErr != nil && err == nil {
-			err = closeErr
-		}
-	}()
-
-	if _, err := f.WriteString(sourceSnippet); err != nil {
-		return fmt.Errorf("failed to write to %s: %w", gshrcPath, err)
-	}
-
-	return nil
+	return EnsureBishrcConfigured()
 }
