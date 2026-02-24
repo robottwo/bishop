@@ -21,7 +21,7 @@ func BishrcTemplate() []byte {
 
 // EnsureBishrcConfigured ensures that ~/.bishrc exists and sources config_ui.
 // For fresh installs, writes the full template. For existing files, appends the source line.
-func EnsureBishrcConfigured() (err error) {
+func EnsureBishrcConfigured() error {
 	gshrcPath := filepath.Join(homeDir(), ".bishrc")
 
 	content, err := os.ReadFile(gshrcPath)
@@ -47,8 +47,8 @@ func EnsureBishrcConfigured() (err error) {
 	}
 
 	var writeErr error
-	if _, err := f.WriteString(sourceSnippet); err != nil {
-		writeErr = fmt.Errorf("failed to write to %s: %w", gshrcPath, err)
+	if _, writeErr = f.WriteString(sourceSnippet); writeErr != nil {
+		writeErr = fmt.Errorf("failed to write to %s: %w", gshrcPath, writeErr)
 	}
 
 	closeErr := f.Close()
