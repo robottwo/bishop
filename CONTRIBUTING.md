@@ -27,6 +27,28 @@ Our goals:
 - Compatibility by default: Prefer changes that are compatible with upstream gsh design and APIs.
 - Testing is mandatory: PRs should include tests when adding or modifying behavior.
 
+## Branch workflow
+
+We use a two-tier branching model:
+
+- **`uat`** (default branch): User Acceptance Testing branch
+  - All feature branches merge here first via PR
+  - This is where integration testing and validation happens
+  - The default branch for new PRs
+  
+- **`main`**: Production-ready stable branch
+  - Only accepts merges from `uat` via PR
+  - Protected: requires PR, no direct pushes
+  - Represents tested, release-ready code
+
+**Workflow:**
+1. Create feature branches from `uat`: `feature/your-feature` or `fix/your-fix`
+2. Submit PR targeting `uat` (default)
+3. After PR is merged to `uat` and validated, create PR from `uat` → `main`
+4. Once merged to `main`, the feature is considered stable and release-ready
+
+This ensures all code goes through integration testing in `uat` before reaching the stable `main` branch.
+
 ## Upstream contribution flow
 
 We aim to keep bishop close to upstream and upstream-friendly.
@@ -88,7 +110,8 @@ Useful docs:
 ## Branching, commits, and PRs
 
 Branching:
-- Create branches from main: feature/short-description or fix/short-description.
+- Create branches from `uat`: `feature/short-description` or `fix/short-description`.
+- PRs should target `uat` by default (it's the default branch).
 
 Commit messages:
 - Prefer Conventional Commits style when possible (feat:, fix:, chore:, docs:, refactor:, test:, perf:).
